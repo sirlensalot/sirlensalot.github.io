@@ -1,4 +1,1 @@
-slpopejoy.github.io
-===================
-
-Ragged writings on all things
+Tatterdemalion: ragged writings on various things
