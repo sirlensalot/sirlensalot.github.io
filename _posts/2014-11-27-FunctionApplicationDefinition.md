@@ -1,3 +1,7 @@
+---
+title: Function Application and Definition in Haskell
+---
+
 In this article, we'll take a close look at functions, namely how we call them -- function *application* -- and how we define them.
 
 Function application seems like a paltry subject. Indeed, in imperative languages it's pretty simple. C++ can get hairy regarding copy-construction on return values, Java manages to confuse some folks regarding pass-by-value, but in general, it's `foo(bar,baz)` and that's it.
