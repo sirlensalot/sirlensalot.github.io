@@ -236,7 +236,7 @@ a:focus {
 .masthead h1 {
   margin-top: 0;
   font-family: "Abril Fatface";
-  font-size: 14px;
+  font-size: 30px;
 }
 .masthead .lead {
   margin-bottom: 0;
@@ -281,7 +281,7 @@ a:focus {
     left: 0;
   }
   .masthead h1 {
-    font-size: 24px;
+    font-size: 30px;
   }
   .colophon {
     margin-top: 40px;
