@@ -1,12 +1,11 @@
-name: Tatterdemalion
-pygments: true
-github: https://www.github.com/slpopejoy
-about: Ragged writings on various things
-# urls:
-#     - text: github
-#       url: https://github.com/exaem
-#     - text: email
-#       url: mailto:exaem@exaem.co.uk
+title:        Tatterdemalion
+tagline:      'Ragged writings on various things'
+description:  'Stuart Popejoy's bloglocation'
+url:          http://slpopejoy.github.io
+version:      1.0
+author:
+  name:       'Stuart Popejoy'
+  email:      'First Initial Last Name at Panix dot Com'
 markdown:     rdiscount
 permalink:    pretty
 pygments:     true
