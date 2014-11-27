@@ -1,5 +1,4 @@
 name: Tatterdemalion
-markdown: redcarpet
 pygments: true
 github: https://www.github.com/slpopejoy
 about: Ragged writings on various things
@@ -8,3 +7,7 @@ about: Ragged writings on various things
 #       url: https://github.com/exaem
 #     - text: email
 #       url: mailto:exaem@exaem.co.uk
+markdown:     rdiscount
+permalink:    pretty
+pygments:     true
+paginate:     5
