@@ -10,7 +10,8 @@ markdown:     rdiscount
 permalink:    pretty
 #pygments:     true
 #markdown:    redcarpet
-pygments: true
+#pygments: true
 markdown: kramdown
+use_coderay:   true
 #highlighter: pygments
 paginate:     5
