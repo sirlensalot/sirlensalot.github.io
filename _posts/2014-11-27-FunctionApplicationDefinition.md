@@ -1,5 +1,6 @@
 ---
 title: Function Application and Definition in Haskell
+layout: post
 ---
 
 In this article, we'll take a close look at functions, namely how we call them -- function *application* -- and how we define them.
