@@ -8,11 +8,11 @@ author:
   email:      'spopejoy-at-panix-dot-com@fix-this-email-addy.wtf'
 markdown:     rdiscount
 permalink:    pretty
-#pygments:     true
+pygments:     true
 #markdown:    redcarpet
 #pygments: true
-markdown: kramdown
-use_coderay:   true
-coderay_css:   class
+#markdown: kramdown
+#use_coderay:   true
+#coderay_css:   class
 #highlighter: pygments
 paginate:     5
