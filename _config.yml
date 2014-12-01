@@ -13,5 +13,6 @@ permalink:    pretty
 #pygments: true
 markdown: kramdown
 use_coderay:   true
+coderay_css:   class
 #highlighter: pygments
 paginate:     5
