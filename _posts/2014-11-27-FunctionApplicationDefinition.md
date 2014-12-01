@@ -3,6 +3,10 @@ title: Function Application and Definition in Haskell
 layout: post
 ---
 
+*Author's Note: this article is the first of a series introducing Haskell
+to experienced programmers, building up language fundamentals, and unlearning
+assumptions from the imperative world. More to come!* 
+
 In this article, we'll take a close look at functions, namely how we call them -- function *application* -- and how we define them.
 
 Function application seems like a paltry subject. Indeed, in imperative languages it's pretty simple. C++ can get hairy regarding copy-construction on return values, Java manages to confuse some folks regarding pass-by-value, but in general, it's `foo(bar,baz)` and that's it.
@@ -135,7 +139,7 @@ Calling Nullary Functions
 
 When the time comes to invoke our nullary functions, Haskell offers a much cleaner syntax, with no dots or pesky parentheses required. Below is the Haskell versions of our imperative code above:
 
-~~~~ {.haskell}
+~~~~ {.sourceCode .literate .haskell}
 someTests = ( 
              (x + 3) == 4,         -- addition
              ([1,2,3] !! x) == 2,  -- list-index
@@ -150,7 +154,7 @@ Local Scope
 
 We talked about how we'd like to define functions locally, not just at top-level. Haskell has us covered:
 
-~~~~haskell
+~~~~ {.sourceCode .literate .haskell}
 localWithWhere = y * 30 + y ^ 2
                  where y = 3
 ~~~~
