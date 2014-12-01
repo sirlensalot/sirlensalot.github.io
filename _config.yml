@@ -10,5 +10,5 @@ markdown:     rdiscount
 permalink:    pretty
 pygments:     true
 #markdown:    redcarpet
-#highlighter: pygments
+highlighter: pygments
 paginate:     5
