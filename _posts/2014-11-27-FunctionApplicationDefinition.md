@@ -135,7 +135,7 @@ Calling Nullary Functions
 
 When the time comes to invoke our nullary functions, Haskell offers a much cleaner syntax, with no dots or pesky parentheses required. Below is the Haskell versions of our imperative code above:
 
-~~~~ {.sourceCode .literate .haskell}
+~~~~ {.haskell}
 someTests = ( 
              (x + 3) == 4,         -- addition
              ([1,2,3] !! x) == 2,  -- list-index
@@ -150,7 +150,7 @@ Local Scope
 
 We talked about how we'd like to define functions locally, not just at top-level. Haskell has us covered:
 
-~~~~ {.sourceCode .literate .haskell}
+~~~~haskell
 localWithWhere = y * 30 + y ^ 2
                  where y = 3
 ~~~~
