@@ -5,7 +5,7 @@ layout: post
 
 *Author's Note: this article is the first of a series introducing Haskell
 to experienced programmers, building up language fundamentals, and unlearning
-assumptions from the imperative world. More to come!* 
+assumptions from the imperative world.* 
 
 In this article, we'll take a close look at functions, namely how we call them -- function *application* -- and how we define them.
 
