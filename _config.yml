@@ -11,6 +11,6 @@ permalink:    pretty
 #pygments:     true
 #markdown:    redcarpet
 pygments: true
-markdown: redcarpet-pygments
+markdown: kramdown
 #highlighter: pygments
 paginate:     5
