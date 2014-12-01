@@ -8,7 +8,9 @@ author:
   email:      'spopejoy-at-panix-dot-com@fix-this-email-addy.wtf'
 markdown:     rdiscount
 permalink:    pretty
-pygments:     true
+#pygments:     true
 #markdown:    redcarpet
-highlighter: pygments
+pygments: true
+markdown: redcarpet-pygments
+#highlighter: pygments
 paginate:     5
