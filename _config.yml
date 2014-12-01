@@ -9,6 +9,6 @@ author:
 #markdown:     rdiscount
 permalink:    pretty
 #pygments:     true
-markdown:    kramdown
+markdown:    maruku
 highlighter: pygments
 paginate:     5
