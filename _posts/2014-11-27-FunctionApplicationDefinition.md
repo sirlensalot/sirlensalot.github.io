@@ -93,7 +93,7 @@ Function Definition in Haskell
 
 Haskell is designed from the ground up to be pure and lazy. As a direct consequence, it has no need for assignment, instead striving to make function definition as elegant and simple as possible.
 
-With assingment out of the way, Haskell can reclaim the equals sign for [function definition](http://www.haskell.org/haskellwiki/Keywords#.3D "Keywords: ="). When we write
+With assignment out of the way, Haskell can reclaim the equals sign for [function definition](http://www.haskell.org/haskellwiki/Keywords#.3D "Keywords: ="). When we write
 
 ~~~~ {.sourceCode .literate .haskell}
 x = 1
