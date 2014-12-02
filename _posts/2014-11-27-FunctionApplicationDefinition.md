@@ -8,7 +8,7 @@ Haskell to experienced programmers, building up language fundamentals,
 and unlearning assumptions from the imperative world.*
 
 *Note 12/1/2014: updated thanks to Reddit to avoid blindly using
- "nullary function" everywhere :) *
+"nullary function" everywhere :) *
 
 In this article, we'll take a close look at functions, namely how we
 call them -- function *application* -- and how we define them.
