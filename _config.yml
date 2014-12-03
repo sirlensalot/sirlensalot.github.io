@@ -11,8 +11,8 @@ permalink:    pretty
 pygments:     true
 #markdown:    redcarpet
 #pygments: true
-markdown: kramdown
+#markdown: kramdown
 #use_coderay:   true
 #coderay_css:   class
-highlighter: pygments
+#highlighter: pygments
 paginate:     5
