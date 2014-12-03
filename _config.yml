@@ -6,9 +6,9 @@ version:      1.1
 author:
   name:       'Stuart Popejoy'
   email:      'spopejoy-at-panix-dot-com@fix-this-email-addy.wtf'
-#markdown:     rdiscount
-#permalink:    pretty
-#pygments:     true
+markdown:     rdiscount
+permalink:    pretty
+pygments:     true
 #markdown:    redcarpet
 #pygments: true
 markdown: kramdown
