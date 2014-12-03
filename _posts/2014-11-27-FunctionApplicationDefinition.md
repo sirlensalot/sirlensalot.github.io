@@ -5,8 +5,6 @@ layout: post
 
 *Author's Note: this article is the first of a series introducing Haskell to experienced programmers, building up language fundamentals, and unlearning assumptions from the imperative world.*
 
-*Note 12/1/2014: updated thanks to Reddit to avoid blindly using "nullary function" everywhere :)*
-
 In this article, we'll take a close look at functions, namely how we call them -- function *application* -- and how we define them.
 
 Function application seems like a paltry subject. Indeed, in imperative languages it's pretty simple. C++ can get hairy regarding copy-construction on return values, Java manages to confuse some folks regarding pass-by-value, but in general, it's `foo(bar,baz)` and that's it.
@@ -18,25 +16,25 @@ Variables vs Functions in Imperative Languages
 
 Consider the following two statements in Java or C:
 
-~~~~ {.java}
+{% highlight java %}
 int x = 1;
 int y() { return 1; }
-~~~~
+{% endhighlight %}
 
 `x` is a variable assigned to 1, `y()` is a *nullary function* (a function with no arguments) that returns 1. From a usage standpoint, they're identical.
 
-~~~~ {.java}
+{% highlight java %}
 x + 4 == y() + 4 == 5;  // addition
 int[] a = {1,2,3};
 a[x] == a[y()] == 2;    // list-index
 x == y() == 1;          // equality
-~~~~
+{% endhighlight %}
 
 `y()` cannot be redefined in runtime, but `x` can be *re-assigned*. If somewhere before or during the comparisons above, we write
 
-~~~~ {.java}
+{% highlight java %}
 x = 3;
-~~~~
+{% endhighlight %}
 
 then the comparisons will return `false` (`0` in C), or worse (the array index will be particularly ugly). Re-assignment means behavior is dictated by the order in which these statements are written, hence the term "imperative".
 
@@ -62,7 +60,7 @@ Eager vs Lazy evaluation
 
 In the code below, we call `add5` with `y()`. What happens?
 
-~~~~ {.java}
+{% highlight java %}
 int y() { return 2; } 
 
 int add5(int i) { return i + 5; }
@@ -70,7 +68,7 @@ int add5(int i) { return i + 5; }
 void callAFunction () {
     add5 ( y() ); 
 }
-~~~~
+{% endhighlight %}
 
 When the call to `add5` is executed, the function `y()` is *evaluated eagerly* and assigned to the argument variable `i`. Thus within the body of `add5`, our nullary function is long gone. We're back to variables and assignment as soon as we invoke a function.
 
@@ -91,21 +89,25 @@ So we have to throw in the towel on functionalizing our imperative languages. Bu
 Definitions in Haskell
 ======================
 
-Haskell is designed from the ground up to be pure and lazy. As a direct consequence, it has no need for assignment, instead striving to make *definition* as elegant and simple as possible.
+In Haskell, we can write
 
-With assignment out of the way, Haskell can reclaim the equals sign for [definition](http://www.haskell.org/haskellwiki/Keywords#.3D "Keywords: ="). When we write
-
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 x = 1
-~~~~
+{% endhighlight %}
 
-we are **not** assigning a variable called "x": instead, we are *defining* `x` to be the value `1`. The definition operates similarly to our nullary function `y()` above: we can define it before or after calling code with no impact on execution; it's pure and immutable; it encapsulates the value.
+and we end up with something altogether different than the options we had in C or Java. The syntax looks like variable assignment -- `int x = 1;` -- but in fact we've defined something akin to our nullary function above -- `int x() { return 1; }`.
 
-`x` is not a nullary function, however, as such things don't really exist in functional languages. Sometimes imperative terminology distinguishes a "function" from a "subroutine" if it returns a value, but this is only meaningful if a "subroutine" can mutate state via side-effects. In a pure language, a function with no arguments is not a function, but just some code that always returns the same value, and is thus a constant.
+In truth, it's neither: this is a definition that binds the symbol `x` to a constant value `1`. Formally, it's a *closed expression*, not a function. Nonetheless, it gives us everything we were looking for with our nullary functions above:
 
-Nonetheless, thinking of `x` as a nullary function can be helpful to "unlearn" the imperative assumption of `=` indicating variable assignment. If every time you see `=`, you think "I'm defining a function" instead of "I'm assigning a variable", you'll be well on your way to understanding Haskell code.
+-   we can use it anywhere we like, independent of where/when we declared it
 
-In Haskell, the equals operator always *defines*, it never *assigns*.
+-   We can't reassign or redefine it; it's a permanent, immutable definition
+
+-   We can change how we arrive at its value, e.g. `x = 2 + 3 - 4`, without impacting client code.
+
+Informally, we can think of this as a nullary function, and for imperative programmers, this can be helpful, to "unlearn" our instincts to see an expression like `x = 1` as variable assignment. As we'll see below, "real" functions with arguments are defined using the same syntax, so it's not terribly inaccurate to just see this as a definition of a nullary function.
+
+When you see `=`, think "I'm defining a function" instead of "I'm assigning a variable".
 
 Type Inference
 --------------
@@ -121,47 +123,47 @@ We ask ghci using the `:t` command:
     ghci> :t x
     x :: Num a => a
 
-Huh? That's more complicated than `int y()`! We'll defer a deep-dive on Haskell's type system, and summarize that this means `x`'s type involves `Num`eric types. Unlike many languages, Haskell doesn't assume the literal `1` always indicates an integer type!
+Huh? That's more complicated than `int y()`! We'll defer a deep-dive on Haskell's type system, and summarize that this means `x`'s type involves `Num`-eric types. Unlike many languages, Haskell doesn't assume the literal `1` always indicates an integer type!
 
 Type Signatures
 ---------------
 
 To keep things simple, and because it's generally good practice, we'll provide a **type signature** for our top-level definitions:
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 y :: Int
 y = 2
-~~~~
+{% endhighlight %}
 
-Now we've got a definition of `y` that evaluates to the integer value `2`, with a much simpler type, as reflected in ghci:
+Here, we've defined `y` to return the constant value `2`, and given it a type signature that fixes the type to `Int`. When we ask ghci, we get a much simpler answer:
 
     ghci> :t y
     y :: Int
 
-Invoking Definitions
---------------------
+Invoking functions
+------------------
 
-When the time comes to use these definitions, Haskell offers a much cleaner syntax, with no parentheses required. Below are the Haskell versions of our imperative code above:
+When the time comes to use these expressions, Haskell offers a much cleaner syntax, with no parentheses required. Below are the Haskell versions of our imperative code above:
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 someTests = ( 
              (x + 3) == 4,         -- addition
              ([1,2,3] !! x) == 2,  -- list-index
              x /= y                -- (in)equality
             )
-~~~~
+{% endhighlight %}
 
-Note that this example is executable Haskell code. To do so, I've encased the examples in the dummy function `someTests`. I didn't bother to provide a type signature for it, as the type is not relevant. The reader can figure out the type as an exercise, or ask ghci.
+Note: this example is executable Haskell code. To do so, I've encased the examples in the dummy function `someTests`. I didn't bother to provide a type signature for it, as the type is not relevant. The reader can figure out the type as an exercise, or ask ghci.
 
 Local Scope
 -----------
 
-We talked about how we'd like to have local definitions, not just top-level. Haskell has us covered:
+We talked about how nice it would be to declare functions in local scope. In Haskell we have all the same tools for local definition as we do at top level:
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 localWithWhere = y * 30 + y ^ 2
                  where y = 3
-~~~~
+{% endhighlight %}
 
 Here, we've defined `y` to be used twice in the outer function body. The `where` [keyword](http://www.haskell.org/haskellwiki/Keywords#where "Keywords: where") starts a block of code for definitions in local scope.
 
@@ -169,66 +171,64 @@ Note that this article's code has already defined of `y` at the top level, above
 
 You can also use ["let" and "in"](http://www.haskell.org/haskellwiki/Keywords#let "Keywords: let"):
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 localWithLet = let y = 3 
                in y * 30 + y ^ 2
-~~~~
+{% endhighlight %}
 
-This is more familiar to the imperative idiom, in that something that looks like a variable is defined before the consuming code. I recommend imperative programmers stick with `where` to get used to it, but otherwise it's a matter of style: `where` allows you to put the high-level functionality first, followed by details; `let`/`in` is maybe clearer in some situations.
+This is more familiar to the imperative idiom, in that something that looks like a variable is defined before the consuming code. I recommend imperative programmers stick with `where`, since it looks the least like imperative assignment. Otherwise, it's a matter of style: `where` allows you to put the high-level functionality first, followed by details; `let`/`in` is maybe clearer in some situations.
 
-Local definitions can have type signatures:
+Local definitions can have type signatures, too:
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 localWithTypeDecl :: Int
 localWithTypeDecl = y * 30 + y ^ 2 
                     where y :: Int
                           y = 3
-~~~~
+{% endhighlight %}
 
 Here we start to see some real benefits of type inference. At top level, leaving off type signatures will generally make your code *harder* to understand, but at local level, type inference makes your code *easier* to read. The type signature for `y` above is simply verbose: it's clear from the top-level type that we're dealing with `Int` values.
-
-What's great is that Haskell gives you all the same tools for definition and type specification at any scope.
 
 Arguments and Application
 =========================
 
-We've focused on simple definitions, to show their affinity to the nullary functions of the imperative world. Now let's look at the real functions of functional programming, that is, functions with arguments.
+We've happily dispensed with variable assignment, with Haskell providing us a clean and powerful syntax for defining expressions. It's now time to look at "real" functions, those things that have arguments, and see how we define and invoke them.
 
 Unary and Binary functions
 --------------------------
 
 In a pure language, a unary (one-argument) function directly maps input to output. Let's define one:
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 unaryFunction :: Int -> Int
 unaryFunction x = x * 3 + 2
-~~~~
+{% endhighlight %}
 
 The type signature is `Int -> Int`, meaning the function takes an `Int` argument and returns an `Int`. Thinking of it as mapping input to output, we can imagine the argument "indexing" the output. Indeed `Int -> Int` even looks like mapping syntax from languages like Perl. The arrow dividing the argument from the result type is the *[function type constructor](http://www.haskell.org/haskellwiki/Keywords#-.3E "Keywords: ->")*, which we'll be seeing a lot.
 
 A binary (two-argument) function can also be thought of as a mapping or indexing operation, but in two dimensions. Here's a binary function:
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 binaryFunction :: Int -> Int -> Int
 binaryFunction x y = x * y + x 
-~~~~
+{% endhighlight %}
 
 This is when the type signatures stop looking like anything you've seen in an imperative language. The type signature is growing to the left, with arrows dividing the arguments *and* delimiting the argument from the result type. Here's an example with different types to make the positions clearer:
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 lengthIsDivisible :: String -> Int -> Bool
 lengthIsDivisible s i = (mod (length s) i) == 0
-~~~~
+{% endhighlight %}
 
 This function takes a `String` and an `Int` and returns a `Bool`, `True` if the length of the string is divisible by the second argument.
 
 Let's compare the signatures so far:
 
-~~~~ {.haskell}
+{% highlight haskell %}
 y              ::               Int
 unaryFunction  ::        Int -> Int
 binaryFunction :: Int -> Int -> Int
-~~~~
+{% endhighlight %}
 
 Note the consistency and simplicity. It's admirable, beautiful, maybe confusing at first. But it's no accident that the syntax is unified, as we'll soon see.
 
@@ -237,41 +237,41 @@ Invoking functions with arguments
 
 To invoke functions, we simply delimit argument values with whitespace.
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 invokeUnary = unaryFunction 8     -- will compute 8 * 3 + 2
 invokeBinary = binaryFunction 2 3 -- will compute 2 * 3 + 2
-~~~~
+{% endhighlight %}
 
 Again Haskell is simple and beautiful: no parentheses, no dots, just functions and values. However, once we start calling functions with other functions, we'll need some more syntax. Let's try calling `binaryFunction` with `unaryFunction 3` as its second argument:
 
     binaryFunction 2 unaryFunction 3  <=== bzzt
 
-This doesn't work. The compiler thinks "unaryFunction" is an argument all by itself, of the wrong type; plus '3' is now a third argument and `binaryFunction` only takes two. The problem is solved with parentheses.
+This doesn't work: the compiler can't distinguish what's an argument from what's a function invocation. We'll need to clear things up with parentheses.
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 invokeParens = binaryFunction 2 (unaryFunction 3)
-~~~~
+{% endhighlight %}
 
 That's better. Evaluation looks straightforward: compute `unaryFunction 3` and pass the results as the second argument for `binaryFunction 2`, right? Not so fast!
 
 Recall our discussion of *eager evaluation* above, and how we wanted to avoid assigning variables by *substituting the function call in for the argument variable*. What it means here is we want to substitute the entire invocation of `unaryFunction 3` into `binaryFunction`, looking something like this:
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 binaryFunctionSubstituted = 2 * (unaryFunction 3) + 2
-~~~~
+{% endhighlight %}
 
-`x` becomes 2, and `y` becomes `(unaryFunction 3)`. With this substitution, we now have a *new function* which Haskell will evaluate lazily when the results become needed.
+`x` becomes 2, and `y` becomes `(unaryFunction 3)`. With this substitution, we now have a *new expression*, which Haskell will evaluate lazily when the results become needed.
 
 The Application Operator
 ------------------------
 
 Parentheses are not the only way to delimit function arguments. Haskell also has `$`, the *[application operator](http://hackage.haskell.org/package/base-4.7.0.1/docs/Prelude.html#v:-36- "Prelude")*. Here's how we can write the code above without parentheses:
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 invokeAppOp = binaryFunction 2 $ unaryFunction 3
-~~~~
+{% endhighlight %}
 
-This is perhaps a "cleaner" version. Everything after the `$` is "bunched together" as the second argument to `binaryFunction`.
+This looks nice. Everything after the `$` is "bunched together" as the second argument to `binaryFunction`. It has the same meaning as `binaryFunction 2 (unaryFunction 3)` but with a sweet functional look.
 
 We could leave it at that, and marvel at Haskell's flexible syntax. But let's look deeper. A common mistake is to think that `$` is a keyword, or lexical syntax. In reality it's nothing more than a library function.
 
@@ -293,17 +293,17 @@ Uh-oh. Don't worry, we'll explicate all of this in due time. For now suffice it 
 
 `$` takes a unary function and it's argument. Let's try it on just a unary function:
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 invokeUnaryAppOp = unaryFunction $ 2
-~~~~
+{% endhighlight %}
 
 Super-boring, function application restated. What's the point?
 
 To spice it up, we'll put parentheses around `$`; in Haskell this "un-infixes" it and turns it into a "normal", prefix function:
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 invokeUnaryAppOpPrefix = ($) unaryFunction 2
-~~~~
+{% endhighlight %}
 
 That's a little more interesting. Now we can see that `$` is taking a unary function as its first argument, and the value to apply to that function as its second. Still hasn't shown us anything though, we've just used a function to ... call a function. Let's keep digging.
 
@@ -312,24 +312,24 @@ Partial Application
 
 Let's use that prefix-notation trick to rewrite our example above:
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 invokeAppPrefix = ($) (binaryFunction 2) (unaryFunction 3)
-~~~~
+{% endhighlight %}
 
 We have to resort to parentheses again to keep GHC happy. What do we have? `(unaryFunction 3)` is straightforward. But ... something funny is going on with `(binaryFunction 2)`. The parentheses make it clear that instead of taking two arguments, it only has one! What kind of binary function only takes a single argument??
 
 This is our first example of **partial application**, a core concept in functional programming. The idea is you can "partially invoke" a function with just one of its arguments, and in so doing you create *another* function that takes the remaining argument. To illustrate, let's define integer addition as a function:
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 intAdd :: Int -> Int -> Int
 intAdd x y = x + y
-~~~~
+{% endhighlight %}
 
 We can invoke this the usual way, `intAdd 2 3` will evaluate to `5`. If we only provide the first argument, though, we'll create a new, unary function:
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 intAddPartial = intAdd 2
-~~~~
+{% endhighlight %}
 
 This compiles, and as promised, `intAddPartial` is a unary function that always adds `2` to its value. Let's play with it in GHCI:
 
@@ -342,17 +342,17 @@ Partial application shows up in many functional-ish languages, but it's often pr
 
 In Haskell, partial application is fundamental. When we said there was more to those elegant type signatures than good looks, this is what we were getting at: the unity of the type signatures matches the unity of partial- and full-application. Let's compare `intAdd` and `intAddPartial`'s signatures:
 
-~~~~ {.haskell}
-    intAdd        :: Int -> Int -> Int
-    intAddPartial ::        Int -> Int
-~~~~
+{% highlight haskell %}
+intAdd        :: Int -> Int -> Int
+intAddPartial ::        Int -> Int
+{% endhighlight %}
 
 We can visually see that first argument being "bundled" into the partially-applied version. In Haskell, partial application is as simple as leaving off an argument, resulting in a new function that takes one less argument. Let's ask GHCI:
 
     ghci> :t intAdd 2
     intAdd 2 :: Int -> Int
 
-Partial application operates hand-in-hand with substitution. Recall above how supplying `unaryFunction 2` to another function, created a new function with `unaryFunction 2` stitched into it. The idea here is that **full application is no different from partial application**:
+Partial application operates hand-in-hand with substitution. Recall above how supplying `unaryFunction 2` to another function, created a new function with `unaryFunction 2` stitched into it. The idea here is that **"full" application is no different from partial application**:
 
     ghci> :t intAdd 2 3
     intAdd 2 3 :: Int
@@ -367,24 +367,24 @@ Let's return to our investigation of the application operator `$` above. Our pre
     ghci> :t binaryFunction 2
     binaryFunction 2 :: Int -> Int
 
-Finally, we've unpacked how `$` does its magic: it simply relies on partial application. And indeed, there's no magic: `binaryFunction 2 $ unaryFunction 3` can be written entirely with parentheses to make the partial application clear:
+Finally, we've unpacked how `$` does its magic: it simply relies on normal function application. `binaryFunction 2 $ unaryFunction 3` can be written entirely with parentheses to make this clear:
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 invokePartialParens = (binaryFunction 2) (unaryFunction 3)
-~~~~
+{% endhighlight %}
 
 And indeed, the definition of `($)` is nothing but [function application itself](http://hackage.haskell.org/package/base-4.7.0.1/docs/src/GHC-Base.html#%24 "GHC/Base.lhs"):
 
-~~~~ {.haskell}
-    ($)             :: (a -> b) -> a -> b
-    f $ x           =  f x
-~~~~
+{% highlight haskell %}
+($)             :: (a -> b) -> a -> b
+f $ x           =  f x
+{% endhighlight %}
 
 There you have it: `f $ x` just calls `f x`. Further up the source file, we also see
 
-~~~~ {.haskell}
+{% highlight haskell %}
 infixr 0  $
-~~~~
+{% endhighlight %}
 
 which establishes `$` as a right-infix function with precedence 0. It's trivially easy in Haskell to declare new "operators" this way, that is, infix binary functions with "swear word" characters like `$@?` etc. As a result, very little of Haskell is defined as syntax or keywords, but instead is in the library, with source you can look up.
 
@@ -399,10 +399,10 @@ There's something curious here: `unaryFunction` *looks* like it's being applied 
 
 In Haskell, functions are the main attraction, so this isn't too shocking. There are some surprising implications though. Since functions are values, then we can use a function "as such" in other definitions. We can "alias" a function:
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 ufAlias :: Int -> Int
 ufAlias = unaryFunction
-~~~~
+{% endhighlight %}
 
 No problem: we're assigning `ufAlias` to the value `unaryFunction`, which happens to be of type `Int -> Int`. We can now use it just like `unaryFunction`:
 
@@ -411,18 +411,18 @@ No problem: we're assigning `ufAlias` to the value `unaryFunction`, which happen
 
 This seems simple enough, until you notice *we've just defined a unary function without ever mentioning the argument!* In most languages, this is impossible: you have to restate your argument definitions over and over. Here's some equivalent C code:
 
-~~~~ {.java}
+{% highlight java %}
 public int add1(int x) { return x + 1; }
 
 public int aliasAdd1(int x) { return add1(x); }
-~~~~
+{% endhighlight %}
 
 Of course, nothing is stopping us from restating the arguments:
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 ufAliasWithArgs :: Int -> Int
 ufAliasWithArgs x = unaryFunction x
-~~~~
+{% endhighlight %}
 
 Stare at `ufAlias` above and `ufAliasWithArgs` for a second. They do the same thing, but `ufAlias` accomplishes it with simple assignment. It makes perfect sense if you think of functions as values.
 
@@ -435,10 +435,10 @@ Hopefully the simple example above makes clear that we're not "hiding" arguments
 
 Let's take another example from our discussion further up: our partial application `(binaryFunction 2)`, which created a new function with a single argument. Well, that new function is just another value. Let's do the same trick with it:
 
-~~~~ {.sourceCode .literate .haskell}
+{% highlight haskell %}
 bfPartial :: Int -> Int
 bfPartial = binaryFunction 2
-~~~~
+{% endhighlight %}
 
 Make sense? We could have written `bfPartial y = binaryFunction 2 y`, but why bother: the value `binaryFunction 2` is usable all by itself, so our definition of `bfPartial` will reference that value alone.
 
@@ -451,7 +451,7 @@ Haskell is a *pure* language, meaning that a computation's output is always dete
 
 As a consequence of purity, Haskell does not *eagerly evaluate* function arguments, but instead *substitutes* the code used to make up the argument into the body of the target function. Substitution means that in Haskell, *applying a function to an argument creates a new function*.
 
-Function application happens one argument at a time: each argument when applied creates a new function which is then applied to the next argument. A function applied to less arguments than specified in its definition is *partially applied*, resulting in a new function with however many arguments are left. A function with all of its arguments applied is *fully applied*.
+Function application happens one argument at a time: each argument when applied creates a new function which is then applied to the next argument. A function applied to less arguments than specified in its definition is *partially applied*, resulting in a new function with however many arguments are left.
 
 Because Haskell is a *lazy* language, there is no difference between a fully- or partially-applied function: a fully-applied function is not necessarily evaluated at the site where the arguments were applied, meaning you can use a fully-applied function as a event-like nullary function to be "called" elsewhere.
 
