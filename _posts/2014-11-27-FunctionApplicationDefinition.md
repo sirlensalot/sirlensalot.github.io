@@ -359,7 +359,7 @@ Partial application operates hand-in-hand with substitution. Recall above how su
 
 "intAdd 2 3" *fully applies* `intAdd` to derive a *lazy computation* that returns 5. Full application is useful in a lazy context, in that you can "load up" a function with all of its arguments and pass it into another function to be evaluated later, for instance as an "event" ready to dispatch.
 
-Partial Application and (\$)
+Partial Application and ($)
 ----------------------------
 
 Let's return to our investigation of the application operator `$` above. Our prefix rewrite resulted in `($) (binaryFunction 2) (unaryFunction 3)`. Hopefully it is now clear what `binaryFunction 2` by itself means: `binaryFunction` partially-applied to 2, creating a new function:
