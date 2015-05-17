@@ -275,7 +275,7 @@ This looks nice. Everything after the `$` is "bunched together" as the second ar
 
 We could leave it at that, and marvel at Haskell's flexible syntax. But let's look deeper. A common mistake is to think that `$` is a keyword, or lexical syntax. In reality it's nothing more than a library function.
 
-Let's ask ghci for its type. To do so, GHCI requires use to put parentheses around `$`:
+Let's ask ghci for its type. To do so, GHCI requires us to put parentheses around `$`:
 
     ghci> :t ($)
     ($) :: (a -> b) -> a -> b
