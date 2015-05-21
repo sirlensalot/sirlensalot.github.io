@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>tatterdemalion - Types & Kinds</title>
+        
+<link rel="stylesheet" type="text/css" href="../fonts/Sans/cmun-sans.css" />
+<link rel="stylesheet" type="text/css" href="../fonts/cmun-serif.css" />
+<link rel="stylesheet" type="text/css" href="../fonts/SerifSlanted/cmun-serif-slanted.css" />
+<!-- <link rel="stylesheet" type="text/css" href="/css/screen.css"/> -->
+<link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+<link rel="stylesheet" type="text/css" href="../css/default.css" />
+
+</head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">tatterdemalion</a>
+            </div>
+            <div id="navigation">
+<!--
+			    <a href="/about.html">about</a>
+                <a href="/contact.html">contact</a>
+-->
+                <a href="../archive.html">archive</a>
+            </div>
+        </div>
+
+        <div id="content">
+            <h1>Types & Kinds</h1>
+
+            <div class="info">
+    Posted on April 10, 2015
+    
+        by Stuart Popejoy
+    
+</div>
+
+<p>This article seeks to give a whirlwind tour of basic type signatures in Haskell. Types are pretty important in Haskell so it’s good to make sure you understand the basics.</p>
+<p>This is another “literate haskell” article, meaning that the examples are executable code, and that I have to put imports at the top. So here goes:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Data.Set</span> (<span class="dt">Set</span>, fromList)
+<span class="kw">import </span><span class="dt">Data.Map</span> (<span class="dt">Map</span>, insertWith, empty, split, elems)
+<span class="kw">import qualified</span> <span class="dt">Data.Map</span> <span class="kw">as</span> <span class="dt">M</span></code></pre></div>
+<h1 id="simple-types">Simple Types</h1>
+<p>Types such as <code>String</code> and <code>Int</code> are straightforward to specify and use.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">duplicate ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span>
+duplicate count s <span class="fu">=</span> concat (replicate count s)</code></pre></div>
+<p>Creating simple datatypes is easy.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Person</span> <span class="fu">=</span> <span class="dt">Person</span> {<span class="ot"> name ::</span> <span class="dt">String</span>,<span class="ot"> age ::</span> <span class="dt">Int</span> } <span class="kw">deriving</span> <span class="dt">Show</span>
+<span class="co">--   ^        ^        ^               ^                </span>
+<span class="co">--   typename ctor     field           field</span></code></pre></div>
+<p>The <code>data</code> keyword declares a datatype <code>Person</code>. It has a single constructor, also called <code>Person</code>, which specifies two fields <code>name</code> and <code>age</code>. Our new type <code>Person</code> is as easy as <code>String</code> or <code>Int</code> to use in type signatures.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">isTeen ::</span> <span class="dt">Person</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>
+isTeen (<span class="dt">Person</span> _ a) <span class="fu">=</span> a <span class="fu">&gt;</span> <span class="dv">10</span> <span class="fu">&amp;&amp;</span> a <span class="fu">&lt;</span> <span class="dv">20</span></code></pre></div>
+<p><code>isTeen</code> takes a <code>Person</code> and returns a <code>Bool</code>. To do so, it “deconstructs” the argument to access the age as <code>a</code>. The first field, <code>name</code>, is not needed, so the underscore wildcard is used. This syntax is called “pattern matching”, a name that makes more sense when a type has more than one constructor. More on that later.</p>
+<p>With these simple types, the type name alone fully specifies the type. Once we issue <code>String</code>, <code>Int</code> or <code>Person</code> in a type signature, we can supply code in which these types will be <em>inhabited</em> with values.</p>
+<h1 id="type-synonyms">Type synonyms</h1>
+<p><code>String</code> is not what it seems, however. It’s neither a built-in type like <code>Int</code> or a simply-constructed type like <code>Person</code>. GHCI can tell us the real story with the <code>:i</code> (short for “info”) command:</p>
+<pre><code>ghci&gt; :i String
+type String = [Char] 	-- Defined in ‘GHC.Base’</code></pre>
+<p>The <code>type</code> keyword introduces a <strong>type synonym</strong>, superficially like <code>typedef</code> in C/C++. <code>String</code> is in fact a list of <code>Char</code> values! <code>String</code> is more comforting to look at than <code>[Char]</code> I suppose. Don’t tell C programmers, though.</p>
+<p>Since it’s just a synonym, anywhere we see <code>[Char]</code> we can use String, and vice-versa.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">sue ::</span> <span class="dt">String</span>
+sue <span class="fu">=</span> [<span class="ch">'S'</span>,<span class="ch">'u'</span>,<span class="ch">'e'</span>]
+
+<span class="ot">dave ::</span> [<span class="dt">Char</span>]
+dave <span class="fu">=</span> <span class="st">&quot;Dave&quot;</span>
+
+<span class="ot">dave25 ::</span> <span class="dt">Person</span>
+dave25 <span class="fu">=</span> <span class="dt">Person</span> dave <span class="dv">25</span>
+
+<span class="ot">sue30 ::</span> <span class="dt">Person</span>
+sue30 <span class="fu">=</span> <span class="dt">Person</span> sue <span class="dv">30</span></code></pre></div>
+<h2 id="list-type-and-patterns">List type and patterns</h2>
+<p>The list type has special syntax in type declarations. The braces enclose the type of the list, so you can have <code>[Int]</code>, <code>[Person]</code>, etc. List also has special support in pattern-matches:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">startsWith ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>
+startsWith _ []     <span class="fu">=</span> <span class="dt">False</span>
+startsWith c (s<span class="fu">:</span>_)  <span class="fu">=</span> c <span class="fu">==</span> s
+startsWith _ _      <span class="fu">=</span> <span class="dt">False</span></code></pre></div>
+<p>Pattern-matching captures information about how the value is constructed. Remember, in an immutable language, once a value is constructed, it never changes, so this is a valid test. Here, <code>[]</code> means “the empty list”, <code>(s:_)</code> matches on the (head:tail) construction of this type, which is a singly-linked list in the LISP model. The underscores serve to wildcard match on any constructor, and to avoid creating unused variable bindings. Pattern-matching works downward from the first match, so the last match of <code>_ _</code> matches anything that wasn’t captured above.</p>
+<h1 id="less-simple-types">Less-simple types</h1>
+<p>The list type is more complex than <code>Person</code> or <code>Int</code>: it’s a type that must have <em>another type</em> specified to be useable. A similar type is <code>Set</code>, although it doesn’t have special syntax:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">setOfNames ::</span> <span class="dt">Set</span> <span class="dt">String</span>
+setOfNames <span class="fu">=</span> fromList [<span class="st">&quot;Dave&quot;</span>,<span class="st">&quot;Sue&quot;</span>]</code></pre></div>
+<p>Like list, <code>Set</code> needs another type, here <code>String</code>, to be a valid declaration.</p>
+<p>It’s worth pointing out here that in this regard, Haskell is <strong>much</strong> more strongly-typed than most other languages. There is no “Array” or “List” container types that can hold disparate types of values; there’s no nulls, and no casting. A list, <code>Set</code> or any similar container <em>must</em> have a fully-specified type saying what it holds, before you can write code to the specification. The container is guaranteed to only hold values of that type.</p>
+<p>Here’s list and Set together in a function signature:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">ages ::</span> [<span class="dt">Person</span>] <span class="ot">-&gt;</span> <span class="dt">Set</span> <span class="dt">Int</span>
+ages ps <span class="fu">=</span> fromList <span class="fu">$</span> map age ps</code></pre></div>
+<p>This function maps over the <code>age</code> field of each <code>Person</code> in <code>ps</code>, and then builds a <code>Set</code> with <code>fromList</code>. We can write this perhaps more clearly in point-free style:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">agesPointFree ::</span> [<span class="dt">Person</span>] <span class="ot">-&gt;</span> <span class="dt">Set</span> <span class="dt">Int</span>
+agesPointFree <span class="fu">=</span> fromList <span class="fu">.</span> map age</code></pre></div>
+<h1 id="types-needing-even-more-types">Types needing even more types</h1>
+<p>We’re not limited to types that take one extra type. We can have as many as we want. A good example of one taking two extra types is <code>Map</code>.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">indexPersonsByName ::</span> [<span class="dt">Person</span>] <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">String</span> [<span class="dt">Person</span>]
+indexPersonsByName <span class="fu">=</span> foldl ins empty 
+    <span class="kw">where</span> ins m p <span class="fu">=</span> insertWith (<span class="fu">++</span>) (name p) [p] m</code></pre></div>
+<p>This builds a <code>Map</code> indexing a name to all persons with that name. We use <code>foldl</code>, a <em>left-fold</em>, which is a “reduce” operation to make a single value (the <code>Map</code>) out of a list of values (the Person values). <code>empty</code> is the initial value, to which we insert values using <code>insertWith</code>; this function <code>(++)</code> is used to resolve key collisions by operating on the old and new value. Here we’re inserting a singleton list <code>[p]</code>, so <code>++</code> simply concatenates the lists together.</p>
+<p>We can make this code easier to read with type synonyms:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">Name</span> <span class="fu">=</span> <span class="dt">String</span>
+<span class="kw">type</span> <span class="dt">Age</span> <span class="fu">=</span> <span class="dt">Int</span></code></pre></div>
+<p>Since synonyms are nothing but sugar, we don’t have to re-define <code>Person</code> to use them. We can use type synonyms for more complex types, too.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">PersonsByAge</span> <span class="fu">=</span> <span class="dt">Map</span> <span class="dt">Age</span> [<span class="dt">Person</span>]
+<span class="kw">type</span> <span class="dt">PersonsByName</span> <span class="fu">=</span> <span class="dt">Map</span> <span class="dt">Name</span> [<span class="dt">Person</span>]</code></pre></div>
+<p>Now we have some nice, literate type signatures:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">getPersonsOver ::</span> <span class="dt">Age</span> <span class="ot">-&gt;</span> <span class="dt">PersonsByAge</span> <span class="ot">-&gt;</span> [<span class="dt">Person</span>]
+getPersonsOver a <span class="fu">=</span> concat <span class="fu">.</span> elems <span class="fu">.</span> snd <span class="fu">.</span> split a</code></pre></div>
+<h1 id="polymorphism-type-variables">Polymorphism: Type Variables</h1>
+<p>Examine our two <code>Map</code> type synonyms above, and you’ll see a similarity: both have <code>[Person]</code> as their value-type. If we want to generalize on this fact, we’ll need some new tools. Enter <em>type variables</em>, variables that only appear in the type declaration code.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">getAllPersons ::</span> <span class="dt">Map</span> a [<span class="dt">Person</span>] <span class="ot">-&gt;</span> [<span class="dt">Person</span>]
+getAllPersons <span class="fu">=</span> concat <span class="fu">.</span> elems</code></pre></div>
+<p>Our polymorphic function <code>getAllPersons</code> can now be used with a <code>PersonsByAge</code> value, or <code>PersonsByName</code>, or any <code>Map</code> with a list of persons as the value type.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">getAllPersonsByAgeAndName ::</span> <span class="dt">PersonsByAge</span> <span class="ot">-&gt;</span> <span class="dt">PersonsByName</span> <span class="ot">-&gt;</span> [<span class="dt">Person</span>]
+getAllPersonsByAgeAndName pa pn <span class="fu">=</span> getAllPersons pa <span class="fu">++</span> getAllPersons pn</code></pre></div>
+<p>By using the type variable <code>a</code>, we’re indicating that the type can change from call to call, and is unknown to the code in this function. The lower-case of <code>a</code> is how Haskell recognizes a type variable; anything starting with upper case (ie, <code>Map</code>, <code>Person</code>) must be a specific type.</p>
+<p>Interestingly, type variables can even be used in type synonyms.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">PersonsMap</span> a <span class="fu">=</span> <span class="dt">Map</span> a [<span class="dt">Person</span>]</code></pre></div>
+<p>We’ve moved beyond C-style typedefs now: <code>PersonsMap</code> is a <em>polymorphic type synonym</em>, where the type variable declared on the left-hand side will be supplied to the type declaration on the right.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">countPersons ::</span> <span class="dt">PersonsMap</span> a <span class="ot">-&gt;</span> <span class="dt">PersonsMap</span> <span class="dt">Int</span>
+countPersons <span class="fu">=</span> M.fromList <span class="fu">.</span> map txform <span class="fu">.</span> M.toList 
+   <span class="kw">where</span> txform (_,ps) <span class="fu">=</span> (length ps,ps)</code></pre></div>
+<p>This function converts a <code>PersonMap</code> of unknown key type to a map where the keys are the lengths of the contained lists. We use <code>toList</code> and <code>fromList</code> to convert the <code>Map</code> to a list of tuples, which we transform in <code>txform</code>.</p>
+<p>Tuples are another type in Haskell with special syntax, as the signature of <code>toList</code> shows:</p>
+<pre><code>ghci&gt; :t M.toList
+M.toList :: Map k a -&gt; [(k, a)]</code></pre>
+<p>Tuples don’t have to just have two elements, they can have as many as you like. However the only way to get at elements in the tuple is to pattern match:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">FirstNameMiddleInitialLastName</span> <span class="fu">=</span> (<span class="dt">String</span>,<span class="dt">Char</span>,<span class="dt">String</span>)
+
+<span class="ot">getMiddleName ::</span> <span class="dt">FirstNameMiddleInitialLastName</span> <span class="ot">-&gt;</span> <span class="dt">Char</span>
+getMiddleName (_,c,_) <span class="fu">=</span> c</code></pre></div>
+<p>“Two-tuples” enjoy having the functions <code>fst</code> and <code>snd</code> (“first” and “second”) to get the respective values. But these cannot interoperate with 3- or greater tuples, since they are fundamentally different types.</p>
+<h1 id="function-types">Function types</h1>
+<p>So far, our discussion of types has focused on symbols appearing between the <code>-&gt;</code> arrows of function declarations. This is familiar, as most languages leave the argument and return-type specification outside of the type system. Not so in Haskell; <em>all of our function declarations are themselves types.</em></p>
+<p>For example, our function above, <code>isTeen</code>, is a unary function returning a boolean: <code>Person -&gt; Bool</code>. The type of <code>isTeen</code> is the entire declaration <code>Person -&gt; Bool</code>, not just the word-like things.</p>
+<p>To illustrate, we can make a type synonym for <code>isTeen</code>’s type, with a reasonably obvious name:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">PersonPredicate</span> <span class="fu">=</span> <span class="dt">Person</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></code></pre></div>
+<p>Like any type synonym, we can use this where we’d use <code>Person -&gt; Bool</code>.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">isNamedDave ::</span> <span class="dt">PersonPredicate</span>
+isNamedDave p <span class="fu">=</span> name p <span class="fu">==</span> <span class="st">&quot;Dave&quot;</span></code></pre></div>
+<p>We can also use this this in declarations with more arguments, like any other type:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">hasName ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">PersonPredicate</span>
+hasName n p <span class="fu">=</span> (name p) <span class="fu">==</span> n
+
+<span class="ot">findPerson ::</span> <span class="dt">PersonPredicate</span> <span class="ot">-&gt;</span> [<span class="dt">Person</span>] <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Person</span>
+findPerson pp ps <span class="fu">=</span> f (filter pp ps)
+      <span class="kw">where</span> f []    <span class="fu">=</span> <span class="dt">Nothing</span>
+            f (a<span class="fu">:</span>_) <span class="fu">=</span> <span class="dt">Just</span> a</code></pre></div>
+<p>A small detail here is a type synonym built with function arrows specifies a <em>function</em>, not just arguments. To write <code>findPerson</code> without <code>PersonPredicate</code>, we’d need parentheses to make it clear that the first argument is a function:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">findPersonAgain ::</span> (<span class="dt">Person</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>) <span class="ot">-&gt;</span> [<span class="dt">Person</span>] <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Person</span>
+findPersonAgain <span class="fu">=</span> findPerson</code></pre></div>
+<p>Finally, we can use a type variable in a function type synonym, too.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">Predicate</span> a <span class="fu">=</span> a <span class="ot">-&gt;</span> <span class="dt">Bool</span></code></pre></div>
+<p>Now instead of the limited <code>PersonPredicate</code>, we can simply use <code>Predicate</code> on any type. However, <code>a -&gt; Bool</code> is shorter that “Predicate” so maybe we’ll just stick with that.</p>
+<h1 id="kinds">Kinds</h1>
+<p>We’ll finish this introduction to type signatures with a quick discussion of “kinds” in Haskell. We’ve talked about types that don’t need any other types, like <code>Int</code>; types that need one other type, like <code>Set</code> or list; and types that need two, like <code>Map</code> or the unary function type <code>(-&gt;)</code>.</p>
+<p>In Haskell, this cardinality is expressed via “kinds”, which have a funny function-like syntax. We can find out the kind of a type with the “:k” command in GHCI:</p>
+<pre><code>ghci&gt; :k Int
+Int :: *
+ghci&gt; :k Person
+Person :: *</code></pre>
+<p>One-star kinds are the simple, self-sufficient types.</p>
+<pre><code>ghci&gt; :k Set
+Set :: * -&gt; *</code></pre>
+<p><code>Set</code> is of kind <code>* -&gt; *</code>, which you can see as it being a “type function” that needs a value to evaluate to an inhabitable type. Once <code>Set</code> gets it’s type, it’s a simple one-star kind again:</p>
+<pre><code>ghci&gt; :k Set Int
+Set Int :: *</code></pre>
+<p>You can probably guess now what Map looks like:</p>
+<pre><code>ghci&gt; :k Map
+Map :: * -&gt; * -&gt; *
+ghci&gt; :k Map Int
+Map Int :: * -&gt; *
+ghci&gt; :k Map Int String
+Map Int String :: *</code></pre>
+<p>And remember, functions are types too, so the function arrow itself has a kind:</p>
+<pre><code>&gt; :k (-&gt;)
+(-&gt;) :: * -&gt; * -&gt; *</code></pre>
+<p>As you go forward with Haskell, pay close attention to the type signatures, and remember that a type can have every other sort of type baked into it: functions, data values, data values that contain functions, lists, tuples, synonyms for all of the above. Use GHCI’s “:i”, “:t”, and “:k” commands obsessively, use the source code, and “follow the types”!</p>
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+		    <a href="http://github.com/slpopejoy/tatterdemalion">Source</a>
+        </div>
+    </body>
+</html>
