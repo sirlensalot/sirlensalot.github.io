@@ -85,10 +85,8 @@ countCharInFile c f <span class="fu">=</span> <span class="kw">do</span>
 <p>If you want an <code>IO</code> action that produces a Set of Strings, you’ll need to break out parentheses:</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">setProducingAction ::</span> <span class="dt">IO</span> (<span class="dt">Set</span> <span class="dt">String</span>)
 setProducingAction <span class="fu">=</span> return <span class="fu">$</span> singleton <span class="st">&quot;contrived&quot;</span></code></pre></div>
-<h2 id="is-not-null">() is not null</h2>
-<p>As we noted above, <code>IO ()</code> means the function has no output. <code>()</code> is the “unit type”, which is uninhabitable by any value: nothing can become <code>()</code>, and <code>()</code> cannot be casted or coerced into any other type.</p>
-<p>As such, it is entirely different from <code>null</code> in those <em>other</em> languages, where it can inhabit any type, and any type can be null, causing bugs aplenty. <code>()</code> can never have a value except itself.</p>
-<p><code>IO ()</code> therefore means that we’re only executing this action for its side effects. However, functions like <code>readFile</code> are of type <code>IO String</code>, meaning “run side-effects and give me a <code>String</code> result.”</p>
+<p>As we noted above, <code>IO ()</code> means the function has no meaningful output. <code>()</code> is the “unit type”, with the single inhabitant <code>()</code>. It allows us to return a value from a function (and thus still be “functional”, as opposed to <code>void</code> functions in other languages), but indicate that the return value is of no meaning.</p>
+<p><code>IO ()</code> indicates we only execute this action for its side effects. However, functions like <code>readFile</code> are of type <code>IO String</code>, meaning “run side-effects and give me a <code>String</code> result.”</p>
 <p>In this regard, the two-kinded–ness of <code>IO</code> means something completely different than, say, <code>Set</code>. The second type in Set indicates what values it “holds”; the second type in IO indicates what single value it “produces”.</p>
 <h2 id="effectful-io">Effectful IO</h2>
 <p>IO is obviously an action-packed, effect-having champ. However, it is also “effectful” in a larger sense, since IO implements the typeclasses <code>Functor</code>, <code>Applicative</code> and <code>Monad</code>. These form a hierarchy, such that any <code>Monad</code> is an <code>Applicative</code>, and any <code>Applicative</code> is a <code>Functor</code>. <a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>.</p>
@@ -116,7 +114,7 @@ returnIsEasy s <span class="fu">=</span> return (s <span class="fu">++</span> <s
 ioNoReturn <span class="fu">=</span> returnIsEasy <span class="st">&quot;Elvis&quot;</span></code></pre></div>
 <p>Pretty minimal. What’s the point? The clue is in the name <code>return</code>.</p>
 <p>Functions whose type is monadic (their result is of type <code>Monad x</code>) are different than your usual function: instead of returning the monad, they “run inside” the monadic context, and any values must be “returned” back to the context.</p>
-<p>So to really understand <code>return</code>, we have to understand its dual: bind.</p>
+<p>So to really understand <code>return</code>, we have to understand its partner in crime, bind.</p>
 <h2 id="bind">bind (&gt;&gt;=)</h2>
 <p>Bind is the real magic of <code>Monad</code>, formalizing how you operate on a monadic value.</p>
 <p>In monadic operation, we don’t simply grab the underlying value and go to town. Instead, we use “bind” to get at the good stuff: you have to supply a <em>function</em> to operate on the value and “give it back” to the monadic context. The type makes this clear:</p>
