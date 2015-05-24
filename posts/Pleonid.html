@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>tatterdemalion - Algorithmic Compositional Techniques Developed for "Pleonid"</title>
+        <meta name="viewport" content="width=device-width">
+<link rel="stylesheet" type="text/css" href="../fonts/Sans/cmun-sans.css" />
+<link rel="stylesheet" type="text/css" href="../fonts/cmun-serif.css" />
+<link rel="stylesheet" type="text/css" href="../fonts/SerifSlanted/cmun-serif-slanted.css" />
+<!-- <link rel="stylesheet" type="text/css" href="/css/screen.css"/> -->
+<link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+<link rel="stylesheet" type="text/css" href="../css/default.css" />
+
+</head>
+    <body>
+        <div id="header">
+            <div id="lefty">
+                <a class="header_a" href="../">tatterdemalion</a>
+            </div>
+            <div id="navigation">
+                <a href="../archive.html" class="header_a">archive</a>
+            </div>
+        </div>
+
+        <div id="content">
+            <h1>Algorithmic Compositional Techniques Developed for "Pleonid"</h1>
+
+            <div class="info">
+    Posted on May 15, 2015
+    
+        by Stuart Popejoy
+    
+</div>
+
+<p>“Pleonid” (2012, Stuart Popejoy) is an algorithmic composition for quintet. This paper describes the methods used for its creation, “warts and all”. It also discusses the advantages found after porting the entire composition from Java into Haskell, a typed functional programming language.</p>
+<h1 id="generative-techniques-for-pitch-sequences">Generative Techniques for Pitch Sequences</h1>
+<p>“Pleonid” employs a minimum of random or stochastic techniques preferring a generative, elaborative approach. The first phase of generation involves manipulating pitch sets to arrive at a series of pitch sequences, or “lines”, which will form the basis of the piece. The path to these lines is covered in this section.</p>
+<p>The “seed” of the entire composition is a melodic sequence.</p>
+<div class="figure">
+<img alt="Seed melody of Pleonid." class="small" src="figures/pleonid/01-seed__small.png" />
+<p class="caption">Seed melody of <em>Pleonid</em>.</p>
+</div>
+<p>This is normalized into a <em>pitch class set</em> of value <code>[0,2,3,4,5,7]</code> (No. 6-8 in Forte classification). Departing from set theory, I use this ordered sequence as a “scale” for further transformations.</p>
+<div class="figure">
+<img alt="Pitch class set and main scale." class="small" src="figures/pleonid/01a-seedScale__small.png" />
+<p class="caption">Pitch class set and main scale.</p>
+</div>
+<h2 id="gamut">Gamut</h2>
+<p>One of the properties of the sequence/scale is its range, namely that it is less than the 12-semitone range of a standard scale. The term “gamut” is used to describe this range, with 12 being the usual value in Western equal-tempered music. For our purposes, gamut is preferred to “octave” which invokes the chroma identity.</p>
+<p>Using gamuts other than 12 create interest by effectively transposing pitches by register, as well as limiting or expanding the search space for intervals and melodies.</p>
+<p>In this case of the pitch class set-sequence, the reduced range creates an effective gamut of 7. For many procedures in Pleonid I use a gamut of 10, such as for the “steerings” described below, mainly to create interesting non-octave symmetries. When we discuss orchestration below we’ll see 10 used again for its intervallic character.</p>
+<h2 id="generating-n-ads">Generating N-ads</h2>
+<p>The first transformation is to generate every chord or “sub-scale” that can be built from this scale/sequence.</p>
+<p>The interval vector of the pitch set is used, that is the ordered intervals or deltas between the pitches: <code>[2,1,1,1,2]</code>. By enumerating every possible ordered sum of these values, I determine every chord or “N-ad” (dyad, triad, tetrad etc) that can be projected onto this sequence.</p>
+<p>The function <code>genNAds</code> achieves this with concatenation of two recursive list comprehensions:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">genNAds ::</span> <span class="dt">Num</span> a <span class="ot">=&gt;</span> [a] <span class="ot">-&gt;</span> [[a]]
+genNAds []     <span class="fu">=</span> [[]]
+genNAds (x<span class="fu">:</span>xs) <span class="fu">=</span> [x<span class="fu">:</span>ps <span class="fu">|</span> ps <span class="ot">&lt;-</span> genNAds xs] <span class="fu">++</span> 
+                     [(x<span class="fu">+</span>p)<span class="fu">:</span>ps <span class="fu">|</span> p<span class="fu">:</span>ps <span class="ot">&lt;-</span> genNAds xs]</code></pre></div>
+<p>This is a first illustration of the admirable expressiveness of functional programming. The corresponding Java code is considerably longer and more bug-prone. I give credit to “Cale” on the #haskell IRC channel for coming up with the first version of this brilliant formation, in response to my desperate plea for help. (There were other equally delightful offers, one using monadic list notation).</p>
+<p>To illustrate, let’s take the sequence <code>C D E F</code>, whose intervals are <code>[2,2,1]</code>. The resulting tuples are <code>[[2,2,1],[2,3],[4,1],[5]]</code>.</p>
+<div class="figure">
+<img alt="Generating all N-ads from a sequence." class="small" src="figures/pleonid/02-genNAds__small.png" />
+<p class="caption">Generating all “N-ads” from a sequence.</p>
+</div>
+<p>Performing this operation on the Pleonid interval vector <code>[2,1,1,1,2]</code> produces 16 tuples. Like the example, the final dyad simply bounds the scale, so I drop it as trivial/uninteresting. Note the full scale is the first tuple.</p>
+<div class="figure">
+<img alt="Pleonid scale tuples." src="figures/pleonid/02a-genNAdsPleonid.png" />
+<p class="caption">Pleonid scale tuples.</p>
+</div>
+<h2 id="the-tone-clock">The Tone Clock</h2>
+<p>The motivation for generating these interval sets, or chords, is to subdivide a scale or gamut in a way that will generate interesting and diverse intervallic material. The approach used was inspired by procedures invented by the Dutch composer Peter Schat which he called the “Tone Clock” (<em>Toonklok</em>).</p>
+<p>The tone clock represents the 12 distinct triads that can “fit” into the 12-tone gamut. Triads are represented as <em>normalized, invertible</em> identities. Normalization picks the most compact version, like pitch-class sets. Thus the major triad is represented as <code>(4,3)</code>, the first inversion, instead of the 2nd inversion <code>(3,5)</code> or 3rd <code>(5,4)</code>. They are <em>invertible</em> such that the major triad is classified with its inverse, the minor triad <code>(3,4)</code>.</p>
+<p>In the 12-tone scale, there are only 12 of these triad identities. Schat dubs these the “hours” of the “tone clock”, presenting these as foundational colors or harmonies to compose with. He next observes that each “hour” has a small number of ways the triad identity can be placed in order to saturate all notes of the scale.</p>
+<p>In the case of the major/minor triad identity, hour “IX” on his clock, there are only two ways to produce this saturation: major/minor/major/minor at <code>0,2,6,8</code>, and minor/minor/major/major at <code>0,2,4,6</code>. Schat dubs these configurations “steerings”, as though we are “steering” the intervals through the 12-tone scale.</p>
+<div class="figure">
+<img alt="Steerings of Hour IX, the major/minor triad identity in the Tone Clock." src="figures/pleonid/03-ixSteerings.png" />
+<p class="caption">Steerings of Hour IX, the major/minor triad identity in the Tone Clock.</p>
+</div>
+<p>Each triad identity “hour” has a similarly fixed number of configuration “steerings” possible, resulting in 33 total configurations. Each configuration can be seen as producing a tetrad of the bottom-note placements. For Schat these tetrads can be related to another triad in the “clock” producing a relationship between “hours”.</p>
+<h2 id="steerings-in-pleonid">Steerings in Pleonid</h2>
+<p>Steering can be generalized to apply to any N-ad, not just triads. Clearly a dyad or a tetrad can be configured the same way within the scale. Of course, with more than 2 intervals, we are no longer simply “inverting” the values but <em>rotating</em> them, such that for the tetrad <code>(1,3,2)</code> we have <code>(3,2,1)</code> and <code>(2,1,3)</code>.</p>
+<div class="figure">
+<img alt="Rotations of the tetrad (1,3,2)." class="small" src="figures/pleonid/03a-tetradRotation__small.png" />
+<p class="caption">Rotations of the tetrad (1,3,2).</p>
+</div>
+<p>To apply the operation to other gamuts than 12, relaxing the saturation requirement proved to be productive. Triads combine with the 12-gamut very well, in that 3 divides perfectly into 12. Pleonid’s 10-gamut would only allow 5-tuples if they needed to saturate the gamut.</p>
+<p>By removing this constraint, I was able to “steer” most tuples below 1/2 the size of the gamut. This still preserves the character of overlapping tuple configurations such that their note values do not collide. Even so, some chords will not “steer”, either because the note count is too large, or the intervals do not permit any further placements.</p>
+<h2 id="steering-search">Steering search</h2>
+<p>To steer a tuple, I have to search for all valid placements of a tuple in the gamut. I leverage the observation that every N-ad is steered by another “M-ad” where <code>M</code> is N divided by the gamut. Thus a 5-tuple is steered by some dyad (2-tuple) in a 10-gamut.</p>
+<p>I generate every rotation of every possible normalized M-ad in the gamut. For each M-ad, I evaluate every possible configuration of the tuple. With the 5-tuple and dyad example, I would try all 5 rotations of the 5 tuple in both “slots”, resulting in 25 configurations. Collisions and duplicates are removed, producing the final result, 2 “steerings” or valid configurations.</p>
+<p>This is performed for the 15 scale tuples shown above. Only 3 tuples are “un-steerable,” while the rest were quite productive, producing 49 distinct steerings. For an example, the 5-tuple <code>(2,1,2,2)</code> is found to steer into the 10-gamut two ways:</p>
+<div class="figure">
+<img alt="Steering (2,1,2,2) in a 10-gamut." src="figures/pleonid/05-pleoSteering3.png" />
+<p class="caption">Steering (2,1,2,2) in a 10-gamut.</p>
+</div>
+<p>The last tuple of the second steering is noteworthy, as the last note is “gamut-wrapped”. The rotation of the interval is <code>(2,2,1,2)</code> but since the last note goes above the gamut boundary (Bb), it must be “wrapped” (modulo) for the gamut, resulting in the C# pitch instead of a B.</p>
+<p>This is one way non-standard gamuts create interest. In a 12-gamut the chroma would be identical: a D above the octave “sounds the same” as the D below. Here, C# sounds quite different than B, adding new pitch information to the composition.</p>
+<h2 id="preserving-seed-melody-features-or-not">Preserving seed melody features (or not)</h2>
+<p>The 49 distinct steerings created have an almost random character, except for their “source” being an interval derived from the scale tuples. To amplify the intervallic character, the steerings are filtered by a rule where at least one of the steering tuples must be built from the source scale.</p>
+<p>Thus, the steering <code>[0,2,3,5,7],[4,6,8,9,1]</code> is allowed, since <code>[0,2,3,5,7]</code> is in the source scale <code>[0,2,3,4,5,7]</code>. Meanwhile, the steering <code>[0,1,3,5,7],[2,4,6,8,9]</code> is discarded, since both tuples have notes outside of the source scale.</p>
+<p>This filter reduces the 49 steerings to 32. The tuples then undergo a mapping procedure, intended to map any scale tones back to the register they appear in the original seed sequence. So for instance, if a <code>G</code> appears in a chord, it would be mapped to below middle-C.</p>
+<div class="figure">
+<img alt="Intended mapping of pitches oto original seed sequence." src="figures/pleonid/06-mappingCorrect.png" />
+<p class="caption">Intended mapping of pitches oto original seed sequence.</p>
+</div>
+<p>This mapping procedure did not go as planned however: a bug in the original Java code resulted in a more or less random mapping.</p>
+<div class="figure">
+<img alt="Buggy mapping makes for unplanned results." src="figures/pleonid/07-mappingIncorrect.png" />
+<p class="caption">Buggy mapping makes for unplanned results.</p>
+</div>
+<p>Thus the attempt to “preserve seed melody features” more or less fails. The filtering above prefers tuples carrying the seed-scale pitches, but the buggy mapping affects seed-scale pitches <em>more</em> than non-seed-scale ones. Thus these very pitches are the most distorted. At least, the mapping succeeds in adding some intervallic interest to a gamut-limited set of chords.</p>
+<p>This bug was only discovered during the port to Haskell. Like much combinatorial code in Java, the mapping code was creaky and complex, while the Haskell code is concise and far simpler. I now have both methods, the broken and the correct one. Future works will choose which “sounds better”. So much for formal purity!</p>
+<h2 id="lines-from-chords">Lines from chords</h2>
+<p>We now have 32 steerings, which group tuples of a particular size: 2 5-tuples, or 3 3-tuples, etc. Melodies are generated from this by simply interleaving the values to create a longer line.</p>
+<div class="figure">
+<img alt="Interleaving steerings to generate lines." src="figures/pleonid/08-interleave.png" />
+<p class="caption">Interleaving steerings to generate lines.</p>
+</div>
+<p>To maximize interest, monotonically increasing or decreasing lines – lines that only move in one direction – are discarded. Interestingly this results in only one result filtered.</p>
+<p>This results in 31 lines. These form the foundation of the actual musical composition. We’re ready to create real musical ideas.</p>
+<h1 id="rhythm-melody-motif-braids">Rhythm + Melody = Motif: Braids</h1>
+<p>Working in the pitch domain lends itself to countless procedures and transformations, not to mention endless melodic and harmonic contexts to work with. Rhythm puts up more of a resistance to formalization and proceduralization.</p>
+<p>My approach to applying rhythmic structure to melodies is inspired and powered by a form of notation used in knot theory in mathmatics, called <em>braid notation</em>. This allows a normalized knot presentation that captures fundamental features:</p>
+<ol style="list-style-type: decimal">
+<li><p>How many distinct strands constitute the braid. You can tie a knot with one or many strands.</p></li>
+<li><p>Where, and how many times, a cross occurs. You can obviously cross a strand with itself, or with other strands.</p></li>
+<li><p>The “polarity” of the cross: over-under or under-over.</p></li>
+</ol>
+<div class="figure">
+<img alt="A braid from Pleonid." src="figures/pleonid/PleonidBraid00.png" />
+<p class="caption">A braid from Pleonid.</p>
+</div>
+<p>However I also chose 10 as a register “layout” for the quintet instrumentation. 10, the “dominant 7” interval, is near the major- and minor-sixth interval that makes for sonorous and pleasing voicings. Meanwhile each voice ends up with a harmonic/melodic “neighborhood” distinct from the other instruments.</p>
+
+        </div>
+        <div id="footer">
+		  <div id="lefty">
+			<a href="https://github.com/slpopejoy/tatterdemalion">sources</a>
+		  </div>
+          <a href="http://jaspervdj.be/hakyll">hakyll</a>
+		    
+        </div>
+    </body>
+</html>

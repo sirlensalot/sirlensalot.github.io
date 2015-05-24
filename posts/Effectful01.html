@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>tatterdemalion - Effectful Haskell: IO, Monads, Functors</title>
+        <meta name="viewport" content="width=device-width">
+<link rel="stylesheet" type="text/css" href="../fonts/Sans/cmun-sans.css" />
+<link rel="stylesheet" type="text/css" href="../fonts/cmun-serif.css" />
+<link rel="stylesheet" type="text/css" href="../fonts/SerifSlanted/cmun-serif-slanted.css" />
+<!-- <link rel="stylesheet" type="text/css" href="/css/screen.css"/> -->
+<link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+<link rel="stylesheet" type="text/css" href="../css/default.css" />
+
+</head>
+    <body>
+        <div id="header">
+            <div id="lefty">
+                <a class="header_a" href="../">tatterdemalion</a>
+            </div>
+            <div id="navigation">
+                <a href="../archive.html" class="header_a">archive</a>
+            </div>
+        </div>
+
+        <div id="content">
+            <h1>Effectful Haskell: IO, Monads, Functors</h1>
+
+            <div class="info">
+    Posted on May 24, 2015
+    
+        by Stuart Popejoy
+    
+</div>
+
+<p>To code any decent-sized application in Haskell, you have to be comfortable with <em>effectful</em> programming.</p>
+<p>Haskell famously offers “pure” functions, and they are great, referentially transparent and all that. But IO will be done. Assuming you want to factor your IO activity into more than just <code>main</code>, your app will have a lot of functions in IO (or <code>MonadIO</code>).</p>
+<p>At the same time, you’ll want to enrich your pure functions with core library modules that “encode” effectful behavior into your types, like maintaining state, or reading from a static environment. Finally, you’ll want to integrate all of this with fancy solutions like webservers, http clients, loggers, database access, and such.</p>
+<p>This article is the first in a series on “effectful programming”. My informal definition of “effectful” encompasses</p>
+<ol style="list-style-type: decimal">
+<li>Actual side-effects (IO)</li>
+<li>Stuff that seems like side-effects (State, Writer, etc.)</li>
+<li>Contexts that persist over function calls (Reader, State, etc.)</li>
+<li>Non-local control flow (Maybe, Either).</li>
+</ol>
+<p>In all of these cases, “pure” programming, mapping specified inputs to outputs, gives way to richer metaphors that offer all the utility of imperative or mutable programming, but with the <em>exact contract of execution</em> specified in the type.</p>
+<p>It’s the best of all possible worlds. Let’s get started.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Data.Set</span> (<span class="dt">Set</span>,singleton)
+<span class="kw">import </span><span class="dt">Control.Applicative</span> ((&lt;$&gt;))</code></pre></div>
+<h1 id="it-all-starts-with-io">It all starts with IO</h1>
+<p>To write an app, you implement <code>main :: IO ()</code>.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> putStrLn <span class="st">&quot;Hello World!&quot;</span></code></pre></div>
+<p><code>main</code> is the gateway drug into <code>IO</code>, and the first one’s free. “Hello World” is a one-liner, requiring no imports, and not even a type signature if you’re really lazy.</p>
+<p>Functions with the famous type signature <code>IO ()</code> have zero functional mojo. <code>()</code> is the empty type, meaning the function returns nothing: side-effects only.</p>
+<p>You can use <code>IO ()</code> to squander any benefits of strongly-typed functional programming, with magical values emerging from the big scary world outside the compiler.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">sendSecret ::</span> <span class="dt">IO</span> ()
+sendSecret <span class="fu">=</span> writeFile <span class="st">&quot;/tmp/secret&quot;</span> <span class="st">&quot;Who is Benjamin Disraeli?&quot;</span>
+
+<span class="ot">andTheAnswerIs ::</span> <span class="dt">IO</span> <span class="dt">String</span>
+andTheAnswerIs <span class="fu">=</span> readFile <span class="st">&quot;/tmp/secret&quot;</span> </code></pre></div>
+<p>Fortunately, IO isn’t an all-or-nothing proposition.</p>
+<p>First and most obviously, you can use pure code in IO whenever you like. This will arise naturally if your factoring is halfway decent.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- | pure function to count characters in a string</span>
+<span class="ot">countChar ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
+countChar c <span class="fu">=</span> length <span class="fu">.</span> filter (<span class="fu">==</span>c)
+
+<span class="co">-- | use 'countChar' in IO on a file</span>
+<span class="ot">countCharInFile ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Int</span>
+countCharInFile c f <span class="fu">=</span> <span class="kw">do</span>
+  contents <span class="ot">&lt;-</span> readFile f
+  return (countChar c contents)</code></pre></div>
+<p><code>countChar</code> is 100% pure, and easy to test in GHCI.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">ghci<span class="fu">&gt;</span> countChar <span class="ch">'a'</span> <span class="st">&quot;aba&quot;</span>
+<span class="dv">2</span></code></pre></div>
+<p>However, GHCI makes it easy to test IO functions too. Let’s see how many times ‘a’ shows up in this article:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">ghci<span class="fu">&gt;</span> countCharInFile <span class="ch">'a'</span> <span class="st">&quot;posts/Effectful01.lhs&quot;</span>
+<span class="dv">1106</span></code></pre></div>
+<p>So what is this strange thing we call <code>IO</code>?</p>
+<h1 id="io">IO</h1>
+<p>IO in haskell is famously a Monad, but first and foremost, it’s just another <em>type</em>. It’s kind is <code>* -&gt; *</code>. <a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">ghci<span class="fu">&gt;</span> <span class="fu">:</span>k <span class="dt">IO</span>
+<span class="dt">IO</span><span class="ot"> ::</span> <span class="fu">*</span> <span class="ot">-&gt;</span> <span class="fu">*</span></code></pre></div>
+<p>Thus, just like you’d write <code>Set String</code> to make Set inhabitable with String values, you write <code>IO Handle</code> to indicate an IO action that produces a Handle.</p>
+<p>If you want an <code>IO</code> action that produces a Set of Strings, you’ll need to break out parentheses:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">setProducingAction ::</span> <span class="dt">IO</span> (<span class="dt">Set</span> <span class="dt">String</span>)
+setProducingAction <span class="fu">=</span> return <span class="fu">$</span> singleton <span class="st">&quot;contrived&quot;</span></code></pre></div>
+<h2 id="is-not-null">() is not null</h2>
+<p>As we noted above, <code>IO ()</code> means the function has no output. <code>()</code> is the “unit type”, which is uninhabitable by any value: nothing can become <code>()</code>, and <code>()</code> cannot be casted or coerced into any other type.</p>
+<p>As such, it is entirely different from <code>null</code> in those <em>other</em> languages, where it can inhabit any type, and any type can be null, causing bugs aplenty. <code>()</code> can never have a value except itself.</p>
+<p><code>IO ()</code> therefore means that we’re only executing this action for its side effects. However, functions like <code>readFile</code> are of type <code>IO String</code>, meaning “run side-effects and give me a <code>String</code> result.”</p>
+<p>In this regard, the two-kinded–ness of <code>IO</code> means something completely different than, say, <code>Set</code>. The second type in Set indicates what values it “holds”; the second type in IO indicates what single value it “produces”.</p>
+<h2 id="effectful-io">Effectful IO</h2>
+<p>IO is obviously an action-packed, effect-having champ. However, it is also “effectful” in a larger sense, since IO implements the typeclasses <code>Functor</code>, <code>Applicative</code> and <code>Monad</code>. These form a hierarchy, such that any <code>Monad</code> is an <code>Applicative</code>, and any <code>Applicative</code> is a <code>Functor</code>. <a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>.</p>
+<p>These are the “effectful trio” of abstractions: all of the types we’ll use to level-up our code implement them. Effectful programming in Haskell is all about learning how to leverage the APIs of these types. Let’s start with the most powerful, <code>Monad</code>.</p>
+<h1 id="monad-return-and-bind">Monad: return and bind</h1>
+<p>Anything that is a <code>Monad</code> will support certain operations. Let’s ask GHCI what they are:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">ghci<span class="fu">&gt;</span> <span class="fu">:</span>i <span class="dt">Monad</span>
+<span class="kw">class</span> <span class="dt">Monad</span> (<span class="ot">m ::</span> <span class="fu">*</span> <span class="ot">-&gt;</span> <span class="fu">*</span>) <span class="kw">where</span>
+<span class="ot">  (&gt;&gt;=) ::</span> m a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> m b
+<span class="ot">  (&gt;&gt;) ::</span> m a <span class="ot">-&gt;</span> m b <span class="ot">-&gt;</span> m b
+<span class="ot">  return ::</span> a <span class="ot">-&gt;</span> m a
+<span class="ot">  fail ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> m a</code></pre></div>
+<p>We see four functions making up the typeclass. We also see that any Monad must be of kind <code>* -&gt; *</code>, like IO. This is true of <code>Applicative</code> and <code>Functor</code> as well.</p>
+<p>The two most important functions in Monad are <code>return</code> and <code>(&gt;&gt;=)</code>; the second is an infix operator called “bind”. Let’s look at each.</p>
+<h2 id="return">return</h2>
+<p>In isolation, <code>return</code> is disarmingly straightforward, albeit with a strange name.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">ghci<span class="fu">&gt;</span> <span class="fu">:</span>t return
+return<span class="ot"> ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> m a</code></pre></div>
+<p>It simply allows you to stick a value into the monadic “context”. Take an <code>a</code>, you get <code>Monad m =&gt; m a</code>.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">returnIsEasy ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">String</span>
+returnIsEasy s <span class="fu">=</span> return (s <span class="fu">++</span> <span class="st">&quot; is in IOooooooo&quot;</span>)</code></pre></div>
+<p>Just like that, we wrapped a String in <code>IO</code>. We’re coding with the pros.</p>
+<p>Note that <code>return</code> is unnecessary if you’re calling a function that is already in your monad:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">ioNoReturn ::</span> <span class="dt">IO</span> <span class="dt">String</span>
+ioNoReturn <span class="fu">=</span> returnIsEasy <span class="st">&quot;Elvis&quot;</span></code></pre></div>
+<p>Pretty minimal. What’s the point? The clue is in the name <code>return</code>.</p>
+<p>Functions whose type is monadic (their result is of type <code>Monad x</code>) are different than your usual function: instead of returning the monad, they “run inside” the monadic context, and any values must be “returned” back to the context.</p>
+<p>So to really understand <code>return</code>, we have to understand its dual: bind.</p>
+<h2 id="bind">bind (&gt;&gt;=)</h2>
+<p>Bind is the real magic of <code>Monad</code>, formalizing how you operate on a monadic value.</p>
+<p>In monadic operation, we don’t simply grab the underlying value and go to town. Instead, we use “bind” to get at the good stuff: you have to supply a <em>function</em> to operate on the value and “give it back” to the monadic context. The type makes this clear:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">ghci<span class="fu">&gt;</span> <span class="fu">:</span>t (<span class="fu">&gt;&gt;=</span>)
+<span class="ot">(&gt;&gt;=) ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> m a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> m b</code></pre></div>
+<p>The first argument to <code>&gt;&gt;=</code> is the monad itself, <code>m a</code>. The second argument is the monadic function, which takes the bare value <code>a</code> and gets to work, producing the transformed value <code>b</code> in the monadic context: <code>(a -&gt; m b)</code>.</p>
+<p>This inversion of control allows the Monad instance to enforce all kinds of invariants on what that computation is allowed to do. You don’t simply “call” a monadic function, you “bind” to it. You don’t simply return a value from a function, you “return” it back to the context, using the API provided by the monad. The monad’s code is in charge.</p>
+<p>It’s a mode of computation of staggering generality and utility. Monadic functions working under <code>bind</code> have a different “shape” than normal input-to-output functions. This makes radically different modes of computation available to pure code.</p>
+<h2 id="monads-and-io">Monads and IO</h2>
+<p>Indeed, <code>IO</code> is a funny instance in the effectful zoo. When we use types like <code>State</code> and <code>Reader</code> and <code>Maybe</code> we reap huge gains in elegance and power; what’s more, the code is right there on Hackage for us to study and understand.</p>
+<p>IO, however, is mysterious. Its guts are buried deep inside GHC. We use it as a monad “just because”: a program without IO isn’t much of a program.</p>
+<p>Instead, it’s the <em>compiler</em> getting the main utility from monadic control. Through <code>Monad</code>, the compiler can ensure that all our <code>IO</code> commands happen in strict sequence, helping it safely move values in and out of the pure runtime.</p>
+<p>The good news is that Monad (with its effectful cousins) is a fantastic abstraction for <code>IO</code>, making it easy to compose and factor other effectful types with it.</p>
+<h1 id="binded-by-the-light">Binded by the light</h1>
+<p>Working with bind isn’t hard once you get used to it.</p>
+<p>The bind operator, <code>&gt;&gt;=</code>, is used infix, with a monad inhabitant on the left side, and our consuming function on the right. This creates a left-to-right code “motion”:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">countCharInFileBind ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Int</span>
+countCharInFileBind c f <span class="fu">=</span> 
+  readFile f <span class="fu">&gt;&gt;=</span> \cs <span class="ot">-&gt;</span> return (countChar c cs)</code></pre></div>
+<p>Our function counts how often a character shows up in a text file. We bind “<code>readFile f</code>”, of type <code>IO String</code>, with a lambda function. Its argument <code>cs</code> has the contents of the file from <code>readFile</code>. In the lambda, we call our pure function <code>countChar</code>, and <code>return</code> the Int result back to IO.</p>
+<p>With eta reduction, bind makes for some beautiful compositions:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">countCharInFileEta ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Int</span>
+countCharInFileEta c f <span class="fu">=</span> readFile f <span class="fu">&gt;&gt;=</span> return <span class="fu">.</span> countChar c</code></pre></div>
+<p>The infix syntax really shines here, with the <code>cs</code> argument composing onto the end of <code>countChar c</code>. It’s as though <code>&gt;&gt;=</code> were a “pipeline,” flowing the contents of the file into our composition <code>return . countChar c</code>.</p>
+<h2 id="side-effects-only">Side-effects only: &gt;&gt;</h2>
+<p>When we use functions of type <code>IO ()</code>, we’re only interested in the side effects. Nonetheless, we still have to bind to use them, leaving us with an unused argument of type <code>()</code>.</p>
+<p>An example is <code>putStrLn</code>, which writes a line of text to stdout. Let’s use it to log a message before performing our computation:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">countCharMsgBind ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Int</span>
+countCharMsgBind c f <span class="fu">=</span> 
+   putStrLn (<span class="st">&quot;count &quot;</span> <span class="fu">++</span> [c] <span class="fu">++</span> <span class="st">&quot; in &quot;</span> <span class="fu">++</span> f) 
+                <span class="fu">&gt;&gt;=</span> \_ <span class="ot">-&gt;</span> readFile f    <span class="co">-- yuck</span>
+                <span class="fu">&gt;&gt;=</span> return <span class="fu">.</span> countChar c</code></pre></div>
+<p>The “<code>\_ -&gt;</code>” is pointless. Enter <code>&gt;&gt;</code>, a modified bind that swallows the useless argument.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">ghci<span class="fu">&gt;</span> <span class="fu">:</span>t (<span class="fu">&gt;&gt;</span>)
+<span class="ot">(&gt;&gt;) ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> m a <span class="ot">-&gt;</span> m b <span class="ot">-&gt;</span> m b</code></pre></div>
+<p>With <code>&gt;&gt;</code>, we simply “sequence” the next action.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">countCharMsg ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Int</span>
+countCharMsg c f <span class="fu">=</span> 
+   putStrLn (<span class="st">&quot;count &quot;</span> <span class="fu">++</span> [c] <span class="fu">++</span> <span class="st">&quot; in &quot;</span> <span class="fu">++</span> f) 
+                <span class="fu">&gt;&gt;</span> readFile f           <span class="co">-- much better!</span>
+                <span class="fu">&gt;&gt;=</span> return <span class="fu">.</span> countChar c</code></pre></div>
+<h2 id="local-definitions">Local definitions</h2>
+<p><code>where</code> and <code>let ... in</code> can be interchanged in pure code as a matter of style. In monadic code however, it gets tricky to use <code>where</code>.</p>
+<p>Let’s change our logging to output the character count. To do so we’ll need to capture it in a variable first, so we fire up a <code>where</code> clause. Unfortunately, the compiler yells at us.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">countCharBroken c f <span class="fu">=</span> 
+   readFile f <span class="fu">&gt;&gt;=</span> 
+      \cs <span class="ot">-&gt;</span> putStrLn (<span class="st">&quot;Counted &quot;</span> <span class="fu">++</span> show count <span class="fu">++</span> <span class="st">&quot; chars&quot;</span>)
+             <span class="fu">&gt;&gt;</span> return count
+   <span class="kw">where</span> count <span class="fu">=</span> countChar c cs 
+
+posts<span class="fu">/</span>Effectful.lhs<span class="fu">:</span><span class="dv">332</span><span class="fu">:</span><span class="dv">32</span><span class="fu">-</span><span class="dv">33</span><span class="fu">:</span> <span class="dt">Not</span> <span class="kw">in</span> scope<span class="fu">:</span> ‘cs’ …
+<span class="dt">Compilation</span> failed<span class="fu">.</span></code></pre></div>
+<p>As the error shows, the lambda after <code>readFile f</code> is not in scope for the <code>where</code> section. Only <code>c</code> and <code>f</code> from the top level are in scope. There’s not really any good place to put the <code>where</code>.</p>
+<p><code>let</code> and <code>in</code> work better, “above” the lambdas that need it.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">countCharLog ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Int</span>
+countCharLog c f <span class="fu">=</span> 
+   readFile f <span class="fu">&gt;&gt;=</span> 
+      \cs <span class="ot">-&gt;</span> <span class="kw">let</span> count <span class="fu">=</span> countChar c cs 
+             <span class="kw">in</span> putStrLn (<span class="st">&quot;Counted &quot;</span> <span class="fu">++</span> show count <span class="fu">++</span> <span class="st">&quot; chars&quot;</span>) 
+                <span class="fu">&gt;&gt;</span> return count</code></pre></div>
+<h1 id="do-notation">Do notation</h1>
+<p>If you’ve got a lot of work to do, writing a ton of lambdas can get unweildy and confusing. Our simple function <code>countCharLog</code> has three lambdas; we can easily imagine more.</p>
+<p>Enter <code>do</code> notation, an alternate syntax for Monads which nicely “cleans up” repeated <code>&gt;&gt;=</code>, <code>&gt;&gt;</code> and <code>let</code> expressions. Here’s <code>countCharLog</code> rewritten with <code>do</code>:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">countCharLogDo ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Int</span>
+countCharLogDo c f <span class="fu">=</span> <span class="kw">do</span>
+  cs <span class="ot">&lt;-</span> readFile f
+  <span class="kw">let</span> count <span class="fu">=</span> countChar c cs
+  putStrLn <span class="fu">$</span> <span class="st">&quot;Counted &quot;</span> <span class="fu">++</span> show count <span class="fu">++</span> <span class="st">&quot; chars&quot;</span>
+  return count</code></pre></div>
+<p>Starting from the top, we have “<code>cs &lt;- readFile f</code>”. “<code>&lt;-</code>” is the <a href="https://wiki.haskell.org/Keywords#.3C-">“draw from”</a> operator, which invokes bind under the hood. The argument of the next lambda appears as an “assignment” on the left of the arrow. The following expressions have <code>cs</code> in scope, exactly like nested lambdas.</p>
+<p>Next we define <code>count</code> with <code>let</code>. No <code>in</code> is required: definitions are automatically in scope for subsequent expressions.</p>
+<p>Our side-effect–only expression comes next. We simply issue our <code>putStrLn</code> call and proceed to the next line. Under the hood, this is sequenced to the following expression with <code>&gt;&gt;</code>.</p>
+<p>If you stare long enough at <code>countCharLog</code> and <code>countCharLogDo</code>, you’ll see how <code>do</code> notation is simply a reformat of our bind lambdas, leveraging newlines to clean up the code.</p>
+<h2 id="just-do-it">Just do it</h2>
+<p>Do notation has been characterized as a way to “write imperative code in Haskell”, ostensibly “easier to read” than, say, the right-to-left sequencing of function composition. This perhaps explains some of the general confusion surrounding Monads, when they are seen as “programmable semicolons” or some other broken metaphor about imperative coding.</p>
+<p>It is far better to see <code>do</code> as simply a code-cleaning tool. It’s a way of chaining binds of monadic functions and lambdas, with the left-to-right, top-to-bottom orientation accumulating variables in scope. It’s a <em>style</em>, embedded in syntax.</p>
+<p>Monads don’t have to go left-to-right. “Reverse bind” (<code>=&lt;&lt;</code>) can be used to write monadic code that flows the other way.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">countCharRevBind ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Int</span>
+countCharRevBind c f <span class="fu">=</span> return <span class="fu">.</span> countChar c <span class="fu">=&lt;&lt;</span> readFile f</code></pre></div>
+<p>This looks more like functional code. However some syntactic gotchas await.</p>
+<p>In a pure function, <code>f</code> would be a candidate for eta reduction. Unfortunately, the infix precedences of <code>=&lt;&lt;</code> and <code>.</code> don’t play nicely, so point-free style gets a little clumsy.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">countCharRevEta ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Int</span>
+countCharRevEta c <span class="fu">=</span> (return <span class="fu">.</span> countChar c <span class="fu">=&lt;&lt;</span>) <span class="fu">.</span> readFile</code></pre></div>
+<p>“Forward” bind works better with the other infix operators, and maps directly to <code>do</code> sugar. Thus, it’s easier and more idiomatic to use <code>&gt;&gt;=</code> (and <code>do</code>) instead of reverse bind.</p>
+<p>Like all sugar, <code>do</code> notation gets addictive. Until you’re really comfortable with monads, you should regularly “de-sugar” <code>do</code> blocks back into <code>&gt;&gt;=</code>, <code>&gt;&gt;</code>, <code>let</code> and lambdas. This will reveal the monadic functionality explicitly.</p>
+<h1 id="io-is-a-functor">IO is a Functor</h1>
+<p>Since <code>IO</code> is a Monad, it’s also a <code>Functor</code>, which is horribly useful.</p>
+<p><code>Functor</code>’s main function is <code>fmap</code>. It looks a lot like Monad’s reverse bind.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">ghci<span class="fu">&gt;</span> <span class="fu">:</span>t fmap
+fmap<span class="ot"> ::</span> <span class="dt">Functor</span> f <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> b)   <span class="ot">-&gt;</span> f a <span class="ot">-&gt;</span> f b
+ghci<span class="fu">&gt;</span> <span class="fu">:</span>t (<span class="fu">=&lt;&lt;</span>)
+<span class="ot">(=&lt;&lt;) ::</span> <span class="dt">Monad</span> m  <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> m a <span class="ot">-&gt;</span> m b</code></pre></div>
+<p>Unlike bind, the function used in <code>fmap</code> is “pure”: it makes the transformation from <code>a</code> to <code>b</code> without needing to <code>return</code> it to the context. The Functor implementation itself will lift the <code>b</code> result for us “outside” the function.</p>
+<p><code>fmap</code> is really the classic functional operation <code>map</code>, best known as a way to transform all of the elements in a list.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">incrementAllBy ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> [<span class="dt">Int</span>]
+incrementAllBy i is <span class="fu">=</span> fmap (<span class="fu">+</span> i) is </code></pre></div>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">ghci<span class="fu">&gt;</span> incrementAllBy <span class="dv">2</span> [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>]
+[<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>]</code></pre></div>
+<p>Many tourists to functional programming learn <code>map</code> (and maybe its cousin <code>reduce</code>/<code>fold</code>) as a list operation only, before proudly stamping FP onto their resume. Haskellers go a lot further with <code>Functor</code>, mapping functions over <em>any</em> type with the <code>Functor</code> shape.</p>
+<h2 id="effectful-functors">Effectful Functors</h2>
+<p>Wtih the effectful types, <code>fmap</code> allows us to “plug” a pure operation into an effectful one.</p>
+<p>Bind forces us to shape effectful operations differently than pure ones. It can therefore be tempting to see pure transformations as in “a different world”, confining them to <code>let</code> clauses or stashing them in other functions altogether. The effectful programmer instead uses <code>fmap</code> on monadic values, composing pure transformations with an effectful result.</p>
+<p>Our char-counting function is an excellent candidate for plugging in <code>fmap</code>.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">countCharFmap ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Int</span>
+countCharFmap c f <span class="fu">=</span> fmap (countChar c) (readFile f)</code></pre></div>
+<p>Our code is looking more and more functional – the only indication here that our function is at all impure is the type <code>IO Int</code>. Let’s “follow the types” to see how <code>fmap</code> accomplishes this:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">ghci<span class="fu">&gt;</span> <span class="fu">:</span>t fmap
+fmap<span class="ot"> ::</span> <span class="dt">Functor</span> f <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> f a <span class="ot">-&gt;</span> f b
+
+ghci<span class="fu">&gt;</span> <span class="fu">:</span>t countChar <span class="ch">'c'</span>
+countChar <span class="ch">'c'</span><span class="ot"> ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
+
+ghci<span class="fu">&gt;</span> <span class="fu">:</span>t readFile <span class="st">&quot;path&quot;</span>
+readFile <span class="st">&quot;path&quot;</span><span class="ot"> ::</span> <span class="dt">IO</span> <span class="dt">String</span></code></pre></div>
+<p>Here, we’re using GHCI to examine the types of partially- and fully-applied functions. <code>countChar 'c'</code> creates a unary function of type <code>String -&gt; Int</code>, which is suitable for “plugging into” <code>fmap</code>. Meanwhile, the fully-applied <code>readFile &quot;path&quot;</code> is of type <code>IO String</code> – and IO is a <code>Functor</code>.</p>
+<p>Putting the types together, we see the resuling type is <code>IO Int</code>.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">
+ghci<span class="fu">&gt;</span> <span class="fu">:</span>t fmap (countChar <span class="ch">'c'</span>) (readFile <span class="st">&quot;path&quot;</span>)
+fmap (countChar <span class="ch">'c'</span>) (readFile <span class="st">&quot;path&quot;</span>)<span class="ot"> ::</span> <span class="dt">IO</span> <span class="dt">Int</span></code></pre></div>
+<p>In short, we use <code>fmap</code> to convert our effectful <code>String</code> result into an <code>Int</code>. The pure conversion happens <em>within the effectful context:</em> no <code>return</code> required.</p>
+<p><code>fmap</code> has an infix synonym <code>&lt;$&gt;</code>, which we can use to make those pesky parentheses disappear.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">countCharInfix ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Int</span>
+countCharInfix c f <span class="fu">=</span> countChar c <span class="fu">&lt;$&gt;</span> readFile f</code></pre></div>
+<p>That’s some pretty sweet code right there.</p>
+<h1 id="list-is-a-monad">List is a Monad</h1>
+<p>So far we’ve focused our Monad/Functor discussion on <code>IO</code> while referencing other “effectful” types. It’s important to realize that nothing about Monad or Functor is necessarily effect-related. To do this, let’s take a quick glance at the humble list type, <code>[a]</code>.</p>
+<p>We know already that it’s a <code>Functor</code>: the <code>map</code> operation is a “Greatest Hit” of functional programming. Intuitively, we can imagine applying a function to every element of a list, creating a new list with the transformed elements. How is it a <code>Monad</code> though?</p>
+<p><code>return</code> is easy. It simply creates a singleton list out of the value.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">ghci<span class="fu">&gt;</span> return <span class="dv">1</span><span class="ot"> ::</span> [<span class="dt">Int</span>]
+[<span class="dv">1</span>]</code></pre></div>
+<p>Bind is more interesting. It’s type is “<code>[a] -&gt; (a -&gt; [b]) -&gt; [b]</code>”: the monadic function will take each value of the list, and return the transformed result <em>as a list</em>.</p>
+<p>The result is a new list, but made from a bunch of <em>list results</em>, not individual values like <code>fmap</code>. Therefore the List monad must <em>concatenate</em> these results to make the new list.</p>
+<p>We can see therefore how <code>Monad</code> offers strictly more powerful transformations than <code>Functor</code>. <code>fmap</code> can only transform an individual value “in place”, while <code>&gt;&gt;=</code> can return an empty list, or a list with more elements than the original. Functor is “structure preserving”, while Monad is “structure transforming”.</p>
+<p>Here’s a simple example, using bind to repeat <code>Int</code> values as many times as the value itself.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">listBindEx ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> [<span class="dt">Int</span>]
+listBindEx is <span class="fu">=</span> is <span class="fu">&gt;&gt;=</span> (\i <span class="ot">-&gt;</span> replicate i i)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">ghci<span class="fu">&gt;</span> listBindEx [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>]
+[<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">3</span>,<span class="dv">3</span>]</code></pre></div>
+<p>The intermediate values <code>[1]</code>, <code>[2,2]</code> and <code>[3,3,3]</code> have been merged to create the final results.</p>
+<p>To make things more interesting, let’s look at what it means to bind up two lists. We’ll use <code>do</code> notation to avoid unsightly bind lambdas.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">listBindTwo ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> [<span class="dt">Int</span>]
+listBindTwo is js <span class="fu">=</span> <span class="kw">do</span>
+   i <span class="ot">&lt;-</span> is
+   j <span class="ot">&lt;-</span> js
+   [i,j]</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">ghci<span class="fu">&gt;</span> listBindTwo [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>] [<span class="dv">5</span>,<span class="dv">6</span>]
+[<span class="dv">1</span>,<span class="dv">5</span>,<span class="dv">1</span>,<span class="dv">6</span>,<span class="dv">2</span>,<span class="dv">5</span>,<span class="dv">2</span>,<span class="dv">6</span>,<span class="dv">3</span>,<span class="dv">5</span>,<span class="dv">3</span>,<span class="dv">6</span>]</code></pre></div>
+<p>It looks a lot like “list comprehensions”, which is no accident. List comprehensions are indeed the Monadic use case for lists. Lists are therefore first-class Monads, which is a great way to unseat the assumption that Monads are somehow “imperative”.</p>
+<p>In <code>listBindTwo</code>, it is impossible to interpret <code>i &lt;- is</code> happening “before” <code>j &lt;- js</code>. They are simply two nested lambdas that produce the cartesian result of the two lists. How we <em>declare</em> functions is not necessarily related to how they <em>fire</em>.</p>
+<h1 id="conclusion">Conclusion</h1>
+<p>We’ve covered a lot of ground, but we’re just getting started.</p>
+<p>The next article will turn to the pure effectful types, and introduce <code>Applicative</code> use cases. We’ll look at monad transformers, plus the typeclasses surrounding them that make working with transformers so much easier.</p>
+<p>Finally we’ll sew them all together in a fully-working, if trivial, example. Stay tuned!</p>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>See <a href="2015-04-10-Types.html">this article</a> for an intro to kinds.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>The Functor-Applicative-Monad hierarchy was only a convention until recently, when GHC 7.10 started enforcing it.<a href="#fnref2">↩</a></p></li>
+</ol>
+</div>
+
+        </div>
+        <div id="footer">
+		  <div id="lefty">
+			<a href="https://github.com/slpopejoy/tatterdemalion">sources</a>
+		  </div>
+          <a href="http://jaspervdj.be/hakyll">hakyll</a>
+		    
+        </div>
+    </body>
+</html>

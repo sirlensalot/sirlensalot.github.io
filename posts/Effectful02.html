@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>tatterdemalion - Effectful Haskell: Reader</title>
+        <meta name="viewport" content="width=device-width">
+<link rel="stylesheet" type="text/css" href="../fonts/Sans/cmun-sans.css" />
+<link rel="stylesheet" type="text/css" href="../fonts/cmun-serif.css" />
+<link rel="stylesheet" type="text/css" href="../fonts/SerifSlanted/cmun-serif-slanted.css" />
+<!-- <link rel="stylesheet" type="text/css" href="/css/screen.css"/> -->
+<link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+<link rel="stylesheet" type="text/css" href="../css/default.css" />
+
+</head>
+    <body>
+        <div id="header">
+            <div id="lefty">
+                <a class="header_a" href="../">tatterdemalion</a>
+            </div>
+            <div id="navigation">
+                <a href="../archive.html" class="header_a">archive</a>
+            </div>
+        </div>
+
+        <div id="content">
+            <h1>Effectful Haskell: Reader</h1>
+
+            <div class="info">
+    Posted on May 24, 2015
+    
+        by Stuart Popejoy
+    
+</div>
+
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE FlexibleContexts #-}</span>
+<span class="kw">import </span><span class="dt">System.IO</span>
+<span class="kw">import </span><span class="dt">Control.Monad.Reader</span>
+<span class="kw">import </span><span class="dt">Control.Applicative</span></code></pre></div>
+<h1 id="effectful-haskell-configuration">Effectful Haskell: Configuration</h1>
+<p>Now that we have some idea how to work with Monads and Functors, let’s start looking at how we can integrate some of the nifty effectful types in the Haskell libraries.</p>
+<p>One “effect” we’d like to have is the ability to read values from an environment that is present over all of our function calls. An obvious example is accessing a configuration data structure throughout our program.</p>
+<p>Given an example config:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">AppConfig</span> <span class="fu">=</span> <span class="dt">AppConfig</span> {
+<span class="ot">    logfile ::</span> FilePath
+  ,<span class="ot"> version ::</span> <span class="dt">String</span>
+  ,<span class="ot"> maxMessageLength ::</span> <span class="dt">Int</span>
+} <span class="kw">deriving</span> (<span class="dt">Show</span>)</code></pre></div>
+<p>The most obvious way to read this config is to pass it to every function that needs it. Our examples will be a function in IO that opens our logfile and writes a preamble:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">initLogFile ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">AppConfig</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Handle</span> 
+initLogFile preamble config <span class="fu">=</span> <span class="kw">do</span>
+  handle <span class="ot">&lt;-</span> openFile (logfile config) <span class="dt">WriteMode</span>
+  hPutStrLn handle (preamble <span class="fu">++</span> <span class="st">&quot;\nVersion: &quot;</span> <span class="fu">++</span> version config)
+  return handle</code></pre></div>
+<p>and a pure function that validates message lengths:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">validateMessage ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">AppConfig</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">String</span> ()
+validateMessage msg config <span class="fu">=</span> 
+     <span class="kw">if</span> (length msg <span class="fu">&gt;</span> maxMessageLength config)
+     <span class="kw">then</span> <span class="dt">Left</span> (<span class="st">&quot;Message too long: &quot;</span> <span class="fu">++</span> msg)
+     <span class="kw">else</span> <span class="dt">Right</span> ()</code></pre></div>
+<p>No problem with this, except it’s a little … “manual”. We’d prefer to <em>formalize</em> this practice, as functions “participating in a configured environment”. Along the way it’d be nice to get <code>config</code> out of the argument list, since it’s not really germane to the function’s specific job.</p>
+<p>One way to formalize our approach is with a type synonym.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">ConfigReader</span> a <span class="fu">=</span> <span class="dt">AppConfig</span> <span class="ot">-&gt;</span> a</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">initLogFileTS ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ConfigReader</span> (<span class="dt">IO</span> <span class="dt">Handle</span>)
+initLogFileTS <span class="fu">=</span> initLogFile
+
+<span class="ot">validateMessageTS ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ConfigReader</span> (<span class="dt">Either</span> <span class="dt">String</span> ())
+validateMessageTS <span class="fu">=</span> validateMessage</code></pre></div>
+<p>Our equations prove that the <code>ConfigReader</code> type synonym works. It’s a light formalization that also hides <code>AppConfig</code> from our signatures. But, we still have to deal with a <code>config</code> argument to read any values out, and we have to make sure that argument is the last in the list, etc.</p>
+<p>To really formalize our approach, we need environment-querying functions to just “show up” in our function’s scope, with the value magically inserted somewhere outside of the argument list. The type that implements this magic is called <code>Reader</code>.</p>
+<p>Well, <code>ReaderT</code> actually.</p>
+<h1 id="readert-and-the-case-of-the-missing-monad">ReaderT and the case of the missing monad</h1>
+<p>A funny thing happened on the way to modern Haskell: some classic monads disappeared. <code>Reader</code> is one such classic. It’s type is <code>(-&gt; r)</code>: it literally formalizes an “extra argument” into a datatype.</p>
+<p>It’s also nowhere to be found. All we can find is a type synonym defining it in terms of <code>ReaderT Identity</code>. Huh?</p>
+<pre><code>ghci&gt; import Control.Monad.Trans.Reader (Reader)
+ghci&gt; :i Reader
+type Reader r = ReaderT r Identity</code></pre>
+<p>Well, it turns out that <code>Reader</code> is just a specialization of a more general type <code>ReaderT</code>, a <em>monad transformer</em> that can be composed with other effectful types. In the relatively rare case that you want to use <code>Reader</code> all by itself, the type synonym <code>Reader</code> fits the bill with the trivial <code>Identity</code> monad. Otherwise you’ll use it in your effectful monad “stack”.</p>
+<h2 id="monad-transformers">Monad Transformers</h2>
+<p>Effectful types are great, but they’re even better used together, which is the point of this article. Just because you’re in IO doesn’t mean you don’t want to read from config, right? Monad transformers allow monads to be “stacked” together, to give you the exact computational context you’re looking for.</p>
+<p>To understand this, it’s useful to look at the kinds. Monads are of kind <code>* -&gt; *</code>, implying they “contain” another type. A Monad Transformer will be of kind <code>(* -&gt; *) -&gt; * -&gt; *</code>, meaning that in addition to its contained type, it also takes <em>another Monad</em> – the <code>* -&gt; *</code> in parentheses.</p>
+<p>Now, a monad does not have to just be two-kinded. ReaderT, for example, needs the type of the environment. So the kind of ReaderT must include this.</p>
+<pre><code>ghci&gt; :k ReaderT
+ReaderT :: * -&gt; (* -&gt; *) -&gt; * -&gt; *</code></pre>
+<p>Looking at that kind, we can start to see what our ReaderT “stack” will look like. We want to work in <code>IO</code> and read config of type <code>AppConfig</code>. Thus our type is <code>ReaderT AppConfig IO</code>. We’ve just built a new monad!</p>
+<pre><code>ghci&gt; :k ReaderT AppConfig IO
+ReaderT AppConfig IO :: * -&gt; *</code></pre>
+<p>OK let’s get to work.</p>
+<h1 id="using-readert">Using ReaderT</h1>
+<p>Here’s our logfile initialization function using ReaderT:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">initLogFileRT ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ReaderT</span> <span class="dt">AppConfig</span> <span class="dt">IO</span> <span class="dt">Handle</span>
+initLogFileRT preamble <span class="fu">=</span> <span class="kw">do</span>
+  f <span class="ot">&lt;-</span> reader logfile
+  v <span class="ot">&lt;-</span> reader version
+  h <span class="ot">&lt;-</span> liftIO <span class="fu">$</span> openFile f <span class="dt">WriteMode</span>
+  liftIO <span class="fu">$</span> hPutStrLn h (preamble <span class="fu">++</span> <span class="st">&quot;\nVersion: &quot;</span> <span class="fu">++</span> v)
+  return h</code></pre></div>
+<p>Effectful Haskell in the house. The computational context is expressed as the “return type” of the function; the arguments are freed up to express the specific domain of the function itself.</p>
+<p>To access config, we use <code>reader</code> which uses the specified accessor function on the environment and binds to the value returned.</p>
+<pre><code>ghci&gt; :t reader
+reader :: MonadReader r m =&gt; (r -&gt; a) -&gt; m a</code></pre>
+<p>ReaderT also has <code>ask</code> which returns the entire <code>AppConfig</code> value.</p>
+<h2 id="liftio">liftIO</h2>
+<p>The other change to our code is we had to sprinkle <code>liftIO</code> in front of our IO functions. This is how the non-transforming <code>IO</code> monad can work in a stack: its functions must be “lifted” into scope.</p>
+<p><code>liftIO</code> is in the typeclass <code>MonadIO</code>, which any monad transformer must implement in order to work with <code>IO</code>. Thus, here, <code>liftIO</code> is implemented by <code>ReaderT</code> to “lift” the monadic value coming out of IO into the ReaderT context.</p>
+<p>Indeed, this is the nitty-gritty of transformers. In order for two monads to “stack together”, the “outer” monad must be able to “lift” all of the operations of the “inner” monad into its context. To do so, the “outer” monad must implement some typeclass that expresses the API of the inner monad, and provide an implementation that “lifts” those operations accordingly.</p>
+<p>For monad authors, this means a lot of boilerplate. For us monad <em>users</em>, it’s no problem at all. What’s more, monad authors usally maintain a corresponding typeclass that expresses all of the monad’s core functionality, which is extremely useful.</p>
+<h1 id="transformer-typeclasses">Transformer Typeclasses</h1>
+<p>We mentioned <code>MonadIO</code> above, which is the typeclass expressing “a monad that can interoperate with IO”. <code>liftIO</code> is its sole function, to be used with any IO value to lift it into the transformer context.</p>
+<p>Such typeclasses exist for all the standard monad/monad transformers. <code>StateT</code> has <code>MonadState</code>, <code>ErrorT</code> has <code>MonadError</code>, and so on. Unlike <code>MonadIO</code>, these classes expose the core operations of the monad as functions, so you can directly use these functions in a transformer stack.</p>
+<p>For ReaderT, the typeclass is <code>MonadReader</code>.</p>
+<pre><code>ghci&gt; :i MonadReader
+class Monad m =&gt; MonadReader r (m :: * -&gt; *) | m -&gt; r where
+  ask :: m r
+  local :: (r -&gt; r) -&gt; m a -&gt; m a
+  reader :: (r -&gt; a) -&gt; m a</code></pre>
+<p>We described <code>ask</code> and <code>reader</code> above as the magical API functions that read from our environment. <code>local</code> is less-used, allowing a scoped modification of the environment.</p>
+<p>There’s a big bonus to having these typeclasses around, especially as our monad stacks get bigger. The typeclasses allow us to “select” which functionality we want our functions to participate in.</p>
+<p>How is this useful? Consider our pure validation function above. If we adapt it using our concrete monad stack, it’s type becomes <code>ReaderT AppConfig IO ()</code>:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">validateMessageRTIO ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ReaderT</span> <span class="dt">AppConfig</span> <span class="dt">IO</span> (<span class="dt">Either</span> <span class="dt">String</span> ())
+validateMessageRTIO msg <span class="fu">=</span> test <span class="fu">&lt;$&gt;</span> reader maxMessageLength <span class="kw">where</span>
+    test l <span class="fu">|</span> length msg <span class="fu">&gt;</span> l <span class="fu">=</span> <span class="dt">Left</span> (<span class="st">&quot;Message too long: &quot;</span> <span class="fu">++</span> msg)
+           <span class="fu">|</span> otherwise      <span class="fu">=</span> <span class="dt">Right</span> ()</code></pre></div>
+<p>(Recall that <code>&lt;$&gt;</code> is infix <code>fmap</code>. We’re mapping in our pure validation function <code>test</code> into the monadic read of <code>maxMessageLength</code>.)</p>
+<p>The big problem here? So much for our “pure” function! It’s now tied to big bad <code>IO</code>, the impurest-est of all. Fortunately, we can use typeclass constraints to get IO out of the picture:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">validateMessageRTM ::</span> (<span class="dt">Functor</span> m, <span class="dt">Monad</span> m) <span class="ot">=&gt;</span> 
+                      <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ReaderT</span> <span class="dt">AppConfig</span> m (<span class="dt">Either</span> <span class="dt">String</span> ())
+validateMessageRTM msg <span class="fu">=</span> test <span class="fu">&lt;$&gt;</span> reader maxMessageLength <span class="kw">where</span>
+    test l <span class="fu">|</span> length msg <span class="fu">&gt;</span> l <span class="fu">=</span> <span class="dt">Left</span> (<span class="st">&quot;Message too long: &quot;</span> <span class="fu">++</span> msg)
+           <span class="fu">|</span> otherwise      <span class="fu">=</span> <span class="dt">Right</span> ()</code></pre></div>
+<p>(Remember how I said <code>Functor</code> will be a required superclass of <code>Monad</code> in GHC 7.10? I haven’t upgraded yet, so I have to put <code>Functor m</code> in my constraint! The future is bright.)</p>
+<p>This is better: <code>IO</code> is gone, we just need our stack to operate on some Monad/Functor and we’ve got Reader goodness.</p>
+<p>But we’re not done yet: this will only work if <code>ReaderT</code> is the “outermost” monad on the stack. In other words, we’re still concretely specifying <code>ReaderT</code> itself, which will get us into trouble if we don’t stack our monads just so.</p>
+<p>Not only that, <code>ReaderT</code> isn’t the only Reader. There’s also <code>RWST</code>, a convenience monad transformer that bundles <code>Reader</code>, <code>Writer</code> and <code>State</code> into a single monad. It’s really not that hard to stack these together, but whatever: RWST is a thing, and it’s not <code>ReaderT</code>: so it won’t work with <code>validateMessageRTM</code>.</p>
+<p>However, any stack with <code>ReaderT</code> is a stack that implements <code>MonadReader</code>. <code>RWST</code> implements <code>MonadReader</code>. The point is, the polymorphism offered by the transformer typeclass <code>MonadReader</code> gives us most flexibility. It’s really the most <em>specific</em>: in fact we could care less what monad is calling us, as long as it’s <code>MonadReader AppConfig</code>. So we constrain to that.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">validateMessageMR ::</span> (<span class="dt">Functor</span> m, <span class="dt">MonadReader</span> <span class="dt">AppConfig</span> m) <span class="ot">=&gt;</span> 
+                     <span class="dt">String</span> <span class="ot">-&gt;</span> m (<span class="dt">Either</span> <span class="dt">String</span> ())
+validateMessageMR msg <span class="fu">=</span> test <span class="fu">&lt;$&gt;</span> reader maxMessageLength <span class="kw">where</span>
+    test l <span class="fu">|</span> length msg <span class="fu">&gt;</span> l <span class="fu">=</span> <span class="dt">Left</span> (<span class="st">&quot;Message too long: &quot;</span> <span class="fu">++</span> msg)
+           <span class="fu">|</span> otherwise      <span class="fu">=</span> <span class="dt">Right</span> ()</code></pre></div>
+<h1 id="putting-it-all-together">Putting it all together</h1>
+<p>TODO this section is NOT ready</p>
+<p>First, we’ll define a contrived function to read in our values as a tuple. Don’t try this at home; using Aeson to read values as JSON, or almost anything else, is better than this hack.</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">readConfig ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">AppConfig</span>
+readConfig f <span class="fu">=</span> fmap (fromTup <span class="fu">.</span> read) (readFile f) 
+    <span class="kw">where</span> fromTup (a,b,c) <span class="fu">=</span> <span class="dt">AppConfig</span> a b c </code></pre></div>
+<p>Now we can create a file with the following contents:</p>
+<pre><code>(&quot;/tmp/logfile&quot;,&quot;1.0.0&quot;,141)</code></pre>
+<p>and <code>readConfig</code> will turn it into an <code>AppConfig</code>. Note the use of <code>fmap</code> to apply pure functions to the result of <code>readFile f</code>. The function is composed from <code>read</code>, which converts a String into some type, and our <code>fromTup</code> function, which takes a tuple and creates an <code>AppConfig</code>. Type inference figures out the tuple type from the <code>AppConfig</code> constructor, which is fed into <code>read</code>. Typesafe hackery FTW.</p>
+
+        </div>
+        <div id="footer">
+		  <div id="lefty">
+			<a href="https://github.com/slpopejoy/tatterdemalion">sources</a>
+		  </div>
+          <a href="http://jaspervdj.be/hakyll">hakyll</a>
+		    
+        </div>
+    </body>
+</html>
