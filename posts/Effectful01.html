@@ -52,8 +52,7 @@
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">main ::</span> <span class="dt">IO</span> ()
 main <span class="fu">=</span> putStrLn <span class="st">&quot;Hello World!&quot;</span></code></pre></div>
 <p><code>main</code> is the gateway drug into <code>IO</code>, and the first one’s free. “Hello World” is a one-liner, requiring no imports, and not even a type signature if you’re really lazy.</p>
-<p>Functions with the famous type signature <code>IO ()</code> have zero functional mojo. <code>()</code> is the empty type, meaning the function returns nothing: side-effects only.</p>
-<p>You can use <code>IO ()</code> to squander any benefits of strongly-typed functional programming, with magical values emerging from the big scary world outside the compiler.</p>
+<p>Functions with the famous type signature <code>IO ()</code> have zero functional mojo; we run them for side-effects only. You can use <code>IO ()</code> to squander any benefits of strongly-typed functional programming, with magical values emerging from the big scary world outside the compiler.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">sendSecret ::</span> <span class="dt">IO</span> ()
 sendSecret <span class="fu">=</span> writeFile <span class="st">&quot;/tmp/secret&quot;</span> <span class="st">&quot;Who is Benjamin Disraeli?&quot;</span>
 
