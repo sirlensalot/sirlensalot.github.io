@@ -89,7 +89,7 @@ validateAndInitLogTS prompt config <span class="fu">=</span>
 <p>Our type synonym isn’t serving us very well here. We have the mystery <code>config</code> argument that is obscured by the type synonym, and we have to place it in the right spots of our calls to other functions.</p>
 <p>Our ideal solution would allow functions to interoperate with a “shared environment”, such that all functions sporting the same type can reference this environment without having to pass it to and fro. Let’s keep digging.</p>
 <h2 id="formalization-with-a-newtype">Formalization with a newtype</h2>
-<p>Often in Haskell, a type synonym is often a datatype waiting to be born. What happens if we simply <code>newtype</code> a function that takes an environment?</p>
+<p>Often in Haskell, a type synonym is a datatype waiting to be born. What happens if we simply <code>newtype</code> a function that takes an environment?</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">CReader</span> a <span class="fu">=</span> <span class="dt">CReader</span> {<span class="ot"> runCR ::</span> <span class="dt">AppConfig</span> <span class="ot">-&gt;</span> a }</code></pre></div>
 <p>The “data” of our type, <code>AppConfig -&gt; a</code>, looks like our type synonym above. We’ve wrapped a function in a datatype, giving it the accessor <code>runCR</code>. <a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
 <p>Let’s try it out in our API:</p>
@@ -174,22 +174,18 @@ validateAndInitLogF1 p <span class="fu">=</span> fmap doInit (validateMessageF p
     a <span class="fu">&gt;&gt;=</span> f <span class="fu">=</span> <span class="dt">CReader</span> <span class="fu">$</span> \c <span class="ot">-&gt;</span> <span class="kw">let</span> a' <span class="fu">=</span> runCR a c
                                   f' <span class="fu">=</span> f a'
                               <span class="kw">in</span> runCR f' c  </code></pre></div>
-<p>The trick here is we write a <em>new lambda</em> that uses the config <code>c</code> argument to get at the “internals” of both <code>a</code> and <code>f'</code>, the results of applying <code>f</code>.</p>
+<p>The trick here is we write a <em>new lambda</em> that uses <code>runCR</code> with the lambda’s <code>c</code> argument to get at the “internals” of <code>a</code> (as <code>a'</code>) and <code>f'</code> (the results of applying <code>f</code> to <code>a'</code>).</p>
 <p>We’re in business. Let’s roll.</p>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">validateMessageM ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">CReader</span> (<span class="dt">Either</span> <span class="dt">String</span> ())
-validateMessageM m <span class="fu">=</span> askConfig <span class="fu">&gt;&gt;=</span> return <span class="fu">.</span> validateMessage m</code></pre></div>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">initLogFileM ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">CReader</span> (<span class="dt">IO</span> <span class="dt">Handle</span>)
-initLogFileM p <span class="fu">=</span> askConfig <span class="fu">&gt;&gt;=</span> return <span class="fu">.</span> initLogFile p </code></pre></div>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">validateAndInitLogM ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">CReader</span> (<span class="dt">IO</span> (<span class="dt">Maybe</span> <span class="dt">Handle</span>))
 validateAndInitLogM p <span class="fu">=</span> <span class="kw">do</span>
-   v <span class="ot">&lt;-</span> validateMessageM p
+   v <span class="ot">&lt;-</span> validateMessageF p
    <span class="kw">case</span> v <span class="kw">of</span> 
      <span class="dt">Left</span> err <span class="ot">-&gt;</span> return (putStrLn (<span class="st">&quot;Invalid prompt: &quot;</span> <span class="fu">++</span> p)
                        <span class="fu">&gt;&gt;</span> return <span class="dt">Nothing</span>)
      <span class="dt">Right</span> () <span class="ot">-&gt;</span> <span class="kw">do</span>
-        h <span class="ot">&lt;-</span> initLogFileM p
+        h <span class="ot">&lt;-</span> initLogFileF p
         return (fmap <span class="dt">Just</span> h)</code></pre></div>
-<p>Now we’re cooking with gas.</p>
+<p>Now we’re cooking with gas. Note how our Functor-based functions work just fine in the monadic context.</p>
 <p>We’ve built our ideal solution, true formalization of our computational context as an “environment” offering <code>AppConfig</code> to read from. It frees client code from passing variables and implementation code from wrangling them.</p>
 <p>As you’ve probably guessed, we’ve simply re-built the classic monad <code>Reader</code> – <code>CReader</code> is the same as <code>Reader AppConfig</code> – and it’s main API function, <code>ask</code>, which returns the environment value, as <code>askConfig</code>. <code>Reader</code> is a true champ of effectful Haskell.</p>
 <p>The only problem with <code>Reader</code> is … it’s nowhere to be found.</p>
@@ -218,7 +214,7 @@ initLogFileRdr preamble <span class="fu">=</span> <span class="kw">do</span>
     h <span class="ot">&lt;-</span> openFile f <span class="dt">WriteMode</span>
     hPutStrLn h (preamble <span class="fu">++</span> <span class="st">&quot;, version: &quot;</span> <span class="fu">++</span> v)
     return h</code></pre></div>
-<p>This looks sweet indeed. We’re using <code>reader</code> as before, now to access our log filepath and application version.</p>
+<p>This looks sweet indeed. We’re using <code>reader</code> as before, here to access our log filepath and application version.</p>
 <p>However, it has the same problem we alluded to above: it’s not running in <code>IO</code>, but instead returning an unevaluated IO action (the second <code>do</code> section), which would be run sometime later. <code>Reader</code> is a monad, but so is <code>IO</code>, and you can’t simply run both “at the same time”.</p>
 <p>Or can you?</p>
 <h1 id="readert-a-monad-transformer">ReaderT: a monad transformer</h1>
@@ -284,7 +280,7 @@ validateMessageRTM msg <span class="fu">=</span> vfun <span class="fu">&lt;$&gt;
   <span class="co">-- Defined in ‘Control.Monad.Reader.Class’</span>
 <span class="kw">instance</span> <span class="dt">MonadReader</span> r ((<span class="ot">-&gt;</span>) r)
   <span class="co">-- Defined in ‘Control.Monad.Reader.Class’</span></code></pre></div>
-<p>(Note the freakiness of that last instance: <em>the function arrow itself</em> is an instance of MonadReader. This reaches its apex of generality in the Lens library: “view” slots right into a <code>MonadReader</code> stack!)</p>
+<p>(Note the freakiness of that last instance: <em>the function arrow itself</em> is an instance of MonadReader. <a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a>)</p>
 <p>Here we see the complete API of <code>ReaderT</code>:</p>
 <ul>
 <li><p><code>ask</code>: get the config, like our <code>askConfig</code> for <code>CReader</code></p></li>
@@ -398,6 +394,7 @@ trimVersion <span class="fu">=</span> take <span class="fu">&lt;$&gt;</span> fma
 <ol>
 <li id="fn1"><p>Remember, a <code>newtype</code> is the same as a <code>data</code> but with only one constructor with one field.<a href="#fnref1">↩</a></p></li>
 <li id="fn2"><p>In GHC 7.10, <code>Monad</code> is constrained to <code>Applicative</code> and <code>Applicative</code> to <code>Functor</code>, so constraining to both <code>Monad</code> and <code>Functor</code> isn’t necessary.<a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p>This reaches its apex of generality in the Lens library: <code>view</code> slots right into a <code>MonadReader</code> stack, and the <code>makeClassy</code> template haskell generates “HasXXX” typeclasses you can use to constrain the <code>r</code> type of your MonadReader constraint.<a href="#fnref3">↩</a></p></li>
 </ol>
 </div>
 
