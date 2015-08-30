@@ -29,7 +29,10 @@
             <div class="info">
     Posted on May 24, 2015
     
-        by Stuart Popejoy
+        by Stuart Popejoy. <span id="lhs-src">
+    <a href="https://github.com/slpopejoy/tatterdemalion/blob/master/posts/Effectful01.lhs">Literate
+    source</a>
+    </div>
     
 </div>
 
@@ -77,7 +80,7 @@ countCharInFile c f <span class="fu">=</span> <span class="kw">do</span>
 <span class="dv">1106</span></code></pre></div>
 <p>So what is this strange thing we call <code>IO</code>?</p>
 <h1 id="io">IO</h1>
-<p>IO in haskell is famously a Monad, but first and foremost, it’s just another <em>type</em>. It’s kind is <code>* -&gt; *</code>. <a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
+<p>IO in haskell is famously a Monad, but first and foremost, it’s just another <em>type</em>. Its kind is <code>* -&gt; *</code>. <a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">ghci<span class="fu">&gt;</span> <span class="fu">:</span>k <span class="dt">IO</span>
 <span class="dt">IO</span><span class="ot"> ::</span> <span class="fu">*</span> <span class="ot">-&gt;</span> <span class="fu">*</span></code></pre></div>
 <p>Thus, just like you’d write <code>Set String</code> to make Set inhabitable with String values, you write <code>IO Handle</code> to indicate an IO action that produces a Handle.</p>
@@ -124,7 +127,7 @@ ioNoReturn <span class="fu">=</span> returnIsEasy <span class="st">&quot;Elvis&q
 <p>It’s a mode of computation of staggering generality and utility. Monadic functions working under <code>bind</code> have a different “shape” than normal input-to-output functions. This makes radically different modes of computation available to pure code.</p>
 <h2 id="monads-and-io">Monads and IO</h2>
 <p>Indeed, <code>IO</code> is a funny instance in the effectful zoo. When we use types like <code>State</code> and <code>Reader</code> and <code>Maybe</code> we reap huge gains in elegance and power; what’s more, the code is right there on Hackage for us to study and understand.</p>
-<p>IO, however, is mysterious. Its guts are buried deep inside GHC. We use it as a monad “just because”: a program without IO isn’t much of a program.</p>
+<p>IO, however, is mysterious. Its guts are buried deep inside GHC. We use it as a monad “just because” – a program without IO isn’t much of a program.</p>
 <p>Instead, it’s the <em>compiler</em> getting the main utility from monadic control. Through <code>Monad</code>, the compiler can ensure that all our <code>IO</code> commands happen in strict sequence, helping it safely move values in and out of the pure runtime.</p>
 <p>The good news is that Monad (with its effectful cousins) is a fantastic abstraction for <code>IO</code>, making it easy to compose and factor other effectful types with it.</p>
 <h1 id="binded-by-the-light">Binded by the light</h1>
@@ -175,7 +178,7 @@ countCharLog c f <span class="fu">=</span>
              <span class="kw">in</span> putStrLn (<span class="st">&quot;Counted &quot;</span> <span class="fu">++</span> show count <span class="fu">++</span> <span class="st">&quot; chars&quot;</span>) 
                 <span class="fu">&gt;&gt;</span> return count</code></pre></div>
 <h1 id="do-notation">Do notation</h1>
-<p>If you’ve got a lot of work to do, writing a ton of lambdas can get unweildy and confusing. Our simple function <code>countCharLog</code> has three lambdas; we can easily imagine more.</p>
+<p>If you’ve got a lot of work to do, writing a ton of lambdas can get unwieldy and confusing. Our simple function <code>countCharLog</code> has three lambdas; we can easily imagine more.</p>
 <p>Enter <code>do</code> notation, an alternate syntax for Monads which nicely “cleans up” repeated <code>&gt;&gt;=</code>, <code>&gt;&gt;</code> and <code>let</code> expressions. Here’s <code>countCharLog</code> rewritten with <code>do</code>:</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">countCharLogDo ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Int</span>
 countCharLogDo c f <span class="fu">=</span> <span class="kw">do</span>
@@ -214,7 +217,7 @@ incrementAllBy i is <span class="fu">=</span> fmap (<span class="fu">+</span> i)
 [<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>]</code></pre></div>
 <p>Many tourists to functional programming learn <code>map</code> (and maybe its cousin <code>reduce</code>/<code>fold</code>) as a list operation only, before proudly stamping FP onto their resume. Haskellers go a lot further with <code>Functor</code>, mapping functions over <em>any</em> type with the <code>Functor</code> shape.</p>
 <h2 id="effectful-functors">Effectful Functors</h2>
-<p>Wtih the effectful types, <code>fmap</code> allows us to “plug” a pure operation into an effectful one.</p>
+<p>With the effectful types, <code>fmap</code> allows us to “plug” a pure operation into an effectful one.</p>
 <p>Bind forces us to shape effectful operations differently than pure ones. It can therefore be tempting to see pure transformations as in “a different world”, confining them to <code>let</code> clauses or stashing them in other functions altogether. The effectful programmer instead uses <code>fmap</code> on monadic values, composing pure transformations with an effectful result.</p>
 <p>Our char-counting function is an excellent candidate for plugging in <code>fmap</code>.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">countCharFmap ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Int</span>
@@ -229,7 +232,7 @@ countChar <span class="ch">'c'</span><span class="ot"> ::</span> <span class="dt
 ghci<span class="fu">&gt;</span> <span class="fu">:</span>t readFile <span class="st">&quot;path&quot;</span>
 readFile <span class="st">&quot;path&quot;</span><span class="ot"> ::</span> <span class="dt">IO</span> <span class="dt">String</span></code></pre></div>
 <p>Here, we’re using GHCI to examine the types of partially- and fully-applied functions. <code>countChar 'c'</code> creates a unary function of type <code>String -&gt; Int</code>, which is suitable for “plugging into” <code>fmap</code>. Meanwhile, the fully-applied <code>readFile &quot;path&quot;</code> is of type <code>IO String</code> – and IO is a <code>Functor</code>.</p>
-<p>Putting the types together, we see the resuling type is <code>IO Int</code>.</p>
+<p>Putting the types together, we see the resulting type is <code>IO Int</code>.</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">
 ghci<span class="fu">&gt;</span> <span class="fu">:</span>t fmap (countChar <span class="ch">'c'</span>) (readFile <span class="st">&quot;path&quot;</span>)
 fmap (countChar <span class="ch">'c'</span>) (readFile <span class="st">&quot;path&quot;</span>)<span class="ot"> ::</span> <span class="dt">IO</span> <span class="dt">Int</span></code></pre></div>
@@ -274,6 +277,7 @@ listBindTwo is js <span class="fu">=</span> <span class="kw">do</span>
 <li id="fn2"><p>The Functor-Applicative-Monad hierarchy was only a convention until recently, when GHC 7.10 started enforcing it.<a href="#fnref2">↩</a></p></li>
 </ol>
 </div>
+
 
         </div>
         <div id="footer">

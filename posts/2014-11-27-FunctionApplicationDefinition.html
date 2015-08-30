@@ -29,7 +29,10 @@
             <div class="info">
     Posted on November 27, 2014
     
-        by Stuart Popejoy
+        by Stuart Popejoy. <span id="lhs-src">
+    <a href="https://github.com/slpopejoy/tatterdemalion/blob/master/posts/2014-11-27-FunctionApplicationDefinition.lhs">Literate
+    source</a>
+    </div>
     
 </div>
 
@@ -252,6 +255,7 @@ bfPartial <span class="fu">=</span> binaryFunction <span class="dv">2</span></co
 <p>While Haskell is strongly-typed, <em>type-inference</em> allows us to elide the type specification where convenient. Idiomatically, we provide type signatures for top-level functions, and leave off type signatures for local functions.</p>
 <p>When applying functions, we delimit argument values with whitespace, and delimit inner function application with parentheses. We can also use the library function <code>$</code> in place of parentheses where convenient.</p>
 <p>Since functions are values in Haskell, we can work with them “as such”, meaning we can assign other names to them. As a result, we do not have to restate the arguments, and can elide them from our function definitions, a process called “eta reduction”, or “point-free style”.</p>
+
 
         </div>
         <div id="footer">
