@@ -43,12 +43,16 @@ Supercollider code
 - Growth
 
 <div class="notes">
-- Elaboration: compositional approaches
+- Elaboration: compositional goal, formal approaches
 - Experimentation: explore a space, find new sounds
 - Growth: mine, as s/w dev and musician together
 </div>
 
 # Cyclops
+
+##
+
+![ ](img/cyclops.jpg)
 
 ##
 
@@ -86,14 +90,19 @@ An example of the bountiful help received on #haskell IRC,
 zipTail all over my music code.
 </div>
 
-## Numbers are fun!!
+## Numbers are fun and all ...
 
 ```
 > head $ genRot 9 2 48
 [52,51,60,57,60,61,57,54,49,45,51,46,51,48,61,57,54,58,54,51,55,51,57,52,
 57,45,58,45,60,46,60,48,61,48,54,49,54,51,55,51,57,52,57,45,58,45,60,46]
 ```
-*but how do you _play_ it?*
+
+## but what do they sound like?
+
+<div><audio src="audio/cyclops-fortalk.mp3" controls="controls"></div>
+
+*and how will musicians _play_ them?*
 
 # Notation
 
