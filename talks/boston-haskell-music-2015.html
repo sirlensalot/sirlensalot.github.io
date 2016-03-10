@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="author" content="Stuart Popejoy">
+  <meta name="dcterms.date" content="2016-03-16">
+  <title>Composing (Music) in Haskell</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="reveal.js/css/reveal.css">
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+  <link rel="stylesheet" href="reveal.js/css/theme/white.css" id="theme">
+  <!-- Printing and PDF exports -->
+  <script>
+    var link = document.createElement( 'link' );
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+    document.getElementsByTagName( 'head' )[0].appendChild( link );
+  </script>
+  <!--[if lt IE 9]>
+  <script src="reveal.js/lib/js/html5shiv.js"></script>
+  <![endif]-->
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+<section>
+  <h1 class="title">Composing (Music) in Haskell</h1>
+  <h2 class="author">Stuart Popejoy</h2>
+  <h3 class="date">March 16, 2016</h3>
+</section>
+
+<section id="composing-with-code" class="slide level1">
+<h1>Composing with Code</h1>
+<section id="section" class="level2">
+<h2></h2>
+</section>
+<section id="why" class="level2">
+<h2>WHY????</h2>
+<ul>
+<li class="fragment">Isn't composing music hard enough???</li>
+<li class="fragment">Getting a computer to &quot;talk music&quot; is really hard</li>
+</ul>
+</section>
+<section id="section-1" class="level2">
+<h2></h2>
+<figure>
+<img src="img/xenakis-fortran.png" alt="Iannis Xenakis, Formalized Music, 1963" /><figcaption>Iannis Xenakis, <em>Formalized Music</em>, 1963</figcaption>
+</figure>
+</section>
+<section id="section-2" class="level2">
+<h2></h2>
+<div class="sourceCode"><pre class="sourceCode javascript"><code class="sourceCode javascript">nums <span class="op">=</span> [n1<span class="op">,</span>n2<span class="op">,</span>n3<span class="op">,</span>n4<span class="op">,</span>n5<span class="op">,</span>n6]<span class="op">;</span> denoms <span class="op">=</span> [d1<span class="op">,</span>d2<span class="op">,</span>d3<span class="op">,</span>d4<span class="op">,</span>d5<span class="op">,</span>d6]<span class="op">;</span>
+preds <span class="op">=</span> (nums <span class="op">+++</span> denoms).<span class="at">collect</span>
+   <span class="op">{</span> <span class="op">|</span> pair<span class="op">|</span> pair[<span class="dv">0</span>] <span class="op">&gt;</span> <span class="dv">0</span> <span class="op">*</span> pair[<span class="dv">1</span>] <span class="op">&gt;</span> <span class="dv">0</span> <span class="op">};</span>
+<span class="va">preds</span>.<span class="at">do</span> <span class="op">{</span> <span class="op">|</span> pred <span class="op">|</span>
+  lastNZ <span class="op">=</span> <span class="cf">if</span> (lastNZ <span class="op">==</span> nil<span class="op">,</span> <span class="op">{</span> pred <span class="op">},</span> <span class="op">{</span> lastNZ <span class="op">+</span> pred <span class="op">}</span>)<span class="op">;</span> <span class="op">};</span>
+freqs <span class="op">=</span> (preds <span class="op">+++</span> (nums/denoms)).<span class="at">collect</span> <span class="op">{</span> <span class="op">|</span> pr <span class="op">|</span>
+    <span class="va">Select</span>.<span class="at">kr</span>(pr[<span class="dv">0</span>]<span class="op">,</span> [<span class="dv">1</span><span class="op">,</span> pr[<span class="dv">1</span>]])<span class="op">;</span> <span class="op">};</span>
+ifreqs <span class="op">=</span> <span class="va">nums</span>.<span class="va">size</span>.<span class="at">collect</span> <span class="op">{</span> <span class="op">|</span> i <span class="op">|</span>
+    <span class="va">Select</span>.<span class="at">kr</span>(lastNZ<span class="op">,</span> <span class="va">Array</span>.<span class="at">series</span>(i<span class="dv">+1</span><span class="op">,</span><span class="dv">1</span><span class="op">,</span><span class="dv">0</span>) <span class="op">++</span> (denoms/nums))<span class="op">;</span> <span class="op">};</span>
+ug <span class="op">=</span> <span class="va">SinOsc</span>.<span class="at">ar</span>(freq)<span class="op">;</span> udc <span class="op">=</span> <span class="va">DC</span>.<span class="at">ar</span>(<span class="dv">1</span>)<span class="op">;</span>
+[preds <span class="op">+++</span> freqs<span class="op">,</span> preds <span class="op">+++</span> ifreqs].<span class="va">lace</span>.<span class="at">do</span> <span class="op">{</span> <span class="op">|</span> pf <span class="op">|</span>
+    <span class="kw">var</span> p<span class="op">,</span> f<span class="op">;</span>
+    #p<span class="op">,</span> f <span class="op">=</span> pf<span class="op">;</span> freq <span class="op">=</span> freq <span class="op">*</span> f<span class="op">;</span>
+    ug <span class="op">=</span> ug <span class="op">*</span> <span class="va">Select</span>.<span class="at">ar</span>( p<span class="op">,</span> [ udc<span class="op">,</span> <span class="va">SinOsc</span>.<span class="at">ar</span>(freq) ])<span class="op">;</span> <span class="op">};</span>
+<span class="va">Out</span>.<span class="at">ar</span>(out<span class="op">,</span> ug <span class="op">*</span> amp)<span class="op">;</span></code></pre></div>
+<p>Supercollider code</p>
+</section>
+</section>
+<section id="why-compose-in-code" class="slide level1">
+<h1>Why Compose in Code</h1>
+<ul>
+<li class="fragment">Elaboration</li>
+<li class="fragment">Experimentation</li>
+<li class="fragment">Growth</li>
+</ul>
+<aside class="notes">
+<ul>
+<li>Elaboration: compositional approaches</li>
+<li>Experimentation: explore a space, find new sounds</li>
+<li>Growth: mine, as s/w dev and musician together</li>
+</ul>
+</aside>
+</section>
+<section id="cyclops" class="slide level1">
+<h1>Cyclops</h1>
+<section id="section-3" class="level2">
+<h2></h2>
+<ul>
+<li class="fragment">generated 619 riffs from one seed motif</li>
+<li class="fragment">used 18 (including seed)</li>
+</ul>
+</section>
+<section id="mod-diff" class="level2">
+<h2>&quot;Mod Diff&quot;</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">differ mod&#39; bias seed s <span class="fu">=</span> zipTail calc s <span class="fu">++</span> [calc (last s) (head s)]
+  <span class="kw">where</span>
+    calc l r <span class="fu">=</span> (((r <span class="fu">-</span> offset) <span class="fu">-</span> (l <span class="fu">-</span> offset)) <span class="ot">`rem`</span> mod&#39;) <span class="fu">+</span> offset
+    offset <span class="fu">=</span> (rng <span class="ot">`div`</span> <span class="dv">2</span>) <span class="fu">+</span> bias <span class="fu">+</span> minimum seed
+    rng <span class="fu">=</span> maximum seed <span class="fu">-</span> minimum seed
+
+seed <span class="fu">=</span> map toPitch [<span class="dt">E3</span>, <span class="dt">A3</span>, <span class="dt">E3</span>, <span class="dt">D3</span>, <span class="dt">G3</span>, <span class="dt">D3</span>]
+
+gen n <span class="fu">=</span> iterate (differ n <span class="dv">0</span> seed) seed
+
+genRot n r t <span class="fu">=</span>
+   pivot <span class="fu">$</span> take t <span class="fu">$</span> iterate (rotate r <span class="fu">.</span> differ n <span class="dv">0</span> seed) seed</code></pre></div>
+</section>
+<section id="zip-ap-tail-the-aztec-god-of-consecutive-numbers" class="level2">
+<h2><code>zip</code> `<code>ap</code>` <code>tail</code>: the Aztec god of consecutive numbers</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">zipTail ::</span> (a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> c) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [c]
+zipTail f <span class="fu">=</span> zipWith f <span class="fu">&lt;*&gt;</span> tail</code></pre></div>
+<p>(#haskell <code>@quote quicksilver aztec</code>)</p>
+<aside class="notes">
+<p>An example of the bountiful help received on #haskell IRC, zipTail all over my music code.</p>
+</aside>
+</section>
+<section id="numbers-are-fun" class="level2">
+<h2>Numbers are fun!!</h2>
+<pre><code>&gt; head $ genRot 9 2 48
+[52,51,60,57,60,61,57,54,49,45,51,46,51,48,61,57,54,58,54,51,55,51,57,52,
+57,45,58,45,60,46,60,48,61,48,54,49,54,51,55,51,57,52,57,45,58,45,60,46]</code></pre>
+<p><em>but how do you <em>play</em> it?</em></p>
+</section>
+</section>
+<section id="notation" class="slide level1">
+<h1>Notation</h1>
+<figure>
+<img src="img/cyclopsPivotRot9-2-48-talk.png" alt="head $ genRot 9 2 48" /><figcaption><code>head $ genRot 9 2 48</code></figcaption>
+</figure>
+</section>
+<section id="music-xml" class="slide level1">
+<h1>Music XML</h1>
+<section id="alternatives" class="level2">
+<h2>Alternatives</h2>
+<ul>
+<li class="fragment">Lilypond</li>
+<li class="fragment">???</li>
+</ul>
+</section>
+<section id="implementations" class="level2">
+<h2>Implementations</h2>
+<ul>
+<li class="fragment"><code>musicxml</code> (Samuel Silva)</li>
+<li class="fragment"><code>hts</code> (Rohan Drape)</li>
+<li class="fragment"><code>musicxml2</code> (Hans Hoglund)</li>
+</ul>
+<aside class="notes">
+<p>musicxml: last updated in 2009, HaXml</p>
+<p>hts: Super idiosyncratic, no docs</p>
+<p>musicxml2: Hardcoded xml datamodel, number-unfriendly pitch model</p>
+</aside>
+</section>
+<section id="rolling-my-own" class="level2">
+<h2>Rolling my own</h2>
+<ul>
+<li class="fragment">NOT NIH!</li>
+<li class="fragment">Used <code>jaxb</code> in Java</li>
+<li class="fragment">Handrolled in Clojure</li>
+</ul>
+<aside class="notes">
+<p>NIH: Really didn't want to do this.</p>
+</aside>
+</section>
+</section>
+<section id="fadno-xml" class="slide level1">
+<h1><code>fadno-xml</code></h1>
+<ul>
+<li class="fragment">available</li>
+</ul>
+</section>
+    </div>
+  </div>
+
+  <script src="reveal.js/lib/js/head.min.js"></script>
+  <script src="reveal.js/js/reveal.js"></script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'reveal.js/plugin/zoom-js/zoom.js', async: true },
+          { src: 'reveal.js/plugin/notes/notes.js', async: true }
+        ]
+      });
+    </script>
+    </body>
+</html>
