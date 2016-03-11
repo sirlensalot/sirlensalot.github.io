@@ -108,9 +108,8 @@ ug <span class="op">=</span> <span class="va">SinOsc</span>.<span class="at">ar<
 <span class="va">Out</span>.<span class="at">ar</span>(out<span class="op">,</span> ug <span class="op">*</span> amp)<span class="op">;</span></code></pre></div>
 <p>Supercollider code</p>
 </section>
-</section>
-<section id="why-compose-in-code" class="slide level1">
-<h1>Why Compose in Code</h1>
+<section id="why-1" class="level2">
+<h2>Why:</h2>
 <ul>
 <li class="fragment">Elaboration</li>
 <li class="fragment">Experimentation</li>
@@ -123,6 +122,7 @@ ug <span class="op">=</span> <span class="va">SinOsc</span>.<span class="at">ar<
 <li>Growth: mine, as s/w dev and musician together</li>
 </ul>
 </aside>
+</section>
 </section>
 <section id="cyclops" class="slide level1">
 <h1>Cyclops</h1>
@@ -185,11 +185,11 @@ zipTail f <span class="fu">=</span> zipWith f <span class="fu">&lt;*&gt;</span> 
 </section>
 <section id="music-xml" class="slide level1">
 <h1>Music XML</h1>
-<section id="alternatives" class="level2">
-<h2>Alternatives</h2>
+<section id="why-2" class="level2">
+<h2>Why?</h2>
 <ul>
-<li class="fragment">Lilypond</li>
-<li class="fragment">???</li>
+<li class="fragment">Alternative: Lilypond</li>
+<li class="fragment">Integrations: Sibelius, Finale, MuseScore</li>
 </ul>
 </section>
 <section id="implementations" class="level2">
@@ -208,20 +208,237 @@ zipTail f <span class="fu">=</span> zipWith f <span class="fu">&lt;*&gt;</span> 
 <section id="rolling-my-own" class="level2">
 <h2>Rolling my own</h2>
 <ul>
-<li class="fragment">NOT NIH!</li>
-<li class="fragment">Used <code>jaxb</code> in Java</li>
-<li class="fragment">Handrolled in Clojure</li>
+<li class="fragment"><code>jaxb</code> in Java, handrolled in Clojure</li>
+<li class="fragment">Tried <code>HaXmL</code> schema parsing, no dice on Music XML</li>
 </ul>
 <aside class="notes">
 <p>NIH: Really didn't want to do this.</p>
 </aside>
 </section>
+<section id="parsing-musicxml-xsd" class="level2">
+<h2>Parsing MusicXML XSD</h2>
+<ul>
+<li class="fragment">Problem: <em>complete</em> implementation of MusicXML</li>
+<li class="fragment">Over 1000 productions in schema</li>
+<li class="fragment">Imports XLink, XML sub-schemas</li>
+<li class="fragment">But the real problem is ...</li>
+</ul>
+</section>
+<section id="parsing-xsd-xsd" class="level2">
+<h2>Parsing XSD XSD</h2>
+<ul>
+<li class="fragment">Fundamental types (<code>string</code>,<code>integer</code>,<code>IDREF</code> ...)</li>
+<li class="fragment">Main Productions: (<code>simpleType</code>, <code>complexType</code>, <code>attributeGroup</code> ...)</li>
+<li class="fragment">But the real problem is ...</li>
+</ul>
+</section>
+<section id="parsing-parsed-xml" class="level2">
+<h2>Parsing Parsed XML</h2>
+<ul>
+<li class="fragment"><strong><code>spopejoy:</code></strong> What do you call an applicative/alternative/parser-like thing that works on <em>parsed XML elements</em> instead of characters?</li>
+<li class="fragment"><strong><code>ekmett:</code></strong> A parser ...</li>
+</ul>
+</section>
+</section>
+<section id="xml-parser-parser-1" class="slide level1">
+<h1>XML Parser Parser #1</h1>
+<section id="first-try-xparser" class="level2">
+<h2>First Try: <code>XParser</code></h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | XParser: Stack state + alternative + errors.</span>
+<span class="kw">type</span> <span class="dt">XParser</span> m <span class="fu">=</span>
+   (<span class="dt">Alternative</span> m, <span class="dt">MonadState</span> [<span class="dt">X.Element</span>] m, <span class="dt">MonadError</span> <span class="dt">String</span> m)
+
+<span class="co">-- | run XParser on an element.</span>
+<span class="ot">parseX ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">StateT</span> [<span class="dt">X.Element</span>] (<span class="dt">ExceptT</span> <span class="dt">String</span> m) b <span class="ot">-&gt;</span>
+          <span class="dt">X.Element</span> <span class="ot">-&gt;</span> m (<span class="dt">Either</span> <span class="dt">String</span> b)
+parseX sel e <span class="fu">=</span> runExceptT (evalStateT sel [e])</code></pre></div>
+<aside class="notes">
+<p>Note that this is one style of monad stack building that I can't make my mind up about. You can go quite far by just specifying a bunch of constraints. I have apps in prod with this.</p>
+</aside>
+</section>
+<section id="stack-manipulation" class="level2">
+<h2>Stack manipulation</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">peek ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> m <span class="dt">X.Element</span>
+peek <span class="fu">=</span> head <span class="fu">&lt;$&gt;</span> checkStack
+
+<span class="ot">checkStack ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> m [<span class="dt">X.Element</span>]
+checkStack <span class="fu">=</span> get <span class="fu">&gt;&gt;=</span> \s <span class="ot">-&gt;</span>
+             <span class="kw">if</span> null s <span class="kw">then</span> throwError <span class="st">&quot;Invalid stack&quot;</span> <span class="kw">else</span> return s
+
+<span class="ot">push ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> <span class="dt">X.Element</span> <span class="ot">-&gt;</span> m ()
+push e <span class="fu">=</span> modify (e<span class="fu">:</span>)
+
+<span class="ot">pop ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> m ()
+pop <span class="fu">=</span> checkStack <span class="fu">&gt;&gt;=</span> \(_<span class="fu">:</span>rest) <span class="ot">-&gt;</span> put rest</code></pre></div>
+</section>
+<section id="attrs-and-text" class="level2">
+<h2>Attrs and Text</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Expect a particular attribute.</span>
+<span class="ot">attr ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> <span class="dt">X.QName</span> <span class="ot">-&gt;</span> m <span class="dt">String</span>
+attr n <span class="fu">=</span> <span class="kw">do</span>
+  v <span class="ot">&lt;-</span> X.findAttr n <span class="fu">&lt;$&gt;</span> peek
+  maybe (throwError <span class="fu">$</span> <span class="st">&quot;Attribute not found: &quot;</span> <span class="fu">++</span> show n) return v
+
+<span class="co">-- | Get text content, returning empty string if none, per &#39;strContent&#39;.</span>
+<span class="ot">textContent ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> m <span class="dt">String</span>
+textContent <span class="fu">=</span> X.strContent <span class="fu">&lt;$&gt;</span> peek</code></pre></div>
+</section>
+<section id="elements" class="level2">
+<h2>Elements</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Verify current element.</span>
+<span class="ot">atEl ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> <span class="dt">X.QName</span> <span class="ot">-&gt;</span> m ()
+atEl n <span class="fu">=</span> <span class="kw">do</span>
+  e <span class="ot">&lt;-</span> X.elName <span class="fu">&lt;$&gt;</span> peek
+  when (n <span class="fu">/=</span> e) <span class="fu">$</span> throwError (<span class="st">&quot;Wrong element name: &quot;</span> <span class="fu">++</span> show e)
+
+<span class="co">-- | Find child element and act on it.</span>
+<span class="ot">findChild ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> <span class="dt">X.QName</span> <span class="ot">-&gt;</span> m a <span class="ot">-&gt;</span> m a
+findChild n act <span class="fu">=</span> <span class="kw">do</span>
+  c <span class="ot">&lt;-</span> X.findChild n <span class="fu">&lt;$&gt;</span> peek
+  <span class="kw">case</span> c <span class="kw">of</span>
+    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> throwError <span class="fu">$</span> <span class="st">&quot;No such child &quot;</span> <span class="fu">++</span> show n
+    <span class="dt">Just</span> e <span class="ot">-&gt;</span> dropTo act e</code></pre></div>
+<aside class="notes">
+<p>Plus <code>findChildren</code>, <code>allChildren</code>, <code>anyChildren</code></p>
+</aside>
+</section>
+<section id="alternative-applicative-cheap-parser" class="level2">
+<h2><code>Alternative</code> + <code>Applicative</code> = Cheap Parser</h2>
+<ul>
+<li class="fragment">Alternative: <code>some</code>, <code>many</code>, <code>empty</code>, <code>&lt;|&gt;</code></li>
+<li class="fragment">Applicative: <code>optional</code></li>
+</ul>
+</section>
+<section id="looking-good" class="level2">
+<h2>Looking Good</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Match group.</span>
+group<span class="ot"> ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> m <span class="dt">Group</span>
+group <span class="fu">=</span> <span class="kw">do</span>
+  atEl (xsName <span class="st">&quot;group&quot;</span>)
+  <span class="dt">GroupRef</span> <span class="fu">&lt;$&gt;</span> (<span class="dt">Unresolved</span> <span class="fu">.</span> qn <span class="fu">&lt;$&gt;</span> attr (name <span class="st">&quot;ref&quot;</span>)) <span class="fu">&lt;*&gt;</span> occurs
+   <span class="fu">&lt;|&gt;</span> <span class="dt">GroupChoice</span> <span class="fu">&lt;$&gt;</span> (fmap qn <span class="fu">&lt;$&gt;</span> optional (attr (name <span class="st">&quot;name&quot;</span>)))
+            <span class="fu">&lt;*&gt;</span> occurs <span class="fu">&lt;*&gt;</span> oneChild choice <span class="fu">&lt;*&gt;</span> documentation
+   <span class="fu">&lt;|&gt;</span> <span class="dt">GroupSequence</span> <span class="fu">&lt;$&gt;</span> (fmap qn <span class="fu">&lt;$&gt;</span> optional (attr (name <span class="st">&quot;name&quot;</span>)))
+            <span class="fu">&lt;*&gt;</span> occurs <span class="fu">&lt;*&gt;</span> oneChild sequence <span class="fu">&lt;*&gt;</span> documentation</code></pre></div>
+</section>
 </section>
 <section id="fadno-xml" class="slide level1">
 <h1><code>fadno-xml</code></h1>
+<section id="type-emitter" class="level2">
+<h2>Type Emitter</h2>
 <ul>
-<li class="fragment">available</li>
+<li class="fragment">Concept from HaXmL: Haskell Datatype Model</li>
+<li class="fragment">Shoulda used TH?</li>
+<li class="fragment">NIH</li>
 </ul>
+</section>
+<section id="codegen" class="level2">
+<h2>Codegen</h2>
+<ul>
+<li class="fragment">REALLY shoulda used TH?</li>
+<li class="fragment">Spaghetti string concatenator</li>
+</ul>
+</section>
+<section id="backend-independent-output-ast" class="level2">
+<h2>Backend-independent Output AST</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">XmlRep</span> <span class="kw">where</span>
+    <span class="dt">XEmpty</span><span class="ot"> ::</span> <span class="dt">XmlRep</span>
+    <span class="dt">XLit</span><span class="ot"> ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">XmlRep</span>
+    <span class="dt">XShow</span><span class="ot"> ::</span> <span class="dt">Show</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">XmlRep</span>
+    <span class="dt">XElement</span><span class="ot"> ::</span> <span class="dt">QN</span> <span class="ot">-&gt;</span> <span class="dt">XmlRep</span> <span class="ot">-&gt;</span> <span class="dt">XmlRep</span>
+    <span class="dt">XAttr</span><span class="ot"> ::</span> <span class="dt">QN</span> <span class="ot">-&gt;</span> <span class="dt">XmlRep</span> <span class="ot">-&gt;</span> <span class="dt">XmlRep</span>
+    <span class="dt">XText</span><span class="ot"> ::</span> <span class="dt">XmlRep</span> <span class="ot">-&gt;</span> <span class="dt">XmlRep</span>
+    <span class="dt">XContent</span><span class="ot"> ::</span> {<span class="ot"> xtext ::</span> <span class="dt">XmlRep</span>,
+<span class="ot">                  xattrs ::</span> [<span class="dt">XmlRep</span>],
+<span class="ot">                  xels ::</span> [<span class="dt">XmlRep</span>] } <span class="ot">-&gt;</span> <span class="dt">XmlRep</span>
+    <span class="dt">XReps</span><span class="ot"> ::</span> [<span class="dt">XmlRep</span>] <span class="ot">-&gt;</span> <span class="dt">XmlRep</span></code></pre></div>
+</section>
+<section id="and-were-done" class="level2">
+<h2>And we're done!</h2>
+<ul>
+<li class="fragment">Released in November 2015</li>
+<li class="fragment">7583 generated LOC</li>
+<li class="fragment">Successfully migrated <code>musicxml2</code> code to <code>fadno-xml</code></li>
+<li class="fragment">If only it could <em>read</em> XML ...</li>
+</ul>
+</section>
+</section>
+<section id="xml-parser-parser-2" class="slide level1">
+<h1>XML Parser Parser #2</h1>
+<section id="xparser" class="level2">
+<h2><code>XParser</code></h2>
+<ul>
+<li class="fragment">Hacked into type model</li>
+<li class="fragment">Choked hard on MusicXML <em>files</em> (works fine on XSDs!)</li>
+<li class="fragment">Semantics on failure completely busted</li>
+</ul>
+</section>
+<section id="section-5" class="level2">
+<h2></h2>
+<p>Zipper + State + Errors = Parser!</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import qualified</span> <span class="dt">Text.XML.Light.Cursor</span> <span class="kw">as</span> <span class="dt">C</span>
+<span class="co">-- | Monoid errors with path.</span>
+<span class="kw">type</span> <span class="dt">XErrors</span> <span class="fu">=</span> [([<span class="dt">C.Tag</span>],<span class="dt">String</span>)]
+<span class="co">-- | Parsing monad.</span>
+<span class="kw">newtype</span> <span class="dt">XParse</span> a <span class="fu">=</span>
+    <span class="dt">XParse</span> {<span class="ot"> unXParse ::</span> <span class="dt">StateT</span> <span class="dt">C.Cursor</span> (<span class="dt">Except</span> <span class="dt">XErrors</span>) a }
+    <span class="kw">deriving</span> (<span class="dt">Functor</span>,<span class="dt">Applicative</span>,<span class="dt">Monad</span>,<span class="dt">MonadState</span> <span class="dt">C.Cursor</span>,
+              <span class="dt">MonadError</span> <span class="dt">XErrors</span>,<span class="dt">Alternative</span>)
+<span class="co">-- | Run monad.</span>
+<span class="ot">runXParse ::</span> <span class="dt">X.Element</span> <span class="ot">-&gt;</span> <span class="dt">XParse</span> a <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">XErrors</span> a
+runXParse e act <span class="fu">=</span>
+    runExcept (evalStateT (unXParse act) (C.fromElement e))</code></pre></div>
+</section>
+<section id="lens-and-prism" class="level2">
+<h2>Lens and Prism</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">lcurrent ::</span> <span class="dt">Lens&#39;</span> <span class="dt">C.Cursor</span> <span class="dt">X.Content</span>
+lcurrent f s <span class="fu">=</span> fmap (\a <span class="ot">-&gt;</span> s { C.current <span class="fu">=</span> a}) (f (C.current s))
+
+_<span class="dt">Elem</span><span class="ot"> ::</span> <span class="dt">Prism&#39;</span> <span class="dt">X.Content</span> <span class="dt">X.Element</span>
+_<span class="dt">Elem</span> <span class="fu">=</span> prism <span class="dt">X.Elem</span> <span class="fu">$</span> \c <span class="ot">-&gt;</span> <span class="kw">case</span> c <span class="kw">of</span>
+                             <span class="dt">X.Elem</span> e <span class="ot">-&gt;</span> <span class="dt">Right</span> e
+                             _ <span class="ot">-&gt;</span> <span class="dt">Left</span> c</code></pre></div>
+</section>
+<section id="section-6" class="level2">
+<h2></h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Consume a child element.</span>
+<span class="ot">xchild ::</span> <span class="dt">X.QName</span> <span class="ot">-&gt;</span> <span class="dt">XParse</span> a <span class="ot">-&gt;</span> <span class="dt">XParse</span> a
+xchild n act <span class="fu">=</span> <span class="kw">do</span>
+  fc <span class="ot">&lt;-</span> C.firstChild <span class="fu">&lt;$&gt;</span> get <span class="fu">&gt;&gt;=</span> require <span class="st">&quot;at least one child&quot;</span>
+  <span class="kw">let</span><span class="ot"> firstEl ::</span> <span class="dt">C.Cursor</span> <span class="ot">-&gt;</span> <span class="dt">XParse</span> <span class="dt">C.Cursor</span>
+      firstEl c <span class="fu">=</span> <span class="kw">case</span> firstOf (lcurrent<span class="fu">.</span>_<span class="dt">Elem</span>) c <span class="kw">of</span>
+                    <span class="dt">Just</span> e <span class="ot">-&gt;</span> <span class="kw">do</span>
+                      when (X.elName e <span class="fu">/=</span> n) (xfail <span class="fu">$</span> <span class="st">&quot;Element not found: &quot;</span> <span class="fu">++</span> show n)
+                      return c
+                    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
+                      c&#39; <span class="ot">&lt;-</span> C.right c <span class="fu">&amp;</span> require <span class="st">&quot;at least one element child&quot;</span>
+                      firstEl c&#39;
+  e <span class="ot">&lt;-</span> firstEl fc
+  put e
+  r <span class="ot">&lt;-</span> catchError (<span class="dt">Right</span> <span class="fu">&lt;$&gt;</span> act) (return <span class="fu">.</span> <span class="dt">Left</span>)
+  <span class="kw">case</span> r <span class="kw">of</span>
+    <span class="dt">Right</span> a <span class="ot">-&gt;</span> <span class="kw">do</span>
+           p <span class="ot">&lt;-</span> C.removeGoUp <span class="fu">&lt;$&gt;</span> get <span class="fu">&gt;&gt;=</span> require <span class="st">&quot;parent&quot;</span>
+           put p
+           return a
+    <span class="dt">Left</span> err <span class="ot">-&gt;</span> <span class="kw">do</span>
+           p <span class="ot">&lt;-</span> C.parent <span class="fu">&lt;$&gt;</span> get <span class="fu">&gt;&gt;=</span> require <span class="st">&quot;parent&quot;</span>
+           put p
+           throwError err</code></pre></div>
+</section>
+<section id="victory" class="level2">
+<h2>Victory</h2>
+<ul>
+<li class="fragment">Round-trips with exact diff</li>
+</ul>
+</section>
+<section id="future-work" class="level2">
+<h2>Future Work</h2>
+<ul>
+<li class="fragment">Still using old XParser for XSDs (XParse too strict!)</li>
+<li class="fragment">BOOTSTRAPPING!!</li>
+</ul>
+</section>
 </section>
     </div>
   </div>
