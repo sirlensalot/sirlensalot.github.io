@@ -412,4 +412,24 @@ xchild n act = do
 - Bootstrap: parse XSD to build XSD parser
 - GL: greediest match
 
+# Pleonid
+
+##
+
+- Composed entirely in code
+- 60 minutes
+- Performed live in 2012
+
+##
+
+<div><video src="audio/pleonid-excerpt-small.mp4" controls="controls"></div>
+
+## Formal Aspects: Pitch
+
+- Composed from a single seed pitchset
+- "ToonKlok" and other combinatorial methods to realize 31 "melodies"
+- But still need *rhythms* ...
+
 # Braids
+
+![](img/band-terrace.png)
