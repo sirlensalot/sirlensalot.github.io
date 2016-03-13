@@ -532,6 +532,137 @@ xchild n act <span class="fu">=</span> <span class="kw">do</span>
 <img src="img/band-terrace.png" />
 </figure>
 </section>
+<section id="braids-1" class="slide level1">
+<h1>Braids</h1>
+<section id="knot-theory" class="level2">
+<h2>Knot Theory</h2>
+<ul>
+<li class="fragment">Braids are a 2D+ projection of a knot</li>
+<li class="fragment">&quot;Any knot may be represented as the closure of certain braids&quot;</li>
+<li class="fragment">The class of braids of <code>n</code> strands forms a group <em>B<sub>n</sub></em></li>
+</ul>
+</section>
+<section id="braid-group-b4" class="level2">
+<h2>Braid Group B<sub>4</sub></h2>
+<figure>
+<img src="img/id-inverse.png" alt="Identity, σ1σ2σ3, inverse, Monoid" /><figcaption>Identity, σ<sub>1</sub>σ<sub>2</sub>σ<sub>3</sub>, inverse, Monoid</figcaption>
+</figure>
+</section>
+<section id="algebra-braid-generators" class="level2">
+<h2>Algebra: Braid Generators</h2>
+<figure>
+<img src="img/artin.png" alt="Any braid can be represented as a sequence of generators. The braid on the left becomes σ2σ1-1σ3-1" width="400" /><figcaption>Any braid can be represented as a sequence of generators. The braid on the left becomes σ<sub>2</sub>σ<sub>1</sub><sup>-1</sup>σ<sub>3</sub><sup>-1</sup></figcaption>
+</figure>
+</section>
+<section id="braids-in-haskell" class="level2">
+<h2>Braids in Haskell</h2>
+<figure>
+<img src="img/artin.png" width="400" />
+</figure>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">renderBraids <span class="dv">100</span> [colorStrands] <span class="st">&quot;artin.png&quot;</span> <span class="fu">$</span>
+    [[<span class="dt">MultiGen</span> [<span class="dt">Step</span> (<span class="dt">Gen</span> <span class="dv">1</span> <span class="dt">O</span>) [],<span class="dt">Step</span> (<span class="dt">Gen</span> <span class="dv">0</span> <span class="dt">U</span>) [<span class="dt">Gen</span> <span class="dv">0</span> <span class="dt">U</span>]],
+      <span class="dt">Artin</span> [<span class="dt">Gen</span> <span class="dv">1</span> <span class="dt">O</span>, <span class="dt">Gen</span> <span class="dv">0</span> <span class="dt">U</span>, <span class="dt">Gen</span> <span class="dv">2</span> <span class="dt">U</span>]]]</code></pre></div>
+</section>
+<section id="artin-canonical-braid" class="level2">
+<h2><code>Artin</code>: Canonical Braid</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Polarity</span> <span class="fu">=</span> <span class="dt">U</span> <span class="fu">|</span> <span class="dt">O</span> <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Show</span>,<span class="dt">Enum</span>,<span class="dt">Ord</span>)
+
+<span class="kw">data</span> <span class="dt">Gen</span> a <span class="fu">=</span> <span class="dt">Gen</span> { _<span class="ot">gPos ::</span> a, _<span class="ot">gPol ::</span> <span class="dt">Polarity</span> }
+    <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Functor</span>,<span class="dt">Ord</span>)
+
+<span class="kw">newtype</span> <span class="dt">Artin</span> a <span class="fu">=</span> <span class="dt">Artin</span> { _<span class="ot">aGens ::</span> [<span class="dt">Gen</span> a] }
+    <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Show</span>,<span class="dt">Monoid</span>,<span class="dt">Functor</span>)
+<span class="kw">instance</span> <span class="dt">Foldable</span> <span class="dt">Artin</span> <span class="kw">where</span>
+    foldMap f <span class="fu">=</span> foldMap f <span class="fu">.</span> map _gPos <span class="fu">.</span> _aGens</code></pre></div>
+</section>
+<section id="multigen-compressed-braid" class="level2">
+<h2><code>MultiGen</code>: Compressed Braid</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">MultiGen</span> a <span class="fu">=</span> <span class="dt">MultiGen</span> { _<span class="ot">mSteps ::</span> [<span class="dt">Step</span> a] }
+    <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Monoid</span>)
+<span class="co">-- Adjacent generators on a single &quot;step&quot; are invalid!</span>
+<span class="kw">data</span> <span class="dt">Step</span> a <span class="fu">=</span>
+    <span class="dt">Empty</span> <span class="fu">|</span>
+    <span class="dt">Step</span> { _<span class="ot">sHead ::</span> <span class="dt">Gen</span> a, _<span class="ot">sOffsets ::</span> [<span class="dt">Gen</span> <span class="dt">Natural</span>]
+    } <span class="kw">deriving</span> (<span class="dt">Eq</span>)
+
+<span class="ot">stepToGens ::</span> <span class="dt">Integral</span> a <span class="ot">=&gt;</span> <span class="dt">Step</span> a <span class="ot">-&gt;</span> [<span class="dt">Gen</span> a]
+stepToGens <span class="dt">Empty</span> <span class="fu">=</span> []
+stepToGens (<span class="dt">Step</span> h gs) <span class="fu">=</span> reverse <span class="fu">$</span> foldl conv [h] gs
+    <span class="kw">where</span> conv rs<span class="fu">@</span>(<span class="dt">Gen</span> p&#39; _<span class="fu">:</span>_) (<span class="dt">Gen</span> p e) <span class="fu">=</span>
+                   <span class="dt">Gen</span> (fromIntegral p <span class="fu">+</span> p&#39; <span class="fu">+</span> <span class="dv">2</span>) e<span class="fu">:</span>rs
+          conv _ _ <span class="fu">=</span> error <span class="st">&quot;c&#39;est impossible&quot;</span></code></pre></div>
+</section>
+<section id="braid-typeclass" class="level2">
+<h2><code>Braid</code> typeclass</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> (<span class="dt">Integral</span> b, <span class="dt">Monoid</span> (a b)) <span class="ot">=&gt;</span> <span class="dt">Braid</span> (<span class="ot">a ::</span> <span class="fu">*</span> <span class="ot">-&gt;</span> <span class="fu">*</span>) b <span class="kw">where</span>
+    <span class="co">-- | &quot;Length&quot;, number of &quot;steps&quot;/columns/artin generators.</span>
+<span class="ot">    stepCount ::</span> a b <span class="ot">-&gt;</span> <span class="dt">Int</span>
+    <span class="co">-- | &quot;N&quot;, braid group index, number of strands/rows/&quot;i&quot;s.</span>
+<span class="ot">    strandCount ::</span> a b <span class="ot">-&gt;</span> b
+    <span class="co">-- | Series of &quot;steps&quot; of absolute-indexed generators.</span>
+<span class="ot">    toGens ::</span> a b <span class="ot">-&gt;</span> [[<span class="dt">Gen</span> b]]
+    <span class="co">-- | Minimum index (i) value</span>
+<span class="ot">    minIndex ::</span> a b <span class="ot">-&gt;</span> b
+    <span class="co">-- | Maximum index (i) value. Values of (i+1) obtain.</span>
+<span class="ot">    maxIndex ::</span> a b <span class="ot">-&gt;</span> b
+    <span class="co">-- | Invert indices</span>
+<span class="ot">    invert ::</span> a b <span class="ot">-&gt;</span> a b</code></pre></div>
+</section>
+</section>
+<section id="braids-for-music" class="slide level1">
+<h1>Braids for Music</h1>
+<section id="input-sequence-of-pitches" class="level2">
+<h2>Input: sequence of pitches</h2>
+<figure>
+<img src="img/10-strandSource__small.png" />
+</figure>
+</section>
+<section id="create-single-strand" class="level2">
+<h2>Create single &quot;strand&quot;</h2>
+<figure>
+<img src="img/strand_05.png" alt="Index pitches and plot as strand. Non-adjacent pitches are extended as &quot;unders&quot;" /><figcaption>Index pitches and plot as strand. Non-adjacent pitches are extended as &quot;unders&quot;</figcaption>
+</figure>
+</section>
+<section id="represent-unders-as-longer-notes" class="level2">
+<h2>Represent &quot;unders&quot; as longer notes</h2>
+<figure>
+<img src="img/11-strandResult.png" alt="&quot;Unders&quot; simply keep ringing the last &quot;over&quot; note" /><figcaption>&quot;Unders&quot; simply keep ringing the last &quot;over&quot; note</figcaption>
+</figure>
+</section>
+<section id="elaborationcounterpoint-terracing" class="level2">
+<h2>Elaboration/Counterpoint: &quot;Terracing&quot;</h2>
+<figure>
+<img src="img/strand_tcol_01__small.png" alt="Inverse crosses propagate away from source strand" /><figcaption>Inverse crosses propagate away from source strand</figcaption>
+</figure>
+</section>
+<section id="terraced-braid" class="level2">
+<h2>Terraced Braid</h2>
+<figure>
+<img src="img/braid_strands_01-11x6__small.png" />
+</figure>
+</section>
+<section id="musical-properties-loops" class="level2">
+<h2>Musical properties: Loops</h2>
+<figure>
+<img src="img/braid_strands_05-20x7.png" alt="Braid colored by strand" /><figcaption>Braid colored by strand</figcaption>
+</figure>
+</section>
+<section id="musical-properties-loops-1" class="level2">
+<h2>Musical properties: Loops</h2>
+<figure>
+<img src="img/braid_seqs_05-20x7.png" alt="Braid colored by loops" /><figcaption>Braid colored by loops</figcaption>
+</figure>
+</section>
+<section id="section-9" class="level2">
+<h2></h2>
+<figure>
+<img src="img/braid13.png" width="600" />
+</figure>
+<div>
+<audio src="audio/braid13.mp3" controls="controls">
+</div>
+</section>
+</section>
     </div>
   </div>
 

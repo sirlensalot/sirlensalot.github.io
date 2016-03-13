@@ -433,3 +433,118 @@ xchild n act = do
 # Braids
 
 ![](img/band-terrace.png)
+
+# Braids
+
+## Knot Theory
+
+- Braids are a 2D+ projection of a knot
+- "Any knot may be represented as the closure of certain braids"
+- The class of braids of `n` strands forms a group *B~n~*
+
+## Braid Group B~4~
+
+![Identity, &sigma;~1~&sigma;~2~&sigma;~3~, inverse, Monoid](img/id-inverse.png)
+
+## Algebra: Braid Generators
+
+![Any braid can be represented as a sequence of generators. The braid on the left becomes &sigma;~2~&sigma;~1~^-1^&sigma;~3~^-1^](img/artin.png){width=400}
+
+## Braids in Haskell
+
+![](img/artin.png){width=400}
+
+```{.haskell}
+renderBraids 100 [colorStrands] "artin.png" $
+    [[MultiGen [Step (Gen 1 O) [],Step (Gen 0 U) [Gen 0 U]],
+      Artin [Gen 1 O, Gen 0 U, Gen 2 U]]]
+```
+
+## `Artin`: Canonical Braid
+
+```{.haskell}
+data Polarity = U | O deriving (Eq,Show,Enum,Ord)
+
+data Gen a = Gen { _gPos :: a, _gPol :: Polarity }
+    deriving (Eq,Functor,Ord)
+
+newtype Artin a = Artin { _aGens :: [Gen a] }
+    deriving (Eq,Show,Monoid,Functor)
+instance Foldable Artin where
+    foldMap f = foldMap f . map _gPos . _aGens
+```
+
+## `MultiGen`: Compressed Braid
+
+```{.haskell}
+newtype MultiGen a = MultiGen { _mSteps :: [Step a] }
+    deriving (Eq,Monoid)
+-- Adjacent generators on a single "step" are invalid!
+data Step a =
+    Empty |
+    Step { _sHead :: Gen a, _sOffsets :: [Gen Natural]
+    } deriving (Eq)
+
+stepToGens :: Integral a => Step a -> [Gen a]
+stepToGens Empty = []
+stepToGens (Step h gs) = reverse $ foldl conv [h] gs
+    where conv rs@(Gen p' _:_) (Gen p e) =
+                   Gen (fromIntegral p + p' + 2) e:rs
+          conv _ _ = error "c'est impossible"
+```
+
+## `Braid` typeclass
+
+```{.haskell}
+class (Integral b, Monoid (a b)) => Braid (a :: * -> *) b where
+    -- | "Length", number of "steps"/columns/artin generators.
+    stepCount :: a b -> Int
+    -- | "N", braid group index, number of strands/rows/"i"s.
+    strandCount :: a b -> b
+    -- | Series of "steps" of absolute-indexed generators.
+    toGens :: a b -> [[Gen b]]
+    -- | Minimum index (i) value
+    minIndex :: a b -> b
+    -- | Maximum index (i) value. Values of (i+1) obtain.
+    maxIndex :: a b -> b
+    -- | Invert indices
+    invert :: a b -> a b
+```
+
+# Braids for Music
+
+## Input: sequence of pitches
+
+![](img/10-strandSource__small.png)
+
+## Create single "strand"
+
+![Index pitches and plot as strand. Non-adjacent pitches are extended as "unders"](img/strand_05.png)
+
+## Represent "unders" as longer notes
+
+!["Unders" simply keep ringing the last "over" note](img/11-strandResult.png)
+
+## Elaboration/Counterpoint: "Terracing"
+
+![Inverse crosses propagate away from source strand](img/strand_tcol_01__small.png)
+
+## Terraced Braid
+
+![](img/braid_strands_01-11x6__small.png)
+
+## Musical properties: Loops
+
+![Braid colored by strand](img/braid_strands_05-20x7.png)
+
+## Musical properties: Loops
+
+![Braid colored by loops](img/braid_seqs_05-20x7.png)
+
+##
+
+![](img/braid13.png){width=600}
+
+<div><audio src="audio/braid13.mp3" controls="controls"></div>
+
+# Ongoing work
