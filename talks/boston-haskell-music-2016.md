@@ -48,6 +48,14 @@ Supercollider code
 - Growth: mine, as s/w dev and musician together
 </div>
 
+## Fadno
+
+- Java codebase 2008-2010 ("machinemusic")
+- Ported to Clojure 2010-2011
+- Major composition realized in Java 2012
+- Java -> Haskell 2014
+- "Fadno" O/S release 2015, 2016
+
 # Cyclops
 
 ##
@@ -102,11 +110,88 @@ zipTail all over my music code.
 
 <div><audio src="audio/cyclops-fortalk.mp3" controls="controls"></div>
 
-*and how will musicians _play_ them?*
+*and how do we _play_ them?*
+
+# Note
+
+## Fundamentals
+
+- Note = Pitch (or pitches) + Duration
+- i.e., `(Pitch, Duration)`
+- But what types are they?
+
+## Pitch
+
+- Integrals are easiest to code with
+- Enharmonic pitches harder (`E#5`, `G2`)
+- Frequency (Hz) not usually supported except for electronic (Supercollider)
+- DSLs usually monomorphic, e.g. Chord instead of Note
+
+## Duration
+
+- MIDI, MusicXML integral-focused with max divisor
+- Rationals the best choice for interop though
+- Notation challenges with "tuples" (odd numbers in denominator)
+
+## `Note` datatype
+
+```{.haskell}
+data Note p d = Note { _pitch :: p, _dur :: d }
+                deriving (Eq,Generic)
+$(makeLenses ''Note)
+-- Bifunctor, Field1, Field2 instances, |: smart ctor
+class HasNote s p d | s -> p d where
+  note :: Lens' s (Note p d)
+  notePitch :: Lens' s p
+  notePitch = note.pitch
+  noteDur :: Lens' s d
+  noteDur = note.dur
+instance HasNote (Note p d) p d where note = ($)
+```
+
+## Spelling
+
+```{.haskell}
+data Spelling = C|Cs|Db|D|Ds|Eb|E|F|Fs|Gb|G|Gs|Ab|A|As|Bb|B
+            deriving (Eq,Show,Read,Enum,Ord,Bounded,Generic)
+fromChroma :: Integral a => a -> Spelling
+fromChroma 0 = C
+fromChroma 1 = Cs
+fromChroma 2 = D
+...
+toChroma :: Integral a => Spelling -> a
+toChroma C = 0
+toChroma Cs = 1
+toChroma Db = 1
+...
+spelling :: Integral a => Iso' a Spelling
+spelling = iso fromChroma toChroma
+```
+
+
+## `PitchRep`
+```{.haskell}
+data PitchRep = PitchRep { _prPitch :: Spelling, _prOctave :: Int  }
+              deriving (Eq,Ord,Bounded,Generic)
+-- plus Integral smart ctor @:
+instance Num PitchRep where
+    fromInteger i = fromChroma i @: ((i `div` 12) - 1)
+...
+instance Real PitchRep where
+    toRational (PitchRep s o) =
+       (((fromIntegral o + 1) * 12) + toChroma s) % 1
+instance Integral PitchRep where toInteger = truncate . toRational
+...
+pitchRep :: Integral a => Iso' a PitchRep
+pitchRep = iso fromIntegral (fromIntegral . toInteger)
+```
 
 # Notation
 
 ![`head $ genRot 9 2 48`](img/cyclopsPivotRot9-2-48-talk.png)
+
+
+
 
 # Music XML
 

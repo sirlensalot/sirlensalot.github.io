@@ -123,6 +123,16 @@ ug <span class="op">=</span> <span class="va">SinOsc</span>.<span class="at">ar<
 </ul>
 </aside>
 </section>
+<section id="fadno" class="level2">
+<h2>Fadno</h2>
+<ul>
+<li class="fragment">Java codebase 2008-2010 (&quot;machinemusic&quot;)</li>
+<li class="fragment">Ported to Clojure 2010-2011</li>
+<li class="fragment">Major composition realized in Java 2012</li>
+<li class="fragment">Java -&gt; Haskell 2014</li>
+<li class="fragment">&quot;Fadno&quot; O/S release 2015, 2016</li>
+</ul>
+</section>
 </section>
 <section id="cyclops" class="slide level1">
 <h1>Cyclops</h1>
@@ -174,7 +184,83 @@ zipTail f <span class="fu">=</span> zipWith f <span class="fu">&lt;*&gt;</span> 
 <div>
 <audio src="audio/cyclops-fortalk.mp3" controls="controls">
 </div>
-<p><em>and how will musicians <em>play</em> them?</em></p>
+<p><em>and how do we <em>play</em> them?</em></p>
+</section>
+</section>
+<section id="note" class="slide level1">
+<h1>Note</h1>
+<section id="fundamentals" class="level2">
+<h2>Fundamentals</h2>
+<ul>
+<li class="fragment">Note = Pitch (or pitches) + Duration</li>
+<li class="fragment">i.e., <code>(Pitch, Duration)</code></li>
+<li class="fragment">But what types are they?</li>
+</ul>
+</section>
+<section id="pitch" class="level2">
+<h2>Pitch</h2>
+<ul>
+<li class="fragment">Integrals are easiest to code with</li>
+<li class="fragment">Enharmonic pitches harder (<code>E#5</code>, <code>G2</code>)</li>
+<li class="fragment">Frequency (Hz) not usually supported except for electronic (Supercollider)</li>
+<li class="fragment">DSLs usually monomorphic, e.g. Chord instead of Note</li>
+</ul>
+</section>
+<section id="duration" class="level2">
+<h2>Duration</h2>
+<ul>
+<li class="fragment">MIDI, MusicXML integral-focused with max divisor</li>
+<li class="fragment">Rationals the best choice for interop though</li>
+<li class="fragment">Notation challenges with &quot;tuples&quot; (odd numbers in denominator)</li>
+</ul>
+</section>
+<section id="note-datatype" class="level2">
+<h2><code>Note</code> datatype</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Note</span> p d <span class="fu">=</span> <span class="dt">Note</span> { _<span class="ot">pitch ::</span> p, _<span class="ot">dur ::</span> d }
+                <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Generic</span>)
+<span class="fu">$</span>(makeLenses <span class="ch">&#39;&#39;</span><span class="dt">Note</span>)
+<span class="co">-- Bifunctor, Field1, Field2 instances</span>
+
+<span class="kw">class</span> <span class="dt">HasNote</span> s p d <span class="fu">|</span> s <span class="ot">-&gt;</span> p d <span class="kw">where</span>
+<span class="ot">  note ::</span> <span class="dt">Lens&#39;</span> s (<span class="dt">Note</span> p d)
+<span class="ot">  notePitch ::</span> <span class="dt">Lens&#39;</span> s p
+  notePitch <span class="fu">=</span> note<span class="fu">.</span>pitch
+<span class="ot">  noteDur ::</span> <span class="dt">Lens&#39;</span> s d
+  noteDur <span class="fu">=</span> note<span class="fu">.</span>dur
+<span class="kw">instance</span> <span class="dt">HasNote</span> (<span class="dt">Note</span> p d) p d <span class="kw">where</span> note <span class="fu">=</span> (<span class="fu">$</span>)</code></pre></div>
+</section>
+<section id="spelling" class="level2">
+<h2>Spelling</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Spelling</span> <span class="fu">=</span> <span class="dt">C</span><span class="fu">|</span><span class="dt">Cs</span><span class="fu">|</span><span class="dt">Db</span><span class="fu">|</span><span class="dt">D</span><span class="fu">|</span><span class="dt">Ds</span><span class="fu">|</span><span class="dt">Eb</span><span class="fu">|</span><span class="dt">E</span><span class="fu">|</span><span class="dt">F</span><span class="fu">|</span><span class="dt">Fs</span><span class="fu">|</span><span class="dt">Gb</span><span class="fu">|</span><span class="dt">G</span><span class="fu">|</span><span class="dt">Gs</span><span class="fu">|</span><span class="dt">Ab</span><span class="fu">|</span><span class="dt">A</span><span class="fu">|</span><span class="dt">As</span><span class="fu">|</span><span class="dt">Bb</span><span class="fu">|</span><span class="dt">B</span>
+            <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Show</span>,<span class="dt">Read</span>,<span class="dt">Enum</span>,<span class="dt">Ord</span>,<span class="dt">Bounded</span>,<span class="dt">Generic</span>)
+<span class="ot">fromChroma ::</span> <span class="dt">Integral</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Spelling</span>
+fromChroma <span class="dv">0</span> <span class="fu">=</span> <span class="dt">C</span>
+fromChroma <span class="dv">1</span> <span class="fu">=</span> <span class="dt">Cs</span>
+fromChroma <span class="dv">2</span> <span class="fu">=</span> <span class="dt">D</span>
+<span class="fu">...</span>
+<span class="ot">toChroma ::</span> <span class="dt">Integral</span> a <span class="ot">=&gt;</span> <span class="dt">Spelling</span> <span class="ot">-&gt;</span> a
+toChroma <span class="dt">C</span> <span class="fu">=</span> <span class="dv">0</span>
+toChroma <span class="dt">Cs</span> <span class="fu">=</span> <span class="dv">1</span>
+toChroma <span class="dt">Db</span> <span class="fu">=</span> <span class="dv">1</span>
+<span class="fu">...</span>
+<span class="ot">spelling ::</span> <span class="dt">Integral</span> a <span class="ot">=&gt;</span> <span class="dt">Iso&#39;</span> a <span class="dt">Spelling</span>
+spelling <span class="fu">=</span> iso fromChroma toChroma</code></pre></div>
+</section>
+<section id="pitchrep" class="level2">
+<h2><code>PitchRep</code></h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">PitchRep</span> <span class="fu">=</span> <span class="dt">PitchRep</span> { _<span class="ot">prPitch ::</span> <span class="dt">Spelling</span>, _<span class="ot">prOctave ::</span> <span class="dt">Int</span>  }
+              <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Ord</span>,<span class="dt">Bounded</span>,<span class="dt">Generic</span>)
+<span class="co">-- plus Integral smart ctor @:</span>
+<span class="kw">instance</span> <span class="dt">Num</span> <span class="dt">PitchRep</span> <span class="kw">where</span>
+    fromInteger i <span class="fu">=</span> fromChroma i <span class="fu">@:</span> ((i <span class="ot">`div`</span> <span class="dv">12</span>) <span class="fu">-</span> <span class="dv">1</span>)
+<span class="fu">...</span>
+<span class="kw">instance</span> <span class="dt">Real</span> <span class="dt">PitchRep</span> <span class="kw">where</span>
+    toRational (<span class="dt">PitchRep</span> s o) <span class="fu">=</span>
+       (((fromIntegral o <span class="fu">+</span> <span class="dv">1</span>) <span class="fu">*</span> <span class="dv">12</span>) <span class="fu">+</span> toChroma s) <span class="fu">%</span> <span class="dv">1</span>
+<span class="kw">instance</span> <span class="dt">Integral</span> <span class="dt">PitchRep</span> <span class="kw">where</span> toInteger <span class="fu">=</span> truncate <span class="fu">.</span> toRational
+<span class="fu">...</span>
+<span class="ot">pitchRep ::</span> <span class="dt">Integral</span> a <span class="ot">=&gt;</span> <span class="dt">Iso&#39;</span> a <span class="dt">PitchRep</span>
+pitchRep <span class="fu">=</span> iso fromIntegral (fromIntegral <span class="fu">.</span> toInteger)</code></pre></div>
 </section>
 </section>
 <section id="notation" class="slide level1">
@@ -439,6 +525,9 @@ xchild n act <span class="fu">=</span> <span class="kw">do</span>
 <li class="fragment">BOOTSTRAPPING!!</li>
 </ul>
 </section>
+</section>
+<section id="braids" class="slide level1">
+<h1>Braids</h1>
 </section>
     </div>
   </div>
