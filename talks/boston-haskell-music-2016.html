@@ -128,7 +128,7 @@ ug <span class="op">=</span> <span class="va">SinOsc</span>.<span class="at">ar<
 <ul>
 <li class="fragment">Java codebase 2008-2010 (&quot;machinemusic&quot;)</li>
 <li class="fragment">Ported to Clojure 2010-2011</li>
-<li class="fragment">Major composition realized in Java 2012</li>
+<li class="fragment">&quot;Pleonid&quot; realized in Java 2012</li>
 <li class="fragment">Java -&gt; Haskell 2014</li>
 <li class="fragment">&quot;Fadno&quot; O/S release 2015, 2016</li>
 </ul>
@@ -194,7 +194,8 @@ zipTail f <span class="fu">=</span> zipWith f <span class="fu">&lt;*&gt;</span> 
 <ul>
 <li class="fragment">Note = Pitch (or pitches) + Duration</li>
 <li class="fragment">i.e., <code>(Pitch, Duration)</code></li>
-<li class="fragment">But what types are they?</li>
+<li class="fragment">Pitch: <code>A</code> <code>Bb</code> <code>C#</code> vs 440Hz</li>
+<li class="fragment">Duration: <code>1 % 4</code>, 96 ticks</li>
 </ul>
 </section>
 <section id="pitch" class="level2">
@@ -203,13 +204,13 @@ zipTail f <span class="fu">=</span> zipWith f <span class="fu">&lt;*&gt;</span> 
 <li class="fragment">Integrals are easiest to code with</li>
 <li class="fragment">Enharmonic pitches harder (<code>E#5</code>, <code>G2</code>)</li>
 <li class="fragment">Frequency (Hz) not usually supported except for electronic (Supercollider)</li>
-<li class="fragment">DSLs usually monomorphic, e.g. Chord instead of Note</li>
+<li class="fragment">DSLs usually monomorphic, e.g. Chord instead of Note, <code>Int</code> pitch etc</li>
 </ul>
 </section>
 <section id="duration" class="level2">
 <h2>Duration</h2>
 <ul>
-<li class="fragment">MIDI, MusicXML integral-focused with max divisor</li>
+<li class="fragment">MIDI, MusicXML use ticks with max divisor</li>
 <li class="fragment">Rationals the best choice for interop though</li>
 <li class="fragment">Notation challenges with &quot;tuples&quot; (odd numbers in denominator)</li>
 </ul>
@@ -219,8 +220,7 @@ zipTail f <span class="fu">=</span> zipWith f <span class="fu">&lt;*&gt;</span> 
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Note</span> p d <span class="fu">=</span> <span class="dt">Note</span> { _<span class="ot">pitch ::</span> p, _<span class="ot">dur ::</span> d }
                 <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Generic</span>)
 <span class="fu">$</span>(makeLenses <span class="ch">&#39;&#39;</span><span class="dt">Note</span>)
-<span class="co">-- Bifunctor, Field1, Field2 instances</span>
-
+<span class="co">-- Bifunctor, Field1, Field2 instances, |: smart ctor</span>
 <span class="kw">class</span> <span class="dt">HasNote</span> s p d <span class="fu">|</span> s <span class="ot">-&gt;</span> p d <span class="kw">where</span>
 <span class="ot">  note ::</span> <span class="dt">Lens&#39;</span> s (<span class="dt">Note</span> p d)
 <span class="ot">  notePitch ::</span> <span class="dt">Lens&#39;</span> s p
@@ -261,6 +261,22 @@ spelling <span class="fu">=</span> iso fromChroma toChroma</code></pre></div>
 <span class="fu">...</span>
 <span class="ot">pitchRep ::</span> <span class="dt">Integral</span> a <span class="ot">=&gt;</span> <span class="dt">Iso&#39;</span> a <span class="dt">PitchRep</span>
 pitchRep <span class="fu">=</span> iso fromIntegral (fromIntegral <span class="fu">.</span> toInteger)</code></pre></div>
+</section>
+<section id="benefits" class="level2">
+<h2>Benefits</h2>
+<ul>
+<li class="fragment">Full power of Haskell number types</li>
+<li class="fragment">Local conversions (MIDI, MusicXML, etc)</li>
+<li class="fragment"><ol type="1">
+<li class="fragment">use lens 2) ??? 3) Profit</li>
+</ol></li>
+</ul>
+</section>
+<section id="demo" class="level2">
+<h2>Demo</h2>
+<ul>
+<li class="fragment">Emacs time</li>
+</ul>
 </section>
 </section>
 <section id="notation" class="slide level1">
@@ -342,57 +358,12 @@ parseX sel e <span class="fu">=</span> runExceptT (evalStateT sel [e])</code></p
 <p>Note that this is one style of monad stack building that I can't make my mind up about. You can go quite far by just specifying a bunch of constraints. I have apps in prod with this.</p>
 </aside>
 </section>
-<section id="stack-manipulation" class="level2">
-<h2>Stack manipulation</h2>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">peek ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> m <span class="dt">X.Element</span>
-peek <span class="fu">=</span> head <span class="fu">&lt;$&gt;</span> checkStack
-
-<span class="ot">checkStack ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> m [<span class="dt">X.Element</span>]
-checkStack <span class="fu">=</span> get <span class="fu">&gt;&gt;=</span> \s <span class="ot">-&gt;</span>
-             <span class="kw">if</span> null s <span class="kw">then</span> throwError <span class="st">&quot;Invalid stack&quot;</span> <span class="kw">else</span> return s
-
-<span class="ot">push ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> <span class="dt">X.Element</span> <span class="ot">-&gt;</span> m ()
-push e <span class="fu">=</span> modify (e<span class="fu">:</span>)
-
-<span class="ot">pop ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> m ()
-pop <span class="fu">=</span> checkStack <span class="fu">&gt;&gt;=</span> \(_<span class="fu">:</span>rest) <span class="ot">-&gt;</span> put rest</code></pre></div>
-</section>
-<section id="attrs-and-text" class="level2">
-<h2>Attrs and Text</h2>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Expect a particular attribute.</span>
-<span class="ot">attr ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> <span class="dt">X.QName</span> <span class="ot">-&gt;</span> m <span class="dt">String</span>
-attr n <span class="fu">=</span> <span class="kw">do</span>
-  v <span class="ot">&lt;-</span> X.findAttr n <span class="fu">&lt;$&gt;</span> peek
-  maybe (throwError <span class="fu">$</span> <span class="st">&quot;Attribute not found: &quot;</span> <span class="fu">++</span> show n) return v
-
-<span class="co">-- | Get text content, returning empty string if none, per &#39;strContent&#39;.</span>
-<span class="ot">textContent ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> m <span class="dt">String</span>
-textContent <span class="fu">=</span> X.strContent <span class="fu">&lt;$&gt;</span> peek</code></pre></div>
-</section>
-<section id="elements" class="level2">
-<h2>Elements</h2>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Verify current element.</span>
-<span class="ot">atEl ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> <span class="dt">X.QName</span> <span class="ot">-&gt;</span> m ()
-atEl n <span class="fu">=</span> <span class="kw">do</span>
-  e <span class="ot">&lt;-</span> X.elName <span class="fu">&lt;$&gt;</span> peek
-  when (n <span class="fu">/=</span> e) <span class="fu">$</span> throwError (<span class="st">&quot;Wrong element name: &quot;</span> <span class="fu">++</span> show e)
-
-<span class="co">-- | Find child element and act on it.</span>
-<span class="ot">findChild ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> <span class="dt">X.QName</span> <span class="ot">-&gt;</span> m a <span class="ot">-&gt;</span> m a
-findChild n act <span class="fu">=</span> <span class="kw">do</span>
-  c <span class="ot">&lt;-</span> X.findChild n <span class="fu">&lt;$&gt;</span> peek
-  <span class="kw">case</span> c <span class="kw">of</span>
-    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> throwError <span class="fu">$</span> <span class="st">&quot;No such child &quot;</span> <span class="fu">++</span> show n
-    <span class="dt">Just</span> e <span class="ot">-&gt;</span> dropTo act e</code></pre></div>
-<aside class="notes">
-<p>Plus <code>findChildren</code>, <code>allChildren</code>, <code>anyChildren</code></p>
-</aside>
-</section>
-<section id="alternative-applicative-cheap-parser" class="level2">
-<h2><code>Alternative</code> + <code>Applicative</code> = Cheap Parser</h2>
+<section id="alternative-applicative-stack-cheap-parser" class="level2">
+<h2><code>Alternative</code> + <code>Applicative</code> + Stack = Cheap Parser</h2>
 <ul>
 <li class="fragment">Alternative: <code>some</code>, <code>many</code>, <code>empty</code>, <code>&lt;|&gt;</code></li>
 <li class="fragment">Applicative: <code>optional</code></li>
+<li class="fragment">Stack of elements is all you need! (?)</li>
 </ul>
 </section>
 <section id="looking-good" class="level2">
@@ -414,15 +385,17 @@ group <span class="fu">=</span> <span class="kw">do</span>
 <h2>Type Emitter</h2>
 <ul>
 <li class="fragment">Concept from HaXmL: Haskell Datatype Model</li>
+<li class="fragment">Emit <code>Type</code>, <code>Ctor</code>, <code>Field</code></li>
+<li class="fragment">Namespace mangling</li>
 <li class="fragment">Shoulda used TH?</li>
-<li class="fragment">NIH</li>
 </ul>
 </section>
 <section id="codegen" class="level2">
 <h2>Codegen</h2>
 <ul>
+<li class="fragment">Big string concatenator (PP?)</li>
+<li class="fragment">Doesn't choke on &gt;21 fields like HaXml</li>
 <li class="fragment">REALLY shoulda used TH?</li>
-<li class="fragment">Spaghetti string concatenator</li>
 </ul>
 </section>
 <section id="backend-independent-output-ast" class="level2">
@@ -451,8 +424,8 @@ group <span class="fu">=</span> <span class="kw">do</span>
 </section>
 <section id="xml-parser-parser-2" class="slide level1">
 <h1>XML Parser Parser #2</h1>
-<section id="xparser" class="level2">
-<h2><code>XParser</code></h2>
+<section id="xparser-for-reading" class="level2">
+<h2><code>XParser</code> for reading</h2>
 <ul>
 <li class="fragment">Hacked into type model</li>
 <li class="fragment">Choked hard on MusicXML <em>files</em> (works fine on XSDs!)</li>
@@ -516,13 +489,15 @@ xchild n act <span class="fu">=</span> <span class="kw">do</span>
 <h2>Victory</h2>
 <ul>
 <li class="fragment">Round-trips with exact diff</li>
+<li class="fragment">Needs GL (<code>some</code> hack)</li>
 </ul>
 </section>
 <section id="future-work" class="level2">
 <h2>Future Work</h2>
 <ul>
 <li class="fragment">Still using old XParser for XSDs (XParse too strict!)</li>
-<li class="fragment">BOOTSTRAPPING!!</li>
+<li class="fragment">Bootstrap: parse XSD to build XSD parser</li>
+<li class="fragment">GL: greediest match</li>
 </ul>
 </section>
 </section>

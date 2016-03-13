@@ -52,7 +52,7 @@ Supercollider code
 
 - Java codebase 2008-2010 ("machinemusic")
 - Ported to Clojure 2010-2011
-- Major composition realized in Java 2012
+- "Pleonid" realized in Java 2012
 - Java -> Haskell 2014
 - "Fadno" O/S release 2015, 2016
 
@@ -118,18 +118,19 @@ zipTail all over my music code.
 
 - Note = Pitch (or pitches) + Duration
 - i.e., `(Pitch, Duration)`
-- But what types are they?
+- Pitch: `A` `Bb` `C#` vs 440Hz
+- Duration: `1 % 4`, 96 ticks
 
 ## Pitch
 
 - Integrals are easiest to code with
 - Enharmonic pitches harder (`E#5`, `G2`)
 - Frequency (Hz) not usually supported except for electronic (Supercollider)
-- DSLs usually monomorphic, e.g. Chord instead of Note
+- DSLs usually monomorphic, e.g. Chord instead of Note, `Int` pitch etc
 
 ## Duration
 
-- MIDI, MusicXML integral-focused with max divisor
+- MIDI, MusicXML use ticks with max divisor
 - Rationals the best choice for interop though
 - Notation challenges with "tuples" (odd numbers in denominator)
 
@@ -170,6 +171,7 @@ spelling = iso fromChroma toChroma
 
 
 ## `PitchRep`
+
 ```{.haskell}
 data PitchRep = PitchRep { _prPitch :: Spelling, _prOctave :: Int  }
               deriving (Eq,Ord,Bounded,Generic)
@@ -186,11 +188,19 @@ pitchRep :: Integral a => Iso' a PitchRep
 pitchRep = iso fromIntegral (fromIntegral . toInteger)
 ```
 
+## Benefits
+
+- Full power of Haskell number types
+- Local conversions (MIDI, MusicXML, etc)
+- 1) use lens 2) ??? 3) Profit
+
+## Demo
+
+- Emacs time
+
 # Notation
 
 ![`head $ genRot 9 2 48`](img/cyclopsPivotRot9-2-48-talk.png)
-
-
 
 
 # Music XML
@@ -268,62 +278,11 @@ mind up about. You can go quite far by just specifying a bunch of constraints.
 I have apps in prod with this.
 </div>
 
-## Stack manipulation
-
-```{.haskell}
-peek :: XParser m => m X.Element
-peek = head <$> checkStack
-
-checkStack :: XParser m => m [X.Element]
-checkStack = get >>= \s ->
-             if null s then throwError "Invalid stack" else return s
-
-push :: XParser m => X.Element -> m ()
-push e = modify (e:)
-
-pop :: XParser m => m ()
-pop = checkStack >>= \(_:rest) -> put rest
-```
-
-## Attrs and Text
-
-```{.haskell}
--- | Expect a particular attribute.
-attr :: XParser m => X.QName -> m String
-attr n = do
-  v <- X.findAttr n <$> peek
-  maybe (throwError $ "Attribute not found: " ++ show n) return v
-
--- | Get text content, returning empty string if none, per 'strContent'.
-textContent :: XParser m => m String
-textContent = X.strContent <$> peek
-```
-
-## Elements
-
-```{.haskell}
--- | Verify current element.
-atEl :: XParser m => X.QName -> m ()
-atEl n = do
-  e <- X.elName <$> peek
-  when (n /= e) $ throwError ("Wrong element name: " ++ show e)
-
--- | Find child element and act on it.
-findChild :: XParser m => X.QName -> m a -> m a
-findChild n act = do
-  c <- X.findChild n <$> peek
-  case c of
-    Nothing -> throwError $ "No such child " ++ show n
-    Just e -> dropTo act e
-```
-<div class="notes">
-Plus `findChildren`, `allChildren`, `anyChildren`
-</div>
-
-## `Alternative` + `Applicative` = Cheap Parser
+## `Alternative` + `Applicative` + Stack = Cheap Parser
 
 - Alternative: `some`, `many`, `empty`, `<|>`
 - Applicative: `optional`
+- Stack of elements is all you need! (?)
 
 
 ## Looking Good
@@ -344,12 +303,14 @@ group = do
 
 ## Type Emitter
 - Concept from HaXmL: Haskell Datatype Model
+- Emit `Type`, `Ctor`, `Field`
+- Namespace mangling
 - Shoulda used TH?
-- NIH
 
 ## Codegen
+- Big string concatenator (PP?)
+- Doesn't choke on >21 fields like HaXml
 - REALLY shoulda used TH?
-- Spaghetti string concatenator
 
 ## Backend-independent Output AST
 
@@ -375,7 +336,7 @@ data XmlRep where
 
 # XML Parser Parser #2
 
-## `XParser`
+## `XParser` for reading
 - Hacked into type model
 - Choked hard on MusicXML *files* (works fine on XSDs!)
 - Semantics on failure completely busted
@@ -443,10 +404,12 @@ xchild n act = do
 ## Victory
 
 - Round-trips with exact diff
+- Needs GL (`some` hack)
 
 ## Future Work
 
 - Still using old XParser for XSDs (XParse too strict!)
-- BOOTSTRAPPING!!
+- Bootstrap: parse XSD to build XSD parser
+- GL: greediest match
 
 # Braids
