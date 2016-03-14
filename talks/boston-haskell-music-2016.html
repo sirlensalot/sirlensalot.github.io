@@ -663,6 +663,67 @@ stepToGens (<span class="dt">Step</span> h gs) <span class="fu">=</span> reverse
 </div>
 </section>
 </section>
+<section id="braid-moves" class="slide level1">
+<h1>Braid Moves</h1>
+<section id="isotopy" class="level2">
+<h2>Isotopy</h2>
+<ul>
+<li class="fragment">Leaves the topology of the knot unchanged.</li>
+<li class="fragment">Used to identify different knots/braids as equivalent (word problem).</li>
+</ul>
+</section>
+<section id="reidemeister-moves" class="level2">
+<h2>Reidemeister Moves</h2>
+<ul>
+<li class="fragment">Simple concept where certain generator patterns are equivalent.</li>
+<li class="fragment">Move #1 only applies to loops: a single cross is not a knot</li>
+<li class="fragment">Move #2 straightforward: <img src="img/reid2.png" /></li>
+</ul>
+</section>
+<section id="reidemeister-move-3" class="level2">
+<h2>Reidemeister Move #3</h2>
+<figure>
+<img src="img/reid3.png" alt="Top and bottom are equivalent under inversion" width="700" /><figcaption>Top and bottom are equivalent under inversion</figcaption>
+</figure>
+</section>
+<section id="applying-move-3" class="level2">
+<h2>Applying Move 3</h2>
+<figure>
+<img src="img/move.png" width="600" />
+</figure>
+</section>
+<section id="finding-all-moves" class="level2">
+<h2>Finding all moves</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Data.Tree</span>
+<span class="co">-- structure for braid tree.</span>
+<span class="co">-- A permutation is the permuted braid + the [(move,loc)]s that</span>
+<span class="co">-- got us there. Thus the root is (original braid, []); children</span>
+<span class="co">-- are [(b1,(move,loc))].</span>
+<span class="ot">makeTree ::</span> (<span class="dt">Integral</span> i, <span class="dt">Braid</span> a i, <span class="dt">Braid</span> b i) <span class="ot">=&gt;</span>
+       [<span class="dt">Move</span> a i] <span class="ot">-&gt;</span> b i <span class="ot">-&gt;</span> <span class="dt">Tree</span> (<span class="dt">MultiGen</span> i,[(<span class="dt">Move</span> a i,<span class="dt">Loc</span> i)])
+makeTree mvs org <span class="fu">=</span> unfoldTree go (toMultiGen org,[]) <span class="kw">where</span>
+    go n<span class="fu">@</span>(seed,path) <span class="fu">=</span>
+        (n,concatMap (gen seed path) <span class="fu">$</span> moves mvs seed)
+    gen target path (mv,locs) <span class="fu">=</span>
+        map (\l <span class="ot">-&gt;</span> (applyMove mv l target,(mv,l)<span class="fu">:</span>path)) locs</code></pre></div>
+</section>
+<section id="demo-moves-application-finite-and-infinite" class="level2">
+<h2>Demo moves application (finite and infinite)</h2>
+</section>
+<section id="ongoing-work" class="level2">
+<h2>Ongoing Work</h2>
+<ul>
+<li class="fragment">Find fixpoints in infinite trees (sharing)</li>
+<li class="fragment">Expand to include band generator equivalences</li>
+<li class="fragment">Music: attempt to find &quot;shortest word&quot; for &quot;prettier&quot; counterpoint</li>
+</ul>
+</section>
+</section>
+<section id="thank-you" class="slide level1">
+<h1>Thank You</h1>
+<p>Stuart Popejoy</p>
+<p><a href="http://slpopejoy.github.io/talks/boston-haskell-music-2016.html" class="uri">http://slpopejoy.github.io/talks/boston-haskell-music-2016.html</a></p>
+</section>
     </div>
   </div>
 

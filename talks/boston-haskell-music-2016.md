@@ -547,4 +547,54 @@ class (Integral b, Monoid (a b)) => Braid (a :: * -> *) b where
 
 <div><audio src="audio/braid13.mp3" controls="controls"></div>
 
-# Ongoing work
+# Braid Moves
+
+## Isotopy
+
+- Leaves the topology of the knot unchanged.
+- Used to identify different knots/braids as equivalent (word problem).
+
+## Reidemeister Moves
+
+- Simple concept where certain generator patterns are equivalent.
+- Move #1 only applies to loops: a single cross is not a knot
+- Move #2 straightforward: ![](img/reid2.png)
+
+## Reidemeister Move #3
+
+![Top and bottom are equivalent under inversion](img/reid3.png){width=700}
+
+## Applying Move 3
+
+![](img/move.png){width=600}
+
+## Finding all moves
+
+```{.haskell}
+import Data.Tree
+-- structure for braid tree.
+-- A permutation is the permuted braid + the [(move,loc)]s that
+-- got us there. Thus the root is (original braid, []); children
+-- are [(b1,(move,loc))].
+makeTree :: (Integral i, Braid a i, Braid b i) =>
+       [Move a i] -> b i -> Tree (MultiGen i,[(Move a i,Loc i)])
+makeTree mvs org = unfoldTree go (toMultiGen org,[]) where
+    go n@(seed,path) =
+        (n,concatMap (gen seed path) $ moves mvs seed)
+    gen target path (mv,locs) =
+        map (\l -> (applyMove mv l target,(mv,l):path)) locs
+```
+
+## Demo moves application (finite and infinite)
+
+## Ongoing Work
+
+- Find fixpoints in infinite trees (sharing)
+- Expand to include band generator equivalences
+- Music: attempt to find "shortest word" for "prettier" counterpoint
+
+# Thank You
+
+Stuart Popejoy
+
+[http://slpopejoy.github.io/talks/boston-haskell-music-2016.html](http://slpopejoy.github.io/talks/boston-haskell-music-2016.html)
