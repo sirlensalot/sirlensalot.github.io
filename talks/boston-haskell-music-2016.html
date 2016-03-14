@@ -71,6 +71,28 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
   <h3 class="date">March 16, 2016</h3>
 </section>
 
+<section id="composing-music-in-haskell" class="slide level1">
+<h1>Composing Music In Haskell</h1>
+</section>
+<section id="introduction" class="slide level1">
+<h1>Introduction</h1>
+<section id="who-am-i" class="level2">
+<h2>Who am I?</h2>
+<ul>
+<li class="fragment">Software developer working in Haskell, formerly in Java</li>
+<li class="fragment">Musician and composer in NYC</li>
+</ul>
+</section>
+<section id="roadmap" class="level2">
+<h2>Roadmap</h2>
+<ul>
+<li class="fragment">Composing with Code</li>
+<li class="fragment">A Music Primitive: Note = Pitch + Duration</li>
+<li class="fragment">Motif &amp; Counterpoint: Braids</li>
+<li class="fragment">Output to Notation: MusicXML</li>
+</ul>
+</section>
+</section>
 <section id="composing-with-code" class="slide level1">
 <h1>Composing with Code</h1>
 <section id="section" class="level2">
@@ -88,29 +110,14 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <figure>
 <img src="img/xenakis-fortran.png" alt="Iannis Xenakis, Formalized Music, 1963" /><figcaption>Iannis Xenakis, <em>Formalized Music</em>, 1963</figcaption>
 </figure>
-</section>
-<section id="section-2" class="level2">
-<h2></h2>
-<div class="sourceCode"><pre class="sourceCode javascript"><code class="sourceCode javascript">nums <span class="op">=</span> [n1<span class="op">,</span>n2<span class="op">,</span>n3<span class="op">,</span>n4<span class="op">,</span>n5<span class="op">,</span>n6]<span class="op">;</span> denoms <span class="op">=</span> [d1<span class="op">,</span>d2<span class="op">,</span>d3<span class="op">,</span>d4<span class="op">,</span>d5<span class="op">,</span>d6]<span class="op">;</span>
-preds <span class="op">=</span> (nums <span class="op">+++</span> denoms).<span class="at">collect</span>
-   <span class="op">{</span> <span class="op">|</span> pair<span class="op">|</span> pair[<span class="dv">0</span>] <span class="op">&gt;</span> <span class="dv">0</span> <span class="op">*</span> pair[<span class="dv">1</span>] <span class="op">&gt;</span> <span class="dv">0</span> <span class="op">};</span>
-<span class="va">preds</span>.<span class="at">do</span> <span class="op">{</span> <span class="op">|</span> pred <span class="op">|</span>
-  lastNZ <span class="op">=</span> <span class="cf">if</span> (lastNZ <span class="op">==</span> nil<span class="op">,</span> <span class="op">{</span> pred <span class="op">},</span> <span class="op">{</span> lastNZ <span class="op">+</span> pred <span class="op">}</span>)<span class="op">;</span> <span class="op">};</span>
-freqs <span class="op">=</span> (preds <span class="op">+++</span> (nums/denoms)).<span class="at">collect</span> <span class="op">{</span> <span class="op">|</span> pr <span class="op">|</span>
-    <span class="va">Select</span>.<span class="at">kr</span>(pr[<span class="dv">0</span>]<span class="op">,</span> [<span class="dv">1</span><span class="op">,</span> pr[<span class="dv">1</span>]])<span class="op">;</span> <span class="op">};</span>
-ifreqs <span class="op">=</span> <span class="va">nums</span>.<span class="va">size</span>.<span class="at">collect</span> <span class="op">{</span> <span class="op">|</span> i <span class="op">|</span>
-    <span class="va">Select</span>.<span class="at">kr</span>(lastNZ<span class="op">,</span> <span class="va">Array</span>.<span class="at">series</span>(i<span class="dv">+1</span><span class="op">,</span><span class="dv">1</span><span class="op">,</span><span class="dv">0</span>) <span class="op">++</span> (denoms/nums))<span class="op">;</span> <span class="op">};</span>
-ug <span class="op">=</span> <span class="va">SinOsc</span>.<span class="at">ar</span>(freq)<span class="op">;</span> udc <span class="op">=</span> <span class="va">DC</span>.<span class="at">ar</span>(<span class="dv">1</span>)<span class="op">;</span>
-[preds <span class="op">+++</span> freqs<span class="op">,</span> preds <span class="op">+++</span> ifreqs].<span class="va">lace</span>.<span class="at">do</span> <span class="op">{</span> <span class="op">|</span> pf <span class="op">|</span>
-    <span class="kw">var</span> p<span class="op">,</span> f<span class="op">;</span>
-    #p<span class="op">,</span> f <span class="op">=</span> pf<span class="op">;</span> freq <span class="op">=</span> freq <span class="op">*</span> f<span class="op">;</span>
-    ug <span class="op">=</span> ug <span class="op">*</span> <span class="va">Select</span>.<span class="at">ar</span>( p<span class="op">,</span> [ udc<span class="op">,</span> <span class="va">SinOsc</span>.<span class="at">ar</span>(freq) ])<span class="op">;</span> <span class="op">};</span>
-<span class="va">Out</span>.<span class="at">ar</span>(out<span class="op">,</span> ug <span class="op">*</span> amp)<span class="op">;</span></code></pre></div>
-<p>Supercollider code</p>
+<aside class="notes">
+<p>Iannis Xenakis: 20th century Architect-turned-composer, pioneered using stochastic methods to produce music</p>
+</aside>
 </section>
 <section id="why-1" class="level2">
 <h2>Why:</h2>
 <ul>
+<li class="fragment">Formal Approach</li>
 <li class="fragment">Elaboration</li>
 <li class="fragment">Experimentation</li>
 <li class="fragment">Growth</li>
@@ -123,8 +130,8 @@ ug <span class="op">=</span> <span class="va">SinOsc</span>.<span class="at">ar<
 </ul>
 </aside>
 </section>
-<section id="fadno" class="level2">
-<h2>Fadno</h2>
+<section id="evolution-of-codebase" class="level2">
+<h2>Evolution of Codebase</h2>
 <ul>
 <li class="fragment">Java codebase 2008-2010 (&quot;machinemusic&quot;)</li>
 <li class="fragment">Ported to Clojure 2010-2011</li>
@@ -134,59 +141,6 @@ ug <span class="op">=</span> <span class="va">SinOsc</span>.<span class="at">ar<
 </ul>
 </section>
 </section>
-<section id="cyclops" class="slide level1">
-<h1>Cyclops</h1>
-<section id="section-3" class="level2">
-<h2></h2>
-<figure>
-<img src="img/cyclops.jpg" />
-</figure>
-</section>
-<section id="section-4" class="level2">
-<h2></h2>
-<ul>
-<li class="fragment">generated 619 riffs from one seed motif</li>
-<li class="fragment">used 18 (including seed)</li>
-</ul>
-</section>
-<section id="mod-diff" class="level2">
-<h2>&quot;Mod Diff&quot;</h2>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">differ mod&#39; bias seed s <span class="fu">=</span> zipTail calc s <span class="fu">++</span> [calc (last s) (head s)]
-  <span class="kw">where</span>
-    calc l r <span class="fu">=</span> (((r <span class="fu">-</span> offset) <span class="fu">-</span> (l <span class="fu">-</span> offset)) <span class="ot">`rem`</span> mod&#39;) <span class="fu">+</span> offset
-    offset <span class="fu">=</span> (rng <span class="ot">`div`</span> <span class="dv">2</span>) <span class="fu">+</span> bias <span class="fu">+</span> minimum seed
-    rng <span class="fu">=</span> maximum seed <span class="fu">-</span> minimum seed
-
-seed <span class="fu">=</span> map toPitch [<span class="dt">E3</span>, <span class="dt">A3</span>, <span class="dt">E3</span>, <span class="dt">D3</span>, <span class="dt">G3</span>, <span class="dt">D3</span>]
-
-gen n <span class="fu">=</span> iterate (differ n <span class="dv">0</span> seed) seed
-
-genRot n r t <span class="fu">=</span>
-   pivot <span class="fu">$</span> take t <span class="fu">$</span> iterate (rotate r <span class="fu">.</span> differ n <span class="dv">0</span> seed) seed</code></pre></div>
-</section>
-<section id="zip-ap-tail-the-aztec-god-of-consecutive-numbers" class="level2">
-<h2><code>zip</code> `<code>ap</code>` <code>tail</code>: the Aztec god of consecutive numbers</h2>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">zipTail ::</span> (a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> c) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [c]
-zipTail f <span class="fu">=</span> zipWith f <span class="fu">&lt;*&gt;</span> tail</code></pre></div>
-<p>(#haskell <code>@quote quicksilver aztec</code>)</p>
-<aside class="notes">
-<p>An example of the bountiful help received on #haskell IRC, zipTail all over my music code.</p>
-</aside>
-</section>
-<section id="numbers-are-fun-and-all-..." class="level2">
-<h2>Numbers are fun and all ...</h2>
-<pre><code>&gt; head $ genRot 9 2 48
-[52,51,60,57,60,61,57,54,49,45,51,46,51,48,61,57,54,58,54,51,55,51,57,52,
-57,45,58,45,60,46,60,48,61,48,54,49,54,51,55,51,57,52,57,45,58,45,60,46]</code></pre>
-</section>
-<section id="but-what-do-they-sound-like" class="level2">
-<h2>but what do they sound like?</h2>
-<div>
-<audio src="audio/cyclops-fortalk.mp3" controls="controls">
-</div>
-<p><em>and how do we <em>play</em> them?</em></p>
-</section>
-</section>
 <section id="note" class="slide level1">
 <h1>Note</h1>
 <section id="fundamentals" class="level2">
@@ -194,11 +148,15 @@ zipTail f <span class="fu">=</span> zipWith f <span class="fu">&lt;*&gt;</span> 
 <ul>
 <li class="fragment">Note = Pitch (or pitches) + Duration</li>
 <li class="fragment">i.e., <code>(Pitch, Duration)</code></li>
-<li class="fragment">Pitch: <code>A</code> <code>Bb</code> <code>C#</code> vs 440Hz</li>
-<li class="fragment">Duration: <code>1 % 4</code>, 96 ticks</li>
 </ul>
 </section>
 <section id="pitch" class="level2">
+<h2>Pitch</h2>
+<figure>
+<img src="img/10-strandSource__small.png" />
+</figure>
+</section>
+<section id="pitch-1" class="level2">
 <h2>Pitch</h2>
 <ul>
 <li class="fragment">Integrals are easiest to code with</li>
@@ -208,6 +166,12 @@ zipTail f <span class="fu">=</span> zipWith f <span class="fu">&lt;*&gt;</span> 
 </ul>
 </section>
 <section id="duration" class="level2">
+<h2>Duration</h2>
+<figure>
+<img src="img/11-strandResult.png" />
+</figure>
+</section>
+<section id="duration-1" class="level2">
 <h2>Duration</h2>
 <ul>
 <li class="fragment">MIDI, MusicXML use ticks with max divisor</li>
@@ -220,7 +184,7 @@ zipTail f <span class="fu">=</span> zipWith f <span class="fu">&lt;*&gt;</span> 
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Note</span> p d <span class="fu">=</span> <span class="dt">Note</span> { _<span class="ot">pitch ::</span> p, _<span class="ot">dur ::</span> d }
                 <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Generic</span>)
 <span class="fu">$</span>(makeLenses <span class="ch">&#39;&#39;</span><span class="dt">Note</span>)
-<span class="co">-- Bifunctor, Field1, Field2 instances, |: smart ctor</span>
+<span class="co">-- Bifunctor, Field1, Field2 instances, |: smart ctor &lt;== DEVELOP HERE, slides for bifunctor, isos etc.</span>
 <span class="kw">class</span> <span class="dt">HasNote</span> s p d <span class="fu">|</span> s <span class="ot">-&gt;</span> p d <span class="kw">where</span>
 <span class="ot">  note ::</span> <span class="dt">Lens&#39;</span> s (<span class="dt">Note</span> p d)
 <span class="ot">  notePitch ::</span> <span class="dt">Lens&#39;</span> s p
@@ -229,28 +193,12 @@ zipTail f <span class="fu">=</span> zipWith f <span class="fu">&lt;*&gt;</span> 
   noteDur <span class="fu">=</span> note<span class="fu">.</span>dur
 <span class="kw">instance</span> <span class="dt">HasNote</span> (<span class="dt">Note</span> p d) p d <span class="kw">where</span> note <span class="fu">=</span> (<span class="fu">$</span>)</code></pre></div>
 </section>
-<section id="spelling" class="level2">
-<h2>Spelling</h2>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Spelling</span> <span class="fu">=</span> <span class="dt">C</span><span class="fu">|</span><span class="dt">Cs</span><span class="fu">|</span><span class="dt">Db</span><span class="fu">|</span><span class="dt">D</span><span class="fu">|</span><span class="dt">Ds</span><span class="fu">|</span><span class="dt">Eb</span><span class="fu">|</span><span class="dt">E</span><span class="fu">|</span><span class="dt">F</span><span class="fu">|</span><span class="dt">Fs</span><span class="fu">|</span><span class="dt">Gb</span><span class="fu">|</span><span class="dt">G</span><span class="fu">|</span><span class="dt">Gs</span><span class="fu">|</span><span class="dt">Ab</span><span class="fu">|</span><span class="dt">A</span><span class="fu">|</span><span class="dt">As</span><span class="fu">|</span><span class="dt">Bb</span><span class="fu">|</span><span class="dt">B</span>
-            <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Show</span>,<span class="dt">Read</span>,<span class="dt">Enum</span>,<span class="dt">Ord</span>,<span class="dt">Bounded</span>,<span class="dt">Generic</span>)
-<span class="ot">fromChroma ::</span> <span class="dt">Integral</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Spelling</span>
-fromChroma <span class="dv">0</span> <span class="fu">=</span> <span class="dt">C</span>
-fromChroma <span class="dv">1</span> <span class="fu">=</span> <span class="dt">Cs</span>
-fromChroma <span class="dv">2</span> <span class="fu">=</span> <span class="dt">D</span>
-<span class="fu">...</span>
-<span class="ot">toChroma ::</span> <span class="dt">Integral</span> a <span class="ot">=&gt;</span> <span class="dt">Spelling</span> <span class="ot">-&gt;</span> a
-toChroma <span class="dt">C</span> <span class="fu">=</span> <span class="dv">0</span>
-toChroma <span class="dt">Cs</span> <span class="fu">=</span> <span class="dv">1</span>
-toChroma <span class="dt">Db</span> <span class="fu">=</span> <span class="dv">1</span>
-<span class="fu">...</span>
-<span class="ot">spelling ::</span> <span class="dt">Integral</span> a <span class="ot">=&gt;</span> <span class="dt">Iso&#39;</span> a <span class="dt">Spelling</span>
-spelling <span class="fu">=</span> iso fromChroma toChroma</code></pre></div>
-</section>
 <section id="pitchrep" class="level2">
 <h2><code>PitchRep</code></h2>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">PitchRep</span> <span class="fu">=</span> <span class="dt">PitchRep</span> { _<span class="ot">prPitch ::</span> <span class="dt">Spelling</span>, _<span class="ot">prOctave ::</span> <span class="dt">Int</span>  }
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Spelling</span> <span class="fu">=</span> <span class="dt">C</span><span class="fu">|</span><span class="dt">Cs</span><span class="fu">|</span><span class="dt">Db</span><span class="fu">|</span><span class="dt">D</span><span class="fu">|</span><span class="dt">Ds</span><span class="fu">|</span><span class="dt">Eb</span><span class="fu">|</span><span class="dt">E</span><span class="fu">|</span><span class="dt">F</span><span class="fu">|</span><span class="dt">Fs</span><span class="fu">|</span><span class="dt">Gb</span><span class="fu">|</span><span class="dt">G</span><span class="fu">|</span><span class="dt">Gs</span><span class="fu">|</span><span class="dt">Ab</span><span class="fu">|</span><span class="dt">A</span><span class="fu">|</span><span class="dt">As</span><span class="fu">|</span><span class="dt">Bb</span><span class="fu">|</span><span class="dt">B</span>
+<span class="kw">data</span> <span class="dt">PitchRep</span> <span class="fu">=</span> <span class="dt">PitchRep</span> { _<span class="ot">prPitch ::</span> <span class="dt">Spelling</span>, _<span class="ot">prOctave ::</span> <span class="dt">Int</span>  }
               <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Ord</span>,<span class="dt">Bounded</span>,<span class="dt">Generic</span>)
-<span class="co">-- plus Integral smart ctor @:</span>
+<span class="co">-- plus Integral smart ctor @: -- DEVELOP HERE</span>
 <span class="kw">instance</span> <span class="dt">Num</span> <span class="dt">PitchRep</span> <span class="kw">where</span>
     fromInteger i <span class="fu">=</span> fromChroma i <span class="fu">@:</span> ((i <span class="ot">`div`</span> <span class="dv">12</span>) <span class="fu">-</span> <span class="dv">1</span>)
 <span class="fu">...</span>
@@ -266,265 +214,73 @@ pitchRep <span class="fu">=</span> iso fromIntegral (fromIntegral <span class="f
 <h2>Benefits</h2>
 <ul>
 <li class="fragment">Full power of Haskell number types</li>
-<li class="fragment">Local conversions (MIDI, MusicXML, etc)</li>
-<li class="fragment"><ol type="1">
-<li class="fragment">use lens 2) ??? 3) Profit</li>
-</ol></li>
+<li class="fragment">Representation translation as needed for application (MIDI, MusicXML, etc)</li>
+<li class="fragment">Lenses! Isos!</li>
 </ul>
 </section>
 <section id="demo" class="level2">
 <h2>Demo</h2>
 <ul>
-<li class="fragment">Emacs time</li>
+<li class="fragment">More than a feeling ...</li>
 </ul>
 </section>
 </section>
-<section id="notation" class="slide level1">
-<h1>Notation</h1>
+<section id="generation-cyclops" class="slide level1">
+<h1>Generation: Cyclops</h1>
+<section id="section-2" class="level2">
+<h2></h2>
 <figure>
-<img src="img/cyclopsPivotRot9-2-48-talk.png" alt="head $ genRot 9 2 48" /><figcaption><code>head $ genRot 9 2 48</code></figcaption>
+<img src="img/cyclops.jpg" />
 </figure>
 </section>
-<section id="music-xml" class="slide level1">
-<h1>Music XML</h1>
-<section id="why-2" class="level2">
-<h2>Why?</h2>
+<section id="section-3" class="level2">
+<h2></h2>
 <ul>
-<li class="fragment">Alternative: Lilypond</li>
-<li class="fragment">Integrations: Sibelius, Finale, MuseScore</li>
+<li class="fragment">Seed melody of 6 pitches</li>
+<li class="fragment">generated 619 riffs</li>
+<li class="fragment">used 18 (including seed) in song</li>
 </ul>
 </section>
-<section id="implementations" class="level2">
-<h2>Implementations</h2>
-<ul>
-<li class="fragment"><code>musicxml</code> (Samuel Silva)</li>
-<li class="fragment"><code>hts</code> (Rohan Drape)</li>
-<li class="fragment"><code>musicxml2</code> (Hans Hoglund)</li>
-</ul>
-<aside class="notes">
-<p>musicxml: last updated in 2009, HaXml</p>
-<p>hts: Super idiosyncratic, no docs</p>
-<p>musicxml2: Hardcoded xml datamodel, number-unfriendly pitch model</p>
-</aside>
-</section>
-<section id="rolling-my-own" class="level2">
-<h2>Rolling my own</h2>
-<ul>
-<li class="fragment"><code>jaxb</code> in Java, handrolled in Clojure</li>
-<li class="fragment">Tried <code>HaXmL</code> schema parsing, no dice on Music XML</li>
-</ul>
-<aside class="notes">
-<p>NIH: Really didn't want to do this.</p>
-</aside>
-</section>
-<section id="parsing-musicxml-xsd" class="level2">
-<h2>Parsing MusicXML XSD</h2>
-<ul>
-<li class="fragment">Problem: <em>complete</em> implementation of MusicXML</li>
-<li class="fragment">Over 1000 productions in schema</li>
-<li class="fragment">Imports XLink, XML sub-schemas</li>
-<li class="fragment">But the real problem is ...</li>
-</ul>
-</section>
-<section id="parsing-xsd-xsd" class="level2">
-<h2>Parsing XSD XSD</h2>
-<ul>
-<li class="fragment">Fundamental types (<code>string</code>,<code>integer</code>,<code>IDREF</code> ...)</li>
-<li class="fragment">Main Productions: (<code>simpleType</code>, <code>complexType</code>, <code>attributeGroup</code> ...)</li>
-<li class="fragment">But the real problem is ...</li>
-</ul>
-</section>
-<section id="parsing-parsed-xml" class="level2">
-<h2>Parsing Parsed XML</h2>
-<ul>
-<li class="fragment"><strong><code>spopejoy:</code></strong> What do you call an applicative/alternative/parser-like thing that works on <em>parsed XML elements</em> instead of characters?</li>
-<li class="fragment"><strong><code>ekmett:</code></strong> A parser ...</li>
-</ul>
-</section>
-</section>
-<section id="xml-parser-parser-1" class="slide level1">
-<h1>XML Parser Parser #1</h1>
-<section id="first-try-xparser" class="level2">
-<h2>First Try: <code>XParser</code></h2>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | XParser: Stack state + alternative + errors.</span>
-<span class="kw">type</span> <span class="dt">XParser</span> m <span class="fu">=</span>
-   (<span class="dt">Alternative</span> m, <span class="dt">MonadState</span> [<span class="dt">X.Element</span>] m, <span class="dt">MonadError</span> <span class="dt">String</span> m)
+<section id="mod-diff" class="level2">
+<h2>&quot;Mod Diff&quot;</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">
+seed <span class="fu">=</span> map toPitch [<span class="dt">E3</span>, <span class="dt">A3</span>, <span class="dt">E3</span>, <span class="dt">D3</span>, <span class="dt">G3</span>, <span class="dt">D3</span>]
 
-<span class="co">-- | run XParser on an element.</span>
-<span class="ot">parseX ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">StateT</span> [<span class="dt">X.Element</span>] (<span class="dt">ExceptT</span> <span class="dt">String</span> m) b <span class="ot">-&gt;</span>
-          <span class="dt">X.Element</span> <span class="ot">-&gt;</span> m (<span class="dt">Either</span> <span class="dt">String</span> b)
-parseX sel e <span class="fu">=</span> runExceptT (evalStateT sel [e])</code></pre></div>
-<aside class="notes">
-<p>Note that this is one style of monad stack building that I can't make my mind up about. You can go quite far by just specifying a bunch of constraints. I have apps in prod with this.</p>
-</aside>
-</section>
-<section id="alternative-applicative-stack-cheap-parser" class="level2">
-<h2><code>Alternative</code> + <code>Applicative</code> + Stack = Cheap Parser</h2>
-<ul>
-<li class="fragment">Alternative: <code>some</code>, <code>many</code>, <code>empty</code>, <code>&lt;|&gt;</code></li>
-<li class="fragment">Applicative: <code>optional</code></li>
-<li class="fragment">Stack of elements is all you need! (?)</li>
-</ul>
-</section>
-<section id="looking-good" class="level2">
-<h2>Looking Good</h2>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Match group.</span>
-group<span class="ot"> ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> m <span class="dt">Group</span>
-group <span class="fu">=</span> <span class="kw">do</span>
-  atEl (xsName <span class="st">&quot;group&quot;</span>)
-  <span class="dt">GroupRef</span> <span class="fu">&lt;$&gt;</span> (<span class="dt">Unresolved</span> <span class="fu">.</span> qn <span class="fu">&lt;$&gt;</span> attr (name <span class="st">&quot;ref&quot;</span>)) <span class="fu">&lt;*&gt;</span> occurs
-   <span class="fu">&lt;|&gt;</span> <span class="dt">GroupChoice</span> <span class="fu">&lt;$&gt;</span> (fmap qn <span class="fu">&lt;$&gt;</span> optional (attr (name <span class="st">&quot;name&quot;</span>)))
-            <span class="fu">&lt;*&gt;</span> occurs <span class="fu">&lt;*&gt;</span> oneChild choice <span class="fu">&lt;*&gt;</span> documentation
-   <span class="fu">&lt;|&gt;</span> <span class="dt">GroupSequence</span> <span class="fu">&lt;$&gt;</span> (fmap qn <span class="fu">&lt;$&gt;</span> optional (attr (name <span class="st">&quot;name&quot;</span>)))
-            <span class="fu">&lt;*&gt;</span> occurs <span class="fu">&lt;*&gt;</span> oneChild sequence <span class="fu">&lt;*&gt;</span> documentation</code></pre></div>
-</section>
-</section>
-<section id="fadno-xml" class="slide level1">
-<h1><code>fadno-xml</code></h1>
-<section id="type-emitter" class="level2">
-<h2>Type Emitter</h2>
-<ul>
-<li class="fragment">Concept from HaXmL: Haskell Datatype Model</li>
-<li class="fragment">Emit <code>Type</code>, <code>Ctor</code>, <code>Field</code></li>
-<li class="fragment">Namespace mangling</li>
-<li class="fragment">Shoulda used TH?</li>
-</ul>
-</section>
-<section id="codegen" class="level2">
-<h2>Codegen</h2>
-<ul>
-<li class="fragment">Big string concatenator (PP?)</li>
-<li class="fragment">Doesn't choke on &gt;21 fields like HaXml</li>
-<li class="fragment">REALLY shoulda used TH?</li>
-</ul>
-</section>
-<section id="backend-independent-output-ast" class="level2">
-<h2>Backend-independent Output AST</h2>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">XmlRep</span> <span class="kw">where</span>
-    <span class="dt">XEmpty</span><span class="ot"> ::</span> <span class="dt">XmlRep</span>
-    <span class="dt">XLit</span><span class="ot"> ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">XmlRep</span>
-    <span class="dt">XShow</span><span class="ot"> ::</span> <span class="dt">Show</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">XmlRep</span>
-    <span class="dt">XElement</span><span class="ot"> ::</span> <span class="dt">QN</span> <span class="ot">-&gt;</span> <span class="dt">XmlRep</span> <span class="ot">-&gt;</span> <span class="dt">XmlRep</span>
-    <span class="dt">XAttr</span><span class="ot"> ::</span> <span class="dt">QN</span> <span class="ot">-&gt;</span> <span class="dt">XmlRep</span> <span class="ot">-&gt;</span> <span class="dt">XmlRep</span>
-    <span class="dt">XText</span><span class="ot"> ::</span> <span class="dt">XmlRep</span> <span class="ot">-&gt;</span> <span class="dt">XmlRep</span>
-    <span class="dt">XContent</span><span class="ot"> ::</span> {<span class="ot"> xtext ::</span> <span class="dt">XmlRep</span>,
-<span class="ot">                  xattrs ::</span> [<span class="dt">XmlRep</span>],
-<span class="ot">                  xels ::</span> [<span class="dt">XmlRep</span>] } <span class="ot">-&gt;</span> <span class="dt">XmlRep</span>
-    <span class="dt">XReps</span><span class="ot"> ::</span> [<span class="dt">XmlRep</span>] <span class="ot">-&gt;</span> <span class="dt">XmlRep</span></code></pre></div>
-</section>
-<section id="and-were-done" class="level2">
-<h2>And we're done!</h2>
-<ul>
-<li class="fragment">Released in November 2015</li>
-<li class="fragment">7583 generated LOC</li>
-<li class="fragment">Successfully migrated <code>musicxml2</code> code to <code>fadno-xml</code></li>
-<li class="fragment">If only it could <em>read</em> XML ...</li>
-</ul>
-</section>
-</section>
-<section id="xml-parser-parser-2" class="slide level1">
-<h1>XML Parser Parser #2</h1>
-<section id="xparser-for-reading" class="level2">
-<h2><code>XParser</code> for reading</h2>
-<ul>
-<li class="fragment">Hacked into type model</li>
-<li class="fragment">Choked hard on MusicXML <em>files</em> (works fine on XSDs!)</li>
-<li class="fragment">Semantics on failure completely busted</li>
-</ul>
-</section>
-<section id="section-5" class="level2">
-<h2></h2>
-<p>Zipper + State + Errors = Parser!</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import qualified</span> <span class="dt">Text.XML.Light.Cursor</span> <span class="kw">as</span> <span class="dt">C</span>
-<span class="co">-- | Monoid errors with path.</span>
-<span class="kw">type</span> <span class="dt">XErrors</span> <span class="fu">=</span> [([<span class="dt">C.Tag</span>],<span class="dt">String</span>)]
-<span class="co">-- | Parsing monad.</span>
-<span class="kw">newtype</span> <span class="dt">XParse</span> a <span class="fu">=</span>
-    <span class="dt">XParse</span> {<span class="ot"> unXParse ::</span> <span class="dt">StateT</span> <span class="dt">C.Cursor</span> (<span class="dt">Except</span> <span class="dt">XErrors</span>) a }
-    <span class="kw">deriving</span> (<span class="dt">Functor</span>,<span class="dt">Applicative</span>,<span class="dt">Monad</span>,<span class="dt">MonadState</span> <span class="dt">C.Cursor</span>,
-              <span class="dt">MonadError</span> <span class="dt">XErrors</span>,<span class="dt">Alternative</span>)
-<span class="co">-- | Run monad.</span>
-<span class="ot">runXParse ::</span> <span class="dt">X.Element</span> <span class="ot">-&gt;</span> <span class="dt">XParse</span> a <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">XErrors</span> a
-runXParse e act <span class="fu">=</span>
-    runExcept (evalStateT (unXParse act) (C.fromElement e))</code></pre></div>
-</section>
-<section id="lens-and-prism" class="level2">
-<h2>Lens and Prism</h2>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">lcurrent ::</span> <span class="dt">Lens&#39;</span> <span class="dt">C.Cursor</span> <span class="dt">X.Content</span>
-lcurrent f s <span class="fu">=</span> fmap (\a <span class="ot">-&gt;</span> s { C.current <span class="fu">=</span> a}) (f (C.current s))
+<span class="co">-- DESCRIBE ALGO</span>
+differ mod&#39; bias seed s <span class="fu">=</span> zipTail calc s <span class="fu">++</span> [calc (last s) (head s)]
+  <span class="kw">where</span>
+    calc l r <span class="fu">=</span> (((r <span class="fu">-</span> offset) <span class="fu">-</span> (l <span class="fu">-</span> offset)) <span class="ot">`rem`</span> mod&#39;) <span class="fu">+</span> offset
+    offset <span class="fu">=</span> (range <span class="ot">`div`</span> <span class="dv">2</span>) <span class="fu">+</span> bias <span class="fu">+</span> minimum seed
+    range <span class="fu">=</span> maximum seed <span class="fu">-</span> minimum seed
 
-_<span class="dt">Elem</span><span class="ot"> ::</span> <span class="dt">Prism&#39;</span> <span class="dt">X.Content</span> <span class="dt">X.Element</span>
-_<span class="dt">Elem</span> <span class="fu">=</span> prism <span class="dt">X.Elem</span> <span class="fu">$</span> \c <span class="ot">-&gt;</span> <span class="kw">case</span> c <span class="kw">of</span>
-                             <span class="dt">X.Elem</span> e <span class="ot">-&gt;</span> <span class="dt">Right</span> e
-                             _ <span class="ot">-&gt;</span> <span class="dt">Left</span> c</code></pre></div>
+gen n <span class="fu">=</span> iterate (differ n <span class="dv">0</span> seed) seed
+
+genRot n r t <span class="fu">=</span>
+   pivot <span class="fu">$</span> take t <span class="fu">$</span> iterate (rotate r <span class="fu">.</span> differ n <span class="dv">0</span> seed) seed</code></pre></div>
 </section>
-<section id="section-6" class="level2">
+<section id="parameterized-idea-generation" class="level2">
+<h2>Parameterized idea generation</h2>
+<pre><code>--TODO enumerate parameters
+&gt; head $ genRot 9 2 48
+[52,51,60,57,60,61,57,54,49,45,51,46,51,48,61,57,54,58,54,51,55,51,57,52,
+57,45,58,45,60,46,60,48,61,48,54,49,54,51,55,51,57,52,57,45,58,45,60,46]</code></pre>
+</section>
+<section id="section-4" class="level2">
 <h2></h2>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Consume a child element.</span>
-<span class="ot">xchild ::</span> <span class="dt">X.QName</span> <span class="ot">-&gt;</span> <span class="dt">XParse</span> a <span class="ot">-&gt;</span> <span class="dt">XParse</span> a
-xchild n act <span class="fu">=</span> <span class="kw">do</span>
-  fc <span class="ot">&lt;-</span> C.firstChild <span class="fu">&lt;$&gt;</span> get <span class="fu">&gt;&gt;=</span> require <span class="st">&quot;at least one child&quot;</span>
-  <span class="kw">let</span><span class="ot"> firstEl ::</span> <span class="dt">C.Cursor</span> <span class="ot">-&gt;</span> <span class="dt">XParse</span> <span class="dt">C.Cursor</span>
-      firstEl c <span class="fu">=</span> <span class="kw">case</span> firstOf (lcurrent<span class="fu">.</span>_<span class="dt">Elem</span>) c <span class="kw">of</span>
-                    <span class="dt">Just</span> e <span class="ot">-&gt;</span> <span class="kw">do</span>
-                      when (X.elName e <span class="fu">/=</span> n) (xfail <span class="fu">$</span> <span class="st">&quot;Element not found: &quot;</span> <span class="fu">++</span> show n)
-                      return c
-                    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
-                      c&#39; <span class="ot">&lt;-</span> C.right c <span class="fu">&amp;</span> require <span class="st">&quot;at least one element child&quot;</span>
-                      firstEl c&#39;
-  e <span class="ot">&lt;-</span> firstEl fc
-  put e
-  r <span class="ot">&lt;-</span> catchError (<span class="dt">Right</span> <span class="fu">&lt;$&gt;</span> act) (return <span class="fu">.</span> <span class="dt">Left</span>)
-  <span class="kw">case</span> r <span class="kw">of</span>
-    <span class="dt">Right</span> a <span class="ot">-&gt;</span> <span class="kw">do</span>
-           p <span class="ot">&lt;-</span> C.removeGoUp <span class="fu">&lt;$&gt;</span> get <span class="fu">&gt;&gt;=</span> require <span class="st">&quot;parent&quot;</span>
-           put p
-           return a
-    <span class="dt">Left</span> err <span class="ot">-&gt;</span> <span class="kw">do</span>
-           p <span class="ot">&lt;-</span> C.parent <span class="fu">&lt;$&gt;</span> get <span class="fu">&gt;&gt;=</span> require <span class="st">&quot;parent&quot;</span>
-           put p
-           throwError err</code></pre></div>
+<figure>
+<img src="img/cyclopsPivotRot9-2-48-talk.png" />
+</figure>
 </section>
-<section id="victory" class="level2">
-<h2>Victory</h2>
-<ul>
-<li class="fragment">Round-trips with exact diff</li>
-<li class="fragment">Needs GL (<code>some</code> hack)</li>
-</ul>
-</section>
-<section id="future-work" class="level2">
-<h2>Future Work</h2>
-<ul>
-<li class="fragment">Still using old XParser for XSDs (XParse too strict!)</li>
-<li class="fragment">Bootstrap: parse XSD to build XSD parser</li>
-<li class="fragment">GL: greediest match</li>
-</ul>
-</section>
-</section>
-<section id="pleonid" class="slide level1">
-<h1>Pleonid</h1>
-<section id="section-7" class="level2">
-<h2></h2>
-<ul>
-<li class="fragment">Composed entirely in code</li>
-<li class="fragment">60 minutes</li>
-<li class="fragment">Performed live in 2012</li>
-</ul>
-</section>
-<section id="section-8" class="level2">
-<h2></h2>
+<section id="so-what-does-it-sound-like" class="level2">
+<h2>So What Does It Sound Like?</h2>
 <div>
-<video src="audio/pleonid-excerpt-small.mp4" controls="controls">
+<audio src="audio/cyclops-fortalk.mp3" controls="controls">
 </div>
 </section>
-<section id="formal-aspects-pitch" class="level2">
-<h2>Formal Aspects: Pitch</h2>
-<ul>
-<li class="fragment">Composed from a single seed pitchset</li>
-<li class="fragment">&quot;ToonKlok&quot; and other combinatorial methods to realize 31 &quot;melodies&quot;</li>
-<li class="fragment">But still need <em>rhythms</em> ...</li>
-</ul>
 </section>
+<section id="generation-rhythm-motif-counterpoint" class="slide level1">
+<h1>Generation: Rhythm, Motif, Counterpoint</h1>
+<p>blah blah blah</p>
 </section>
 <section id="braids" class="slide level1">
 <h1>Braids</h1>
@@ -643,9 +399,7 @@ stepToGens (<span class="dt">Step</span> h gs) <span class="fu">=</span> reverse
 </section>
 <section id="musical-properties-loops" class="level2">
 <h2>Musical properties: Loops</h2>
-<figure>
-<img src="img/braid_strands_05-20x7.png" alt="Braid colored by strand" /><figcaption>Braid colored by strand</figcaption>
-</figure>
+<p>NOTE: 13??? <img src="img/braid_strands_05-20x7.png" alt="Braid colored by strand" /></p>
 </section>
 <section id="musical-properties-loops-1" class="level2">
 <h2>Musical properties: Loops</h2>
@@ -653,7 +407,7 @@ stepToGens (<span class="dt">Step</span> h gs) <span class="fu">=</span> reverse
 <img src="img/braid_seqs_05-20x7.png" alt="Braid colored by loops" /><figcaption>Braid colored by loops</figcaption>
 </figure>
 </section>
-<section id="section-9" class="level2">
+<section id="section-5" class="level2">
 <h2></h2>
 <figure>
 <img src="img/braid13.png" width="600" />
@@ -717,6 +471,23 @@ makeTree mvs org <span class="fu">=</span> unfoldTree go (toMultiGen org,[]) <sp
 <li class="fragment">Expand to include band generator equivalences</li>
 <li class="fragment">Music: attempt to find &quot;shortest word&quot; for &quot;prettier&quot; counterpoint</li>
 </ul>
+</section>
+</section>
+<section id="pleonid" class="slide level1">
+<h1>Pleonid</h1>
+<section id="section-6" class="level2">
+<h2></h2>
+<ul>
+<li class="fragment">Composed entirely in code</li>
+<li class="fragment">60 minutes</li>
+<li class="fragment">Performed live in 2012</li>
+</ul>
+</section>
+<section id="section-7" class="level2">
+<h2></h2>
+<div>
+<video src="audio/pleonid-excerpt-small.mp4" controls="controls">
+</div>
 </section>
 </section>
 <section id="thank-you" class="slide level1">
