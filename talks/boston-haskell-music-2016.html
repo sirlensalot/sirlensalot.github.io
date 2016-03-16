@@ -222,6 +222,16 @@ pitchRep <span class="fu">=</span> iso fromIntegral (fromIntegral <span class="f
 <li class="fragment">&quot;Ticks&quot;: MIDI/synthesis</li>
 </ul>
 </section>
+<section id="duration-good-to-go" class="level2">
+<h2>Duration: Good to Go</h2>
+<p><code>Integral</code> and <code>Rational</code> are all we need. Application-specific Iso's are handy though:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">IDur</span> <span class="fu">=</span> <span class="dt">Int</span>
+
+<span class="ot">toTicks ::</span> <span class="dt">MidiTicks</span> <span class="ot">-&gt;</span> <span class="dt">Iso&#39;</span> <span class="dt">Rational</span> <span class="dt">IDur</span>
+toTicks t <span class="fu">=</span> iso to&#39; from&#39; <span class="kw">where</span>
+    to&#39; <span class="fu">=</span> truncate <span class="fu">.</span> (<span class="fu">*</span> fromIntegral (t<span class="fu">*</span><span class="dv">4</span>))
+    from&#39; <span class="fu">=</span> (<span class="fu">%</span> fromIntegral (t<span class="fu">*</span><span class="dv">4</span>)) <span class="fu">.</span> fromIntegral</code></pre></div>
+</section>
 <section id="a-polymorphic-note" class="level2">
 <h2>A Polymorphic <code>Note</code></h2>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">
@@ -245,7 +255,17 @@ pitchRep <span class="fu">=</span> iso fromIntegral (fromIntegral <span class="f
 
 <span class="ot">toPair ::</span> <span class="dt">Iso&#39;</span> (<span class="dt">Note</span> p d) (p,d)
 toPair <span class="fu">=</span> iso (\(<span class="dt">Note</span> p d) <span class="ot">-&gt;</span> (p,d)) (uncurry <span class="dt">Note</span>)</code></pre></div>
-<p><em>Also 'Bifunctor', 'Field1', 'Field2' for good measure ...</em></p>
+</section>
+<section id="bifunctor-fieldxx-instances" class="level2">
+<h2><code>Bifunctor</code>, <code>FieldXX</code> instances</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Bifunctor</span> <span class="dt">Note</span> <span class="kw">where</span>
+    bimap f g (<span class="dt">Note</span> a b) <span class="fu">=</span> <span class="dt">Note</span> (f a) (g b)
+
+<span class="kw">instance</span> <span class="dt">Field1</span> (<span class="dt">Note</span> a b) (<span class="dt">Note</span> a&#39; b) a a&#39;
+
+<span class="kw">instance</span> <span class="dt">Field2</span> (<span class="dt">Note</span> a b) (<span class="dt">Note</span> a b&#39;) b b&#39;
+
+<span class="co">-- TODO bifunctor for HasNote?</span></code></pre></div>
 </section>
 <section id="note-niceties" class="level2">
 <h2><code>Note</code> Niceties</h2>
@@ -316,8 +336,8 @@ genRot n r t <span class="fu">=</span>
 </div>
 </section>
 </section>
-<section id="rhythm-please" class="slide level1">
-<h1>Rhythm Please</h1>
+<section id="rhythm" class="slide level1">
+<h1>Rhythm</h1>
 <ul>
 <li class="fragment">Pitch concepts well-traveled in theory</li>
 <li class="fragment">Rhythm not so much</li>
@@ -481,6 +501,8 @@ stepToGens (<span class="dt">Step</span> h gs) <span class="fu">=</span> reverse
 <ul>
 <li class="fragment">Composed entirely in code</li>
 <li class="fragment">Single &quot;seed&quot; generated 31 pitch sequences and braids</li>
+<li class="fragment">Braid counterpoint, Braid &quot;Chord&quot; improv, &quot;lines&quot; interpretation</li>
+<li class="fragment">LFSR used for arrangement</li>
 <li class="fragment">60 minutes</li>
 <li class="fragment">Performed live in 2012</li>
 </ul>
@@ -549,6 +571,8 @@ makeTree mvs org <span class="fu">=</span> unfoldTree go (toMultiGen org,[]) <sp
 <h1>Thank You</h1>
 <p>Stuart Popejoy</p>
 <p><a href="http://slpopejoy.github.io/talks/boston-haskell-music-2016.html" class="uri">http://slpopejoy.github.io/talks/boston-haskell-music-2016.html</a></p>
+<p><a href="https://github.com/slpopejoy/fadno-braids" class="uri">https://github.com/slpopejoy/fadno-braids</a></p>
+<p><a href="https://github.com/slpopejoy/fadno-xml" class="uri">https://github.com/slpopejoy/fadno-xml</a></p>
 </section>
     </div>
   </div>

@@ -133,6 +133,20 @@ pitchRep = iso fromIntegral (fromIntegral . toInteger)
 - Tuples: Triplets, Quintuplets
 - "Ticks": MIDI/synthesis
 
+## Duration: Good to Go
+
+`Integral` and `Rational` are all we need. Application-specific Iso's are handy though:
+
+```{.haskell}
+type IDur = Int
+
+toTicks :: MidiTicks -> Iso' Rational IDur
+toTicks t = iso to' from' where
+    to' = truncate . (* fromIntegral (t*4))
+    from' = (% fromIntegral (t*4)) . fromIntegral
+```
+
+
 ## A Polymorphic `Note`
 
 ```{.haskell}
@@ -164,7 +178,18 @@ toPair = iso (\(Note p d) -> (p,d)) (uncurry Note)
 
 ```
 
-*Also 'Bifunctor', 'Field1', 'Field2' for good measure ...*
+## `Bifunctor`, `FieldXX` instances
+
+```{.haskell}
+instance Bifunctor Note where
+    bimap f g (Note a b) = Note (f a) (g b)
+
+instance Field1 (Note a b) (Note a' b) a a'
+
+instance Field2 (Note a b) (Note a b') b b'
+
+-- TODO bifunctor for HasNote?
+```
 
 
 ## `Note` Niceties
@@ -228,7 +253,7 @@ genRot n r t =
 <div><audio src="audio/cyclops-fortalk.mp3" controls="controls"></div>
 
 
-# Rhythm Please
+# Rhythm
 
 - Pitch concepts well-traveled in theory
 - Rhythm not so much
@@ -366,6 +391,8 @@ class (Integral b, Monoid (a b)) => Braid (a :: * -> *) b where
 
 - Composed entirely in code
 - Single "seed" generated 31 pitch sequences and braids
+- Braid counterpoint, Braid "Chord" improv, "lines" interpretation
+- LFSR used for arrangement
 - 60 minutes
 - Performed live in 2012
 
@@ -423,3 +450,7 @@ makeTree mvs org = unfoldTree go (toMultiGen org,[]) where
 Stuart Popejoy
 
 [http://slpopejoy.github.io/talks/boston-haskell-music-2016.html](http://slpopejoy.github.io/talks/boston-haskell-music-2016.html)
+
+[https://github.com/slpopejoy/fadno-braids](https://github.com/slpopejoy/fadno-braids)
+
+[https://github.com/slpopejoy/fadno-xml](https://github.com/slpopejoy/fadno-xml)
