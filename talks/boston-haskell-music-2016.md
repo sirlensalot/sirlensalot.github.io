@@ -8,15 +8,21 @@
 
 ## Who am I?
 
-- Software developer working in Haskell, formerly in Java
+- Software developer working in Haskell
 - Musician and composer in NYC
 
 ## Roadmap
 
 - Composing with Code
 - A Music Primitive: Note = Pitch + Duration
+- Generative Music: Cyclops
 - Motif & Counterpoint: Braids
-- Output to Notation: MusicXML
+- Pleonid
+
+## Note on images
+
+- MusicXML -> Sibelius
+- Braids -> Diagrams
 
 # Composing with Code
 
@@ -26,6 +32,10 @@
 
 - Isn't composing music hard enough???
 - Getting a computer to "talk music" is really hard
+
+##
+
+![Iannis Xenakis, Architect/Composer, 1922-2001](img/xenakis-the-upic-system.jpg)
 
 ##
 
@@ -61,18 +71,57 @@ pioneered using stochastic methods to produce music
 
 ## Fundamentals
 
-- Note = Pitch (or pitches) + Duration
-- i.e., `(Pitch, Duration)`
+- Pitch
+- Duration
 
 ## Pitch
 
 ![](img/10-strandSource__small.png)
 
 ## Pitch
-- Integrals are easiest to code with
-- Enharmonic pitches harder (`E#5`, `G2`)
-- Frequency (Hz) not usually supported except for electronic (Supercollider)
-- DSLs usually monomorphic, e.g. Chord instead of Note, `Int` pitch etc
+- Psychoacoustic Phenomena
+- Frequency (Hz) used more for synthesis
+- Integrals easy to code, hard to read
+- Enharmonics (`Ab`,`G`) hard to manipulate, requiring bespoke operations ("transpose", etc)
+
+
+
+## `PitchRep`
+
+```{.haskell}
+
+data Spelling = C|Cs|Db|D|Ds|Eb|E|F|Fs|Gb|G|Gs|Ab|A|As|Bb|B
+
+data PitchRep = PitchRep { _prPitch :: Spelling, _prOctave :: Int  }
+              deriving (Eq,Ord,Bounded,Generic)
+
+infixl 6 @:
+(@:) :: Integral a => Spelling -> a -> PitchRep
+s @: o = PitchRep s (fromIntegral o)
+
+
+```
+
+Examples: `C@:4` ,  `Db@:2`
+
+
+## `PitchRep` instances
+
+```{.haskell}
+
+instance Num PitchRep where
+    fromInteger i = fromChroma i @: ((i `div` 12) - 1)
+
+instance Real PitchRep where
+    toRational (PitchRep s o) =
+       (((fromIntegral o + 1) * 12) + toChroma s) % 1
+
+instance Integral PitchRep where toInteger = truncate . toRational
+
+pitchRep :: Integral a => Iso' a PitchRep
+pitchRep = iso fromIntegral (fromIntegral . toInteger)
+
+```
 
 ## Duration
 
@@ -80,17 +129,28 @@ pioneered using stochastic methods to produce music
 
 ## Duration
 
-- MIDI, MusicXML use ticks with max divisor
-- Rationals the best choice for interop though
-- Notation challenges with "tuples" (odd numbers in denominator)
+- Fractions (powers of 2: `1/2`,  `1/4`,  `3/8`...)
+- Tuples: Triplets, Quintuplets
+- "Ticks": MIDI/synthesis
 
-## `Note` datatype
+## A Polymorphic `Note`
 
 ```{.haskell}
+
 data Note p d = Note { _pitch :: p, _dur :: d }
                 deriving (Eq,Generic)
-$(makeLenses ''Note)
--- Bifunctor, Field1, Field2 instances, |: smart ctor <== DEVELOP HERE, slides for bifunctor, isos etc.
+
+infixl 5 |:
+(|:) :: p -> d -> Note p d
+(|:) = Note
+
+```
+
+Examples: `60|:2` ,  `C@:4|:1%4`
+
+## `HasNote`, `toPair`
+
+```{.haskell}
 class HasNote s p d | s -> p d where
   note :: Lens' s (Note p d)
   notePitch :: Lens' s p
@@ -98,39 +158,26 @@ class HasNote s p d | s -> p d where
   noteDur :: Lens' s d
   noteDur = note.dur
 instance HasNote (Note p d) p d where note = ($)
+
+toPair :: Iso' (Note p d) (p,d)
+toPair = iso (\(Note p d) -> (p,d)) (uncurry Note)
+
 ```
 
+*Also 'Bifunctor', 'Field1', 'Field2' for good measure ...*
 
-## `PitchRep`
 
-```{.haskell}
-data Spelling = C|Cs|Db|D|Ds|Eb|E|F|Fs|Gb|G|Gs|Ab|A|As|Bb|B
-data PitchRep = PitchRep { _prPitch :: Spelling, _prOctave :: Int  }
-              deriving (Eq,Ord,Bounded,Generic)
--- plus Integral smart ctor @: -- DEVELOP HERE
-instance Num PitchRep where
-    fromInteger i = fromChroma i @: ((i `div` 12) - 1)
-...
-instance Real PitchRep where
-    toRational (PitchRep s o) =
-       (((fromIntegral o + 1) * 12) + toChroma s) % 1
-instance Integral PitchRep where toInteger = truncate . toRational
-...
-pitchRep :: Integral a => Iso' a PitchRep
-pitchRep = iso fromIntegral (fromIntegral . toInteger)
-```
-
-## Benefits
+## `Note` Niceties
 
 - Full power of Haskell number types
-- Representation translation as needed for application (MIDI, MusicXML, etc)
-- Lenses! Isos!
+- Ease of translation between types via lenses, isos
+- Ease of extension via classes
 
 ## Demo
 
 - More than a feeling ...
 
-# Generation: Cyclops
+# Cyclops
 
 ##
 
@@ -142,47 +189,50 @@ pitchRep = iso fromIntegral (fromIntegral . toInteger)
 - generated 619 riffs
 - used 18 (including seed) in song
 
-## "Mod Diff"
+## Some (not much) code
 
 ```{.haskell}
+seed = [52,57,52,50,55,50]
 
-seed = map toPitch [E3, A3, E3, D3, G3, D3]
-
--- DESCRIBE ALGO
-differ mod' bias seed s = zipTail calc s ++ [calc (last s) (head s)]
+differ mod seed s = zipTail calc s ++ [calc (last s) (head s)]
   where
-    calc l r = (((r - offset) - (l - offset)) `rem` mod') + offset
-    offset = (range `div` 2) + bias + minimum seed
+    calc l r = (((r - offset) - (l - offset)) `rem` mod) + offset
+    offset = (range `div` 2) + minimum seed
     range = maximum seed - minimum seed
 
-gen n = iterate (differ n 0 seed) seed
+gen n = iterate (differ n seed) seed
 
 genRot n r t =
-   pivot $ take t $ iterate (rotate r . differ n 0 seed) seed
-
+   pivot $ take t $ iterate (rotate r . differ n seed) seed
 ```
 
 ## Parameterized idea generation
 
-```
---TODO enumerate parameters
+```{.haskell}
+> seed
+[52,57,52,50,55,50] -- aka [-1,4,-1,-3,2,-3]
+> take 4 $ gen 9
+[[52,57,52,50,55,50],[58,48,51,58,48,55],
+[52,56,60,52,60,56],[57,57,45,61,49,49]]
+-- pivot 48 results rotating twice
 > head $ genRot 9 2 48
-[52,51,60,57,60,61,57,54,49,45,51,46,51,48,61,57,54,58,54,51,55,51,57,52,
-57,45,58,45,60,46,60,48,61,48,54,49,54,51,55,51,57,52,57,45,58,45,60,46]
+[52,51,60,57,60,61,57,54,49,45,51,46,51,48,61,57,54,
+58,54,51,55,51,57,52,57,45,58,45,60,46,60,48,61,48,
+54,49,54,51,55,51,57,52,57,45,58,45,60,46]
 ```
 
 ##
 
-![](img/cyclopsPivotRot9-2-48-talk.png)
-
-## So What Does It Sound Like?
+![](img/cyclopsPivotRot9-2-48-talk.png){width=550}
 
 <div><audio src="audio/cyclops-fortalk.mp3" controls="controls"></div>
 
-# Generation: Rhythm, Motif, Counterpoint
 
-blah blah blah
+# Rhythm Please
 
+- Pitch concepts well-traveled in theory
+- Rhythm not so much
+- Need ways to generate pitch AND duration
 
 # Braids
 
@@ -193,7 +243,13 @@ blah blah blah
 ## Knot Theory
 
 - Braids are a 2D+ projection of a knot
-- "Any knot may be represented as the closure of certain braids"
+
+##
+
+!["Any knot may be represented as the closure of certain braids"](img/braid.png)
+
+## Braid Group
+
 - The class of braids of `n` strands forms a group *B~n~*
 
 ## Braid Group B~4~
@@ -224,6 +280,7 @@ data Gen a = Gen { _gPos :: a, _gPol :: Polarity }
 
 newtype Artin a = Artin { _aGens :: [Gen a] }
     deriving (Eq,Show,Monoid,Functor)
+
 instance Foldable Artin where
     foldMap f = foldMap f . map _gPos . _aGens
 ```
@@ -271,29 +328,24 @@ class (Integral b, Monoid (a b)) => Braid (a :: * -> *) b where
 
 ![](img/10-strandSource__small.png)
 
-## Create single "strand"
+## Create seed strand
 
-![Index pitches and plot as strand. Non-adjacent pitches are extended as "unders"](img/strand_05.png)
+![Connect non-adjacent values with "unders"](img/strand_05.png)
 
-## Represent "unders" as longer notes
+## Voila: Rhythm
 
-!["Unders" simply keep ringing the last "over" note](img/11-strandResult.png)
+![Note duration determined by distance](img/11-strandResult.png)
 
-## Elaboration/Counterpoint: "Terracing"
+## Elaboration via "Terracing"
 
-![Inverse crosses propagate away from source strand](img/strand_tcol_01__small.png)
+![Inverse crosses propagate away from source strand](img/strand_tcol_13.png)
 
 ## Terraced Braid
 
-![](img/braid_strands_01-11x6__small.png)
+![](img/braid_strands_13-20x7.png)
 
 ## Musical properties: Loops
-NOTE: 13???
-![Braid colored by strand](img/braid_strands_05-20x7.png)
-
-## Musical properties: Loops
-
-![Braid colored by loops](img/braid_seqs_05-20x7.png)
+![Braid colored by loops](img/braid_seqs_13-20x7.png)
 
 ##
 
@@ -301,7 +353,25 @@ NOTE: 13???
 
 <div><audio src="audio/braid13.mp3" controls="controls"></div>
 
+## Musical concept
 
+- Create rhythms from pitches
+- Create counterpoint from elaboration
+- "Regular" structure offering formal unity
+
+
+# Pleonid
+
+##
+
+- Composed entirely in code
+- Single "seed" generated 31 pitch sequences and braids
+- 60 minutes
+- Performed live in 2012
+
+##
+
+<div><video src="audio/pleonid-excerpt-small.mp4" controls="controls"></div>
 
 # Braid Moves
 
@@ -341,26 +411,12 @@ makeTree mvs org = unfoldTree go (toMultiGen org,[]) where
         map (\l -> (applyMove mv l target,(mv,l):path)) locs
 ```
 
-## Demo moves application (finite and infinite)
-
 ## Ongoing Work
 
 - Find fixpoints in infinite trees (sharing)
 - Expand to include band generator equivalences
 - Music: attempt to find "shortest word" for "prettier" counterpoint
 
-
-# Pleonid
-
-##
-
-- Composed entirely in code
-- 60 minutes
-- Performed live in 2012
-
-##
-
-<div><video src="audio/pleonid-excerpt-small.mp4" controls="controls"></div>
 
 # Thank You
 

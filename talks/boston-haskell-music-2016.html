@@ -79,7 +79,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <section id="who-am-i" class="level2">
 <h2>Who am I?</h2>
 <ul>
-<li class="fragment">Software developer working in Haskell, formerly in Java</li>
+<li class="fragment">Software developer working in Haskell</li>
 <li class="fragment">Musician and composer in NYC</li>
 </ul>
 </section>
@@ -88,8 +88,16 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <ul>
 <li class="fragment">Composing with Code</li>
 <li class="fragment">A Music Primitive: Note = Pitch + Duration</li>
+<li class="fragment">Generative Music: Cyclops</li>
 <li class="fragment">Motif &amp; Counterpoint: Braids</li>
-<li class="fragment">Output to Notation: MusicXML</li>
+<li class="fragment">Pleonid</li>
+</ul>
+</section>
+<section id="note-on-images" class="level2">
+<h2>Note on images</h2>
+<ul>
+<li class="fragment">MusicXML -&gt; Sibelius</li>
+<li class="fragment">Braids -&gt; Diagrams</li>
 </ul>
 </section>
 </section>
@@ -106,6 +114,12 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 </ul>
 </section>
 <section id="section-1" class="level2">
+<h2></h2>
+<figure>
+<img src="img/xenakis-the-upic-system.jpg" alt="Iannis Xenakis, Architect/Composer, 1922-2001" /><figcaption>Iannis Xenakis, Architect/Composer, 1922-2001</figcaption>
+</figure>
+</section>
+<section id="section-2" class="level2">
 <h2></h2>
 <figure>
 <img src="img/xenakis-fortran.png" alt="Iannis Xenakis, Formalized Music, 1963" /><figcaption>Iannis Xenakis, <em>Formalized Music</em>, 1963</figcaption>
@@ -146,8 +160,8 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <section id="fundamentals" class="level2">
 <h2>Fundamentals</h2>
 <ul>
-<li class="fragment">Note = Pitch (or pitches) + Duration</li>
-<li class="fragment">i.e., <code>(Pitch, Duration)</code></li>
+<li class="fragment">Pitch</li>
+<li class="fragment">Duration</li>
 </ul>
 </section>
 <section id="pitch" class="level2">
@@ -159,11 +173,40 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <section id="pitch-1" class="level2">
 <h2>Pitch</h2>
 <ul>
-<li class="fragment">Integrals are easiest to code with</li>
-<li class="fragment">Enharmonic pitches harder (<code>E#5</code>, <code>G2</code>)</li>
-<li class="fragment">Frequency (Hz) not usually supported except for electronic (Supercollider)</li>
-<li class="fragment">DSLs usually monomorphic, e.g. Chord instead of Note, <code>Int</code> pitch etc</li>
+<li class="fragment">Psychoacoustic Phenomena</li>
+<li class="fragment">Frequency (Hz) used more for synthesis</li>
+<li class="fragment">Integrals easy to code, hard to read</li>
+<li class="fragment">Enharmonics (<code>Ab</code>,<code>G</code>) hard to manipulate, requiring bespoke operations (&quot;transpose&quot;, etc)</li>
 </ul>
+</section>
+<section id="pitchrep" class="level2">
+<h2><code>PitchRep</code></h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">
+<span class="kw">data</span> <span class="dt">Spelling</span> <span class="fu">=</span> <span class="dt">C</span><span class="fu">|</span><span class="dt">Cs</span><span class="fu">|</span><span class="dt">Db</span><span class="fu">|</span><span class="dt">D</span><span class="fu">|</span><span class="dt">Ds</span><span class="fu">|</span><span class="dt">Eb</span><span class="fu">|</span><span class="dt">E</span><span class="fu">|</span><span class="dt">F</span><span class="fu">|</span><span class="dt">Fs</span><span class="fu">|</span><span class="dt">Gb</span><span class="fu">|</span><span class="dt">G</span><span class="fu">|</span><span class="dt">Gs</span><span class="fu">|</span><span class="dt">Ab</span><span class="fu">|</span><span class="dt">A</span><span class="fu">|</span><span class="dt">As</span><span class="fu">|</span><span class="dt">Bb</span><span class="fu">|</span><span class="dt">B</span>
+
+<span class="kw">data</span> <span class="dt">PitchRep</span> <span class="fu">=</span> <span class="dt">PitchRep</span> { _<span class="ot">prPitch ::</span> <span class="dt">Spelling</span>, _<span class="ot">prOctave ::</span> <span class="dt">Int</span>  }
+              <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Ord</span>,<span class="dt">Bounded</span>,<span class="dt">Generic</span>)
+
+<span class="kw">infixl</span> <span class="dv">6</span> <span class="fu">@:</span>
+<span class="ot">(@:) ::</span> <span class="dt">Integral</span> a <span class="ot">=&gt;</span> <span class="dt">Spelling</span> <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">PitchRep</span>
+s <span class="fu">@:</span> o <span class="fu">=</span> <span class="dt">PitchRep</span> s (fromIntegral o)
+</code></pre></div>
+<p>Examples: <code>C@:4</code> , <code>Db@:2</code></p>
+</section>
+<section id="pitchrep-instances" class="level2">
+<h2><code>PitchRep</code> instances</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">
+<span class="kw">instance</span> <span class="dt">Num</span> <span class="dt">PitchRep</span> <span class="kw">where</span>
+    fromInteger i <span class="fu">=</span> fromChroma i <span class="fu">@:</span> ((i <span class="ot">`div`</span> <span class="dv">12</span>) <span class="fu">-</span> <span class="dv">1</span>)
+
+<span class="kw">instance</span> <span class="dt">Real</span> <span class="dt">PitchRep</span> <span class="kw">where</span>
+    toRational (<span class="dt">PitchRep</span> s o) <span class="fu">=</span>
+       (((fromIntegral o <span class="fu">+</span> <span class="dv">1</span>) <span class="fu">*</span> <span class="dv">12</span>) <span class="fu">+</span> toChroma s) <span class="fu">%</span> <span class="dv">1</span>
+
+<span class="kw">instance</span> <span class="dt">Integral</span> <span class="dt">PitchRep</span> <span class="kw">where</span> toInteger <span class="fu">=</span> truncate <span class="fu">.</span> toRational
+
+<span class="ot">pitchRep ::</span> <span class="dt">Integral</span> a <span class="ot">=&gt;</span> <span class="dt">Iso&#39;</span> a <span class="dt">PitchRep</span>
+pitchRep <span class="fu">=</span> iso fromIntegral (fromIntegral <span class="fu">.</span> toInteger)</code></pre></div>
 </section>
 <section id="duration" class="level2">
 <h2>Duration</h2>
@@ -174,48 +217,42 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <section id="duration-1" class="level2">
 <h2>Duration</h2>
 <ul>
-<li class="fragment">MIDI, MusicXML use ticks with max divisor</li>
-<li class="fragment">Rationals the best choice for interop though</li>
-<li class="fragment">Notation challenges with &quot;tuples&quot; (odd numbers in denominator)</li>
+<li class="fragment">Fractions (powers of 2: <code>1/2</code>, <code>1/4</code>, <code>3/8</code>...)</li>
+<li class="fragment">Tuples: Triplets, Quintuplets</li>
+<li class="fragment">&quot;Ticks&quot;: MIDI/synthesis</li>
 </ul>
 </section>
-<section id="note-datatype" class="level2">
-<h2><code>Note</code> datatype</h2>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Note</span> p d <span class="fu">=</span> <span class="dt">Note</span> { _<span class="ot">pitch ::</span> p, _<span class="ot">dur ::</span> d }
+<section id="a-polymorphic-note" class="level2">
+<h2>A Polymorphic <code>Note</code></h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">
+<span class="kw">data</span> <span class="dt">Note</span> p d <span class="fu">=</span> <span class="dt">Note</span> { _<span class="ot">pitch ::</span> p, _<span class="ot">dur ::</span> d }
                 <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Generic</span>)
-<span class="fu">$</span>(makeLenses <span class="ch">&#39;&#39;</span><span class="dt">Note</span>)
-<span class="co">-- Bifunctor, Field1, Field2 instances, |: smart ctor &lt;== DEVELOP HERE, slides for bifunctor, isos etc.</span>
-<span class="kw">class</span> <span class="dt">HasNote</span> s p d <span class="fu">|</span> s <span class="ot">-&gt;</span> p d <span class="kw">where</span>
+
+<span class="kw">infixl</span> <span class="dv">5</span> <span class="fu">|:</span>
+<span class="ot">(|:) ::</span> p <span class="ot">-&gt;</span> d <span class="ot">-&gt;</span> <span class="dt">Note</span> p d
+(<span class="fu">|:</span>) <span class="fu">=</span> <span class="dt">Note</span></code></pre></div>
+<p>Examples: <code>60|:2</code> , <code>C@:4|:1%4</code></p>
+</section>
+<section id="hasnote-topair" class="level2">
+<h2><code>HasNote</code>, <code>toPair</code></h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">HasNote</span> s p d <span class="fu">|</span> s <span class="ot">-&gt;</span> p d <span class="kw">where</span>
 <span class="ot">  note ::</span> <span class="dt">Lens&#39;</span> s (<span class="dt">Note</span> p d)
 <span class="ot">  notePitch ::</span> <span class="dt">Lens&#39;</span> s p
   notePitch <span class="fu">=</span> note<span class="fu">.</span>pitch
 <span class="ot">  noteDur ::</span> <span class="dt">Lens&#39;</span> s d
   noteDur <span class="fu">=</span> note<span class="fu">.</span>dur
-<span class="kw">instance</span> <span class="dt">HasNote</span> (<span class="dt">Note</span> p d) p d <span class="kw">where</span> note <span class="fu">=</span> (<span class="fu">$</span>)</code></pre></div>
+<span class="kw">instance</span> <span class="dt">HasNote</span> (<span class="dt">Note</span> p d) p d <span class="kw">where</span> note <span class="fu">=</span> (<span class="fu">$</span>)
+
+<span class="ot">toPair ::</span> <span class="dt">Iso&#39;</span> (<span class="dt">Note</span> p d) (p,d)
+toPair <span class="fu">=</span> iso (\(<span class="dt">Note</span> p d) <span class="ot">-&gt;</span> (p,d)) (uncurry <span class="dt">Note</span>)</code></pre></div>
+<p><em>Also 'Bifunctor', 'Field1', 'Field2' for good measure ...</em></p>
 </section>
-<section id="pitchrep" class="level2">
-<h2><code>PitchRep</code></h2>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Spelling</span> <span class="fu">=</span> <span class="dt">C</span><span class="fu">|</span><span class="dt">Cs</span><span class="fu">|</span><span class="dt">Db</span><span class="fu">|</span><span class="dt">D</span><span class="fu">|</span><span class="dt">Ds</span><span class="fu">|</span><span class="dt">Eb</span><span class="fu">|</span><span class="dt">E</span><span class="fu">|</span><span class="dt">F</span><span class="fu">|</span><span class="dt">Fs</span><span class="fu">|</span><span class="dt">Gb</span><span class="fu">|</span><span class="dt">G</span><span class="fu">|</span><span class="dt">Gs</span><span class="fu">|</span><span class="dt">Ab</span><span class="fu">|</span><span class="dt">A</span><span class="fu">|</span><span class="dt">As</span><span class="fu">|</span><span class="dt">Bb</span><span class="fu">|</span><span class="dt">B</span>
-<span class="kw">data</span> <span class="dt">PitchRep</span> <span class="fu">=</span> <span class="dt">PitchRep</span> { _<span class="ot">prPitch ::</span> <span class="dt">Spelling</span>, _<span class="ot">prOctave ::</span> <span class="dt">Int</span>  }
-              <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Ord</span>,<span class="dt">Bounded</span>,<span class="dt">Generic</span>)
-<span class="co">-- plus Integral smart ctor @: -- DEVELOP HERE</span>
-<span class="kw">instance</span> <span class="dt">Num</span> <span class="dt">PitchRep</span> <span class="kw">where</span>
-    fromInteger i <span class="fu">=</span> fromChroma i <span class="fu">@:</span> ((i <span class="ot">`div`</span> <span class="dv">12</span>) <span class="fu">-</span> <span class="dv">1</span>)
-<span class="fu">...</span>
-<span class="kw">instance</span> <span class="dt">Real</span> <span class="dt">PitchRep</span> <span class="kw">where</span>
-    toRational (<span class="dt">PitchRep</span> s o) <span class="fu">=</span>
-       (((fromIntegral o <span class="fu">+</span> <span class="dv">1</span>) <span class="fu">*</span> <span class="dv">12</span>) <span class="fu">+</span> toChroma s) <span class="fu">%</span> <span class="dv">1</span>
-<span class="kw">instance</span> <span class="dt">Integral</span> <span class="dt">PitchRep</span> <span class="kw">where</span> toInteger <span class="fu">=</span> truncate <span class="fu">.</span> toRational
-<span class="fu">...</span>
-<span class="ot">pitchRep ::</span> <span class="dt">Integral</span> a <span class="ot">=&gt;</span> <span class="dt">Iso&#39;</span> a <span class="dt">PitchRep</span>
-pitchRep <span class="fu">=</span> iso fromIntegral (fromIntegral <span class="fu">.</span> toInteger)</code></pre></div>
-</section>
-<section id="benefits" class="level2">
-<h2>Benefits</h2>
+<section id="note-niceties" class="level2">
+<h2><code>Note</code> Niceties</h2>
 <ul>
 <li class="fragment">Full power of Haskell number types</li>
-<li class="fragment">Representation translation as needed for application (MIDI, MusicXML, etc)</li>
-<li class="fragment">Lenses! Isos!</li>
+<li class="fragment">Ease of translation between types via lenses, isos</li>
+<li class="fragment">Ease of extension via classes</li>
 </ul>
 </section>
 <section id="demo" class="level2">
@@ -225,15 +262,15 @@ pitchRep <span class="fu">=</span> iso fromIntegral (fromIntegral <span class="f
 </ul>
 </section>
 </section>
-<section id="generation-cyclops" class="slide level1">
-<h1>Generation: Cyclops</h1>
-<section id="section-2" class="level2">
+<section id="cyclops" class="slide level1">
+<h1>Cyclops</h1>
+<section id="section-3" class="level2">
 <h2></h2>
 <figure>
 <img src="img/cyclops.jpg" />
 </figure>
 </section>
-<section id="section-3" class="level2">
+<section id="section-4" class="level2">
 <h2></h2>
 <ul>
 <li class="fragment">Seed melody of 6 pitches</li>
@@ -241,46 +278,51 @@ pitchRep <span class="fu">=</span> iso fromIntegral (fromIntegral <span class="f
 <li class="fragment">used 18 (including seed) in song</li>
 </ul>
 </section>
-<section id="mod-diff" class="level2">
-<h2>&quot;Mod Diff&quot;</h2>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">
-seed <span class="fu">=</span> map toPitch [<span class="dt">E3</span>, <span class="dt">A3</span>, <span class="dt">E3</span>, <span class="dt">D3</span>, <span class="dt">G3</span>, <span class="dt">D3</span>]
+<section id="some-not-much-code" class="level2">
+<h2>Some (not much) code</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">seed <span class="fu">=</span> [<span class="dv">52</span>,<span class="dv">57</span>,<span class="dv">52</span>,<span class="dv">50</span>,<span class="dv">55</span>,<span class="dv">50</span>]
 
-<span class="co">-- DESCRIBE ALGO</span>
-differ mod&#39; bias seed s <span class="fu">=</span> zipTail calc s <span class="fu">++</span> [calc (last s) (head s)]
+differ mod seed s <span class="fu">=</span> zipTail calc s <span class="fu">++</span> [calc (last s) (head s)]
   <span class="kw">where</span>
-    calc l r <span class="fu">=</span> (((r <span class="fu">-</span> offset) <span class="fu">-</span> (l <span class="fu">-</span> offset)) <span class="ot">`rem`</span> mod&#39;) <span class="fu">+</span> offset
-    offset <span class="fu">=</span> (range <span class="ot">`div`</span> <span class="dv">2</span>) <span class="fu">+</span> bias <span class="fu">+</span> minimum seed
+    calc l r <span class="fu">=</span> (((r <span class="fu">-</span> offset) <span class="fu">-</span> (l <span class="fu">-</span> offset)) <span class="ot">`rem`</span> mod) <span class="fu">+</span> offset
+    offset <span class="fu">=</span> (range <span class="ot">`div`</span> <span class="dv">2</span>) <span class="fu">+</span> minimum seed
     range <span class="fu">=</span> maximum seed <span class="fu">-</span> minimum seed
 
-gen n <span class="fu">=</span> iterate (differ n <span class="dv">0</span> seed) seed
+gen n <span class="fu">=</span> iterate (differ n seed) seed
 
 genRot n r t <span class="fu">=</span>
-   pivot <span class="fu">$</span> take t <span class="fu">$</span> iterate (rotate r <span class="fu">.</span> differ n <span class="dv">0</span> seed) seed</code></pre></div>
+   pivot <span class="fu">$</span> take t <span class="fu">$</span> iterate (rotate r <span class="fu">.</span> differ n seed) seed</code></pre></div>
 </section>
 <section id="parameterized-idea-generation" class="level2">
 <h2>Parameterized idea generation</h2>
-<pre><code>--TODO enumerate parameters
-&gt; head $ genRot 9 2 48
-[52,51,60,57,60,61,57,54,49,45,51,46,51,48,61,57,54,58,54,51,55,51,57,52,
-57,45,58,45,60,46,60,48,61,48,54,49,54,51,55,51,57,52,57,45,58,45,60,46]</code></pre>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">&gt;</span> seed
+[<span class="dv">52</span>,<span class="dv">57</span>,<span class="dv">52</span>,<span class="dv">50</span>,<span class="dv">55</span>,<span class="dv">50</span>] <span class="co">-- aka [-1,4,-1,-3,2,-3]</span>
+<span class="fu">&gt;</span> take <span class="dv">4</span> <span class="fu">$</span> gen <span class="dv">9</span>
+[[<span class="dv">52</span>,<span class="dv">57</span>,<span class="dv">52</span>,<span class="dv">50</span>,<span class="dv">55</span>,<span class="dv">50</span>],[<span class="dv">58</span>,<span class="dv">48</span>,<span class="dv">51</span>,<span class="dv">58</span>,<span class="dv">48</span>,<span class="dv">55</span>],
+[<span class="dv">52</span>,<span class="dv">56</span>,<span class="dv">60</span>,<span class="dv">52</span>,<span class="dv">60</span>,<span class="dv">56</span>],[<span class="dv">57</span>,<span class="dv">57</span>,<span class="dv">45</span>,<span class="dv">61</span>,<span class="dv">49</span>,<span class="dv">49</span>]]
+<span class="co">-- pivot 48 results rotating twice</span>
+<span class="fu">&gt;</span> head <span class="fu">$</span> genRot <span class="dv">9</span> <span class="dv">2</span> <span class="dv">48</span>
+[<span class="dv">52</span>,<span class="dv">51</span>,<span class="dv">60</span>,<span class="dv">57</span>,<span class="dv">60</span>,<span class="dv">61</span>,<span class="dv">57</span>,<span class="dv">54</span>,<span class="dv">49</span>,<span class="dv">45</span>,<span class="dv">51</span>,<span class="dv">46</span>,<span class="dv">51</span>,<span class="dv">48</span>,<span class="dv">61</span>,<span class="dv">57</span>,<span class="dv">54</span>,
+<span class="dv">58</span>,<span class="dv">54</span>,<span class="dv">51</span>,<span class="dv">55</span>,<span class="dv">51</span>,<span class="dv">57</span>,<span class="dv">52</span>,<span class="dv">57</span>,<span class="dv">45</span>,<span class="dv">58</span>,<span class="dv">45</span>,<span class="dv">60</span>,<span class="dv">46</span>,<span class="dv">60</span>,<span class="dv">48</span>,<span class="dv">61</span>,<span class="dv">48</span>,
+<span class="dv">54</span>,<span class="dv">49</span>,<span class="dv">54</span>,<span class="dv">51</span>,<span class="dv">55</span>,<span class="dv">51</span>,<span class="dv">57</span>,<span class="dv">52</span>,<span class="dv">57</span>,<span class="dv">45</span>,<span class="dv">58</span>,<span class="dv">45</span>,<span class="dv">60</span>,<span class="dv">46</span>]</code></pre></div>
 </section>
-<section id="section-4" class="level2">
+<section id="section-5" class="level2">
 <h2></h2>
 <figure>
-<img src="img/cyclopsPivotRot9-2-48-talk.png" />
+<img src="img/cyclopsPivotRot9-2-48-talk.png" width="550" />
 </figure>
-</section>
-<section id="so-what-does-it-sound-like" class="level2">
-<h2>So What Does It Sound Like?</h2>
 <div>
 <audio src="audio/cyclops-fortalk.mp3" controls="controls">
 </div>
 </section>
 </section>
-<section id="generation-rhythm-motif-counterpoint" class="slide level1">
-<h1>Generation: Rhythm, Motif, Counterpoint</h1>
-<p>blah blah blah</p>
+<section id="rhythm-please" class="slide level1">
+<h1>Rhythm Please</h1>
+<ul>
+<li class="fragment">Pitch concepts well-traveled in theory</li>
+<li class="fragment">Rhythm not so much</li>
+<li class="fragment">Need ways to generate pitch AND duration</li>
+</ul>
 </section>
 <section id="braids" class="slide level1">
 <h1>Braids</h1>
@@ -294,7 +336,17 @@ genRot n r t <span class="fu">=</span>
 <h2>Knot Theory</h2>
 <ul>
 <li class="fragment">Braids are a 2D+ projection of a knot</li>
-<li class="fragment">&quot;Any knot may be represented as the closure of certain braids&quot;</li>
+</ul>
+</section>
+<section id="section-6" class="level2">
+<h2></h2>
+<figure>
+<img src="img/braid.png" alt="&quot;Any knot may be represented as the closure of certain braids&quot;" /><figcaption>&quot;Any knot may be represented as the closure of certain braids&quot;</figcaption>
+</figure>
+</section>
+<section id="braid-group" class="level2">
+<h2>Braid Group</h2>
+<ul>
 <li class="fragment">The class of braids of <code>n</code> strands forms a group <em>B<sub>n</sub></em></li>
 </ul>
 </section>
@@ -328,6 +380,7 @@ genRot n r t <span class="fu">=</span>
 
 <span class="kw">newtype</span> <span class="dt">Artin</span> a <span class="fu">=</span> <span class="dt">Artin</span> { _<span class="ot">aGens ::</span> [<span class="dt">Gen</span> a] }
     <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Show</span>,<span class="dt">Monoid</span>,<span class="dt">Functor</span>)
+
 <span class="kw">instance</span> <span class="dt">Foldable</span> <span class="dt">Artin</span> <span class="kw">where</span>
     foldMap f <span class="fu">=</span> foldMap f <span class="fu">.</span> map _gPos <span class="fu">.</span> _aGens</code></pre></div>
 </section>
@@ -373,47 +426,69 @@ stepToGens (<span class="dt">Step</span> h gs) <span class="fu">=</span> reverse
 <img src="img/10-strandSource__small.png" />
 </figure>
 </section>
-<section id="create-single-strand" class="level2">
-<h2>Create single &quot;strand&quot;</h2>
+<section id="create-seed-strand" class="level2">
+<h2>Create seed strand</h2>
 <figure>
-<img src="img/strand_05.png" alt="Index pitches and plot as strand. Non-adjacent pitches are extended as &quot;unders&quot;" /><figcaption>Index pitches and plot as strand. Non-adjacent pitches are extended as &quot;unders&quot;</figcaption>
+<img src="img/strand_05.png" alt="Connect non-adjacent values with &quot;unders&quot;" /><figcaption>Connect non-adjacent values with &quot;unders&quot;</figcaption>
 </figure>
 </section>
-<section id="represent-unders-as-longer-notes" class="level2">
-<h2>Represent &quot;unders&quot; as longer notes</h2>
+<section id="voila-rhythm" class="level2">
+<h2>Voila: Rhythm</h2>
 <figure>
-<img src="img/11-strandResult.png" alt="&quot;Unders&quot; simply keep ringing the last &quot;over&quot; note" /><figcaption>&quot;Unders&quot; simply keep ringing the last &quot;over&quot; note</figcaption>
+<img src="img/11-strandResult.png" alt="Note duration determined by distance" /><figcaption>Note duration determined by distance</figcaption>
 </figure>
 </section>
-<section id="elaborationcounterpoint-terracing" class="level2">
-<h2>Elaboration/Counterpoint: &quot;Terracing&quot;</h2>
+<section id="elaboration-via-terracing" class="level2">
+<h2>Elaboration via &quot;Terracing&quot;</h2>
 <figure>
-<img src="img/strand_tcol_01__small.png" alt="Inverse crosses propagate away from source strand" /><figcaption>Inverse crosses propagate away from source strand</figcaption>
+<img src="img/strand_tcol_13.png" alt="Inverse crosses propagate away from source strand" /><figcaption>Inverse crosses propagate away from source strand</figcaption>
 </figure>
 </section>
 <section id="terraced-braid" class="level2">
 <h2>Terraced Braid</h2>
 <figure>
-<img src="img/braid_strands_01-11x6__small.png" />
+<img src="img/braid_strands_13-20x7.png" />
 </figure>
 </section>
 <section id="musical-properties-loops" class="level2">
 <h2>Musical properties: Loops</h2>
-<p>NOTE: 13??? <img src="img/braid_strands_05-20x7.png" alt="Braid colored by strand" /></p>
-</section>
-<section id="musical-properties-loops-1" class="level2">
-<h2>Musical properties: Loops</h2>
 <figure>
-<img src="img/braid_seqs_05-20x7.png" alt="Braid colored by loops" /><figcaption>Braid colored by loops</figcaption>
+<img src="img/braid_seqs_13-20x7.png" alt="Braid colored by loops" /><figcaption>Braid colored by loops</figcaption>
 </figure>
 </section>
-<section id="section-5" class="level2">
+<section id="section-7" class="level2">
 <h2></h2>
 <figure>
 <img src="img/braid13.png" width="600" />
 </figure>
 <div>
 <audio src="audio/braid13.mp3" controls="controls">
+</div>
+</section>
+<section id="musical-concept" class="level2">
+<h2>Musical concept</h2>
+<ul>
+<li class="fragment">Create rhythms from pitches</li>
+<li class="fragment">Create counterpoint from elaboration</li>
+<li class="fragment">&quot;Regular&quot; structure offering formal unity</li>
+</ul>
+</section>
+</section>
+<section id="pleonid" class="slide level1">
+<h1>Pleonid</h1>
+<section id="section-8" class="level2">
+<h2></h2>
+<ul>
+<li class="fragment">Composed entirely in code</li>
+<li class="fragment">Single &quot;seed&quot; generated 31 pitch sequences and braids</li>
+<li class="fragment">60 minutes</li>
+<li class="fragment">Performed live in 2012</li>
+</ul>
+</section>
+<section id="section-9" class="level2">
+<h2></h2>
+<div>
+<video src="audio/pleonid-excerpt-small.mp4" controls="controls">
 </div>
 </section>
 </section>
@@ -471,23 +546,6 @@ makeTree mvs org <span class="fu">=</span> unfoldTree go (toMultiGen org,[]) <sp
 <li class="fragment">Expand to include band generator equivalences</li>
 <li class="fragment">Music: attempt to find &quot;shortest word&quot; for &quot;prettier&quot; counterpoint</li>
 </ul>
-</section>
-</section>
-<section id="pleonid" class="slide level1">
-<h1>Pleonid</h1>
-<section id="section-6" class="level2">
-<h2></h2>
-<ul>
-<li class="fragment">Composed entirely in code</li>
-<li class="fragment">60 minutes</li>
-<li class="fragment">Performed live in 2012</li>
-</ul>
-</section>
-<section id="section-7" class="level2">
-<h2></h2>
-<div>
-<video src="audio/pleonid-excerpt-small.mp4" controls="controls">
-</div>
 </section>
 </section>
 <section id="thank-you" class="slide level1">
