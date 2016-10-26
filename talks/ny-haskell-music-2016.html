@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="author" content="Stuart Popejoy">
+  <title>Composing (Music) in Haskell</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="reveal.js/css/reveal.css">
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+  <link rel="stylesheet" href="reveal.js/css/theme/white.css" id="theme">
+  <!-- Printing and PDF exports -->
+  <script>
+    var link = document.createElement( 'link' );
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+    document.getElementsByTagName( 'head' )[0].appendChild( link );
+  </script>
+  <!--[if lt IE 9]>
+  <script src="reveal.js/lib/js/html5shiv.js"></script>
+  <![endif]-->
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+<section>
+  <h1 class="title">Composing (Music) in Haskell</h1>
+  <h2 class="author">Stuart Popejoy</h2>
+  <h3 class="date">October 2016</h3>
+</section>
+
+<section id="introduction" class="slide level1">
+<h1>Introduction</h1>
+<section id="who-am-i" class="level2">
+<h2>Who am I?</h2>
+<ul>
+<li class="fragment">Haskell startup founder</li>
+<li class="fragment">Musician and composer</li>
+</ul>
+</section>
+<section id="roadmap" class="level2">
+<h2>Roadmap</h2>
+<ul>
+<li class="fragment">Composing with Code</li>
+<li class="fragment">A Music Primitive: Note = Pitch + Duration</li>
+<li class="fragment">Generative Music: Cyclops</li>
+<li class="fragment">Motif &amp; Counterpoint: Braids</li>
+<li class="fragment">Pleonid</li>
+</ul>
+</section>
+<section id="note-on-images" class="level2">
+<h2>Note on images</h2>
+<ul>
+<li class="fragment">MusicXML -&gt; Sibelius</li>
+<li class="fragment">Braids -&gt; Diagrams</li>
+</ul>
+</section>
+</section>
+<section id="composing-with-code" class="slide level1">
+<h1>Composing with Code</h1>
+<section id="section" class="level2">
+<h2></h2>
+</section>
+<section id="why" class="level2">
+<h2>WHY????</h2>
+<ul>
+<li class="fragment">Isn't composing music hard enough???</li>
+<li class="fragment">Getting a computer to &quot;talk music&quot; is really hard</li>
+</ul>
+</section>
+<section id="section-1" class="level2">
+<h2></h2>
+<figure>
+<img src="img/xenakis-the-upic-system.jpg" alt="Iannis Xenakis, Architect/Composer, 1922-2001" /><figcaption>Iannis Xenakis, Architect/Composer, 1922-2001</figcaption>
+</figure>
+</section>
+<section id="section-2" class="level2">
+<h2></h2>
+<figure>
+<img src="img/xenakis-fortran.png" alt="Iannis Xenakis, Formalized Music, 1963" /><figcaption>Iannis Xenakis, <em>Formalized Music</em>, 1963</figcaption>
+</figure>
+<aside class="notes">
+<p>Iannis Xenakis: 20th century Architect-turned-composer, pioneered using stochastic methods to produce music</p>
+</aside>
+</section>
+<section id="why-1" class="level2">
+<h2>Why:</h2>
+<ul>
+<li class="fragment">Formal Approach</li>
+<li class="fragment">Elaboration</li>
+<li class="fragment">Experimentation</li>
+<li class="fragment">Growth</li>
+</ul>
+<aside class="notes">
+<ul>
+<li>Elaboration: compositional goal, formal approaches</li>
+<li>Experimentation: explore a space, find new sounds</li>
+<li>Growth: mine, as s/w dev and musician together</li>
+</ul>
+</aside>
+</section>
+<section id="evolution-of-codebase" class="level2">
+<h2>Evolution of Codebase</h2>
+<ul>
+<li class="fragment">Java codebase 2008-2010 (&quot;machinemusic&quot;)</li>
+<li class="fragment">Ported to Clojure 2010-2011</li>
+<li class="fragment">&quot;Pleonid&quot; realized in Java 2012</li>
+<li class="fragment">Java -&gt; Haskell 2014</li>
+<li class="fragment">&quot;Fadno&quot; O/S releases 2015, 2016</li>
+</ul>
+</section>
+</section>
+<section id="note" class="slide level1">
+<h1>Note</h1>
+<section id="fundamentals" class="level2">
+<h2>Fundamentals</h2>
+<ul>
+<li class="fragment">Pitch</li>
+<li class="fragment">Duration</li>
+</ul>
+</section>
+<section id="pitch" class="level2">
+<h2>Pitch</h2>
+<figure>
+<img src="img/10-strandSource__small.png" />
+</figure>
+</section>
+<section id="pitch-1" class="level2">
+<h2>Pitch</h2>
+<ul>
+<li class="fragment">Psychoacoustic Phenomena</li>
+<li class="fragment">Frequency (Hz) used more for synthesis</li>
+<li class="fragment">Integrals easy to code, hard to read</li>
+<li class="fragment">Enharmonics (<code>Ab</code>,<code>G</code>) hard to manipulate, requiring bespoke operations (&quot;transpose&quot;, etc)</li>
+</ul>
+</section>
+<section id="pitchrep" class="level2">
+<h2><code>PitchRep</code></h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">
+<span class="kw">data</span> <span class="dt">Spelling</span> <span class="fu">=</span> <span class="dt">C</span><span class="fu">|</span><span class="dt">Cs</span><span class="fu">|</span><span class="dt">Db</span><span class="fu">|</span><span class="dt">D</span><span class="fu">|</span><span class="dt">Ds</span><span class="fu">|</span><span class="dt">Eb</span><span class="fu">|</span><span class="dt">E</span><span class="fu">|</span><span class="dt">F</span><span class="fu">|</span><span class="dt">Fs</span><span class="fu">|</span><span class="dt">Gb</span><span class="fu">|</span><span class="dt">G</span><span class="fu">|</span><span class="dt">Gs</span><span class="fu">|</span><span class="dt">Ab</span><span class="fu">|</span><span class="dt">A</span><span class="fu">|</span><span class="dt">As</span><span class="fu">|</span><span class="dt">Bb</span><span class="fu">|</span><span class="dt">B</span>
+
+<span class="kw">data</span> <span class="dt">PitchRep</span> <span class="fu">=</span> <span class="dt">PitchRep</span> { _<span class="ot">prPitch ::</span> <span class="dt">Spelling</span>, _<span class="ot">prOctave ::</span> <span class="dt">Int</span>  }
+              <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Ord</span>,<span class="dt">Bounded</span>,<span class="dt">Generic</span>)
+
+<span class="kw">infixl</span> <span class="dv">6</span> <span class="fu">@:</span>
+<span class="ot">(@:) ::</span> <span class="dt">Integral</span> a <span class="ot">=&gt;</span> <span class="dt">Spelling</span> <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">PitchRep</span>
+s <span class="fu">@:</span> o <span class="fu">=</span> <span class="dt">PitchRep</span> s (fromIntegral o)
+</code></pre></div>
+<p>Examples: <code>C@:4</code> , <code>Db@:2</code></p>
+</section>
+<section id="pitchrep-instances" class="level2">
+<h2><code>PitchRep</code> instances</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">
+<span class="kw">instance</span> <span class="dt">Num</span> <span class="dt">PitchRep</span> <span class="kw">where</span>
+    fromInteger i <span class="fu">=</span> fromChroma i <span class="fu">@:</span> ((i <span class="ot">`div`</span> <span class="dv">12</span>) <span class="fu">-</span> <span class="dv">1</span>)
+
+<span class="kw">instance</span> <span class="dt">Real</span> <span class="dt">PitchRep</span> <span class="kw">where</span>
+    toRational (<span class="dt">PitchRep</span> s o) <span class="fu">=</span>
+       (((fromIntegral o <span class="fu">+</span> <span class="dv">1</span>) <span class="fu">*</span> <span class="dv">12</span>) <span class="fu">+</span> toChroma s) <span class="fu">%</span> <span class="dv">1</span>
+
+<span class="kw">instance</span> <span class="dt">Integral</span> <span class="dt">PitchRep</span> <span class="kw">where</span> toInteger <span class="fu">=</span> truncate <span class="fu">.</span> toRational
+
+<span class="ot">pitchRep ::</span> <span class="dt">Integral</span> a <span class="ot">=&gt;</span> <span class="dt">Iso&#39;</span> a <span class="dt">PitchRep</span>
+pitchRep <span class="fu">=</span> iso fromIntegral (fromIntegral <span class="fu">.</span> toInteger)</code></pre></div>
+</section>
+<section id="duration" class="level2">
+<h2>Duration</h2>
+<figure>
+<img src="img/11-strandResult.png" />
+</figure>
+</section>
+<section id="duration-1" class="level2">
+<h2>Duration</h2>
+<ul>
+<li class="fragment">Fractions (powers of 2: <code>1/2</code>, <code>1/4</code>, <code>3/8</code>...)</li>
+<li class="fragment">Tuples: Triplets, Quintuplets</li>
+<li class="fragment">&quot;Ticks&quot;: MIDI/synthesis</li>
+</ul>
+</section>
+<section id="duration-good-to-go" class="level2">
+<h2>Duration: Good to Go</h2>
+<p><code>Integral</code> and <code>Rational</code> are all we need. Application-specific Iso's are handy though:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">IDur</span> <span class="fu">=</span> <span class="dt">Int</span>
+
+<span class="ot">toTicks ::</span> <span class="dt">MidiTicks</span> <span class="ot">-&gt;</span> <span class="dt">Iso&#39;</span> <span class="dt">Rational</span> <span class="dt">IDur</span>
+toTicks t <span class="fu">=</span> iso to&#39; from&#39; <span class="kw">where</span>
+    to&#39; <span class="fu">=</span> truncate <span class="fu">.</span> (<span class="fu">*</span> fromIntegral (t<span class="fu">*</span><span class="dv">4</span>))
+    from&#39; <span class="fu">=</span> (<span class="fu">%</span> fromIntegral (t<span class="fu">*</span><span class="dv">4</span>)) <span class="fu">.</span> fromIntegral</code></pre></div>
+</section>
+<section id="a-polymorphic-note" class="level2">
+<h2>A Polymorphic <code>Note</code></h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">
+<span class="kw">data</span> <span class="dt">Note</span> p d <span class="fu">=</span> <span class="dt">Note</span> { _<span class="ot">pitch ::</span> p, _<span class="ot">dur ::</span> d }
+                <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Generic</span>)
+
+<span class="kw">infixl</span> <span class="dv">5</span> <span class="fu">|:</span>
+<span class="ot">(|:) ::</span> p <span class="ot">-&gt;</span> d <span class="ot">-&gt;</span> <span class="dt">Note</span> p d
+(<span class="fu">|:</span>) <span class="fu">=</span> <span class="dt">Note</span></code></pre></div>
+<p><code>60|:2</code>   ~   <code>C@:4|:1%4</code></p>
+</section>
+<section id="hasnote-topair" class="level2">
+<h2><code>HasNote</code>, <code>toPair</code></h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">HasNote</span> s p d <span class="fu">|</span> s <span class="ot">-&gt;</span> p d <span class="kw">where</span>
+<span class="ot">  note ::</span> <span class="dt">Lens&#39;</span> s (<span class="dt">Note</span> p d)
+<span class="ot">  notePitch ::</span> <span class="dt">Lens&#39;</span> s p
+  notePitch <span class="fu">=</span> note<span class="fu">.</span>pitch
+<span class="ot">  noteDur ::</span> <span class="dt">Lens&#39;</span> s d
+  noteDur <span class="fu">=</span> note<span class="fu">.</span>dur
+<span class="kw">instance</span> <span class="dt">HasNote</span> (<span class="dt">Note</span> p d) p d <span class="kw">where</span> note <span class="fu">=</span> (<span class="fu">$</span>)
+
+<span class="ot">toPair ::</span> <span class="dt">Iso&#39;</span> (<span class="dt">Note</span> p d) (p,d)
+toPair <span class="fu">=</span> iso (\(<span class="dt">Note</span> p d) <span class="ot">-&gt;</span> (p,d)) (uncurry <span class="dt">Note</span>)</code></pre></div>
+</section>
+<section id="bifunctor-fieldxx-instances" class="level2">
+<h2><code>Bifunctor</code>, <code>FieldXX</code> instances</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Bifunctor</span> <span class="dt">Note</span> <span class="kw">where</span>
+    bimap f g (<span class="dt">Note</span> a b) <span class="fu">=</span> <span class="dt">Note</span> (f a) (g b)
+
+<span class="kw">instance</span> <span class="dt">Field1</span> (<span class="dt">Note</span> a b) (<span class="dt">Note</span> a&#39; b) a a&#39;
+
+<span class="kw">instance</span> <span class="dt">Field2</span> (<span class="dt">Note</span> a b) (<span class="dt">Note</span> a b&#39;) b b&#39;</code></pre></div>
+</section>
+<section id="note-niceties" class="level2">
+<h2><code>Note</code> Niceties</h2>
+<ul>
+<li class="fragment">Full power of Haskell number types</li>
+<li class="fragment">Ease of translation between types via lenses, isos</li>
+<li class="fragment">Ease of extension via classes</li>
+</ul>
+</section>
+<section id="demo" class="level2">
+<h2>Demo</h2>
+<ul>
+<li class="fragment">More than a feeling ...</li>
+</ul>
+</section>
+</section>
+<section id="cyclops" class="slide level1">
+<h1>Cyclops</h1>
+<section id="section-3" class="level2">
+<h2></h2>
+<figure>
+<img src="img/cyclops.jpg" />
+</figure>
+</section>
+<section id="experimentationgeneration" class="level2">
+<h2>Experimentation/Generation</h2>
+<ul>
+<li class="fragment">Seed melody of 6 pitches</li>
+<li class="fragment">generated 619 riffs</li>
+<li class="fragment">used 18 (including seed) in song</li>
+</ul>
+</section>
+<section id="section-4" class="level2">
+<h2></h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">differ ::</span> <span class="dt">Integral</span> a <span class="ot">=&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [a]
+differ mod seed s <span class="fu">=</span>
+  (zipWith calc <span class="fu">&lt;*&gt;</span> tail) s <span class="fu">++</span> [calc (last s) (head s)]
+  <span class="kw">where</span> calc l r <span class="fu">=</span> (((r <span class="fu">-</span> offset) <span class="fu">-</span> (l <span class="fu">-</span> offset))
+                    <span class="ot">`rem`</span> fromIntegral mod) <span class="fu">+</span> offset
+        offset <span class="fu">=</span> (range <span class="ot">`div`</span> <span class="dv">2</span>) <span class="fu">+</span> minimum seed
+        range <span class="fu">=</span> maximum seed <span class="fu">-</span> minimum seed
+
+seed <span class="fu">=</span> [<span class="dt">E</span><span class="fu">@:</span><span class="dv">3</span>, <span class="dt">A</span><span class="fu">@:</span><span class="dv">3</span>, <span class="dt">E</span><span class="fu">@:</span><span class="dv">3</span>, <span class="dt">D</span><span class="fu">@:</span><span class="dv">3</span>, <span class="dt">G</span><span class="fu">@:</span><span class="dv">3</span>, <span class="dt">D</span><span class="fu">@:</span><span class="dv">3</span>]
+
+gen n <span class="fu">=</span> iterate (differ n seed) seed
+
+genRot n r t <span class="fu">=</span>
+   pivot <span class="fu">$</span> take t <span class="fu">$</span> iterate (rotate r <span class="fu">.</span> differ n seed) seed</code></pre></div>
+</section>
+<section id="parameterized-idea-generation" class="level2">
+<h2>Parameterized idea generation</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">λ<span class="fu">&gt;</span> seed
+[<span class="dt">E</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">A</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">E</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">D</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">G</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">D</span><span class="fu">@:</span><span class="dv">3</span>]
+λ<span class="fu">&gt;</span> mapM_ print <span class="fu">$</span> take <span class="dv">3</span> <span class="fu">$</span> gen <span class="dv">9</span>
+[<span class="dt">E</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">A</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">E</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">D</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">G</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">D</span><span class="fu">@:</span><span class="dv">3</span>]
+[<span class="dt">Bb</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">C</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">Eb</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">Bb</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">C</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">G</span><span class="fu">@:</span><span class="dv">3</span>]
+[<span class="dt">E</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">Gs</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">C</span><span class="fu">@:</span><span class="dv">4</span>,<span class="dt">E</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">C</span><span class="fu">@:</span><span class="dv">4</span>,<span class="dt">Gs</span><span class="fu">@:</span><span class="dv">3</span>]
+λ<span class="fu">&gt;</span> head <span class="fu">$</span> genRot <span class="dv">9</span> <span class="dv">2</span> <span class="dv">48</span>
+[<span class="dt">E</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">Eb</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">C</span><span class="fu">@:</span><span class="dv">4</span>,<span class="dt">A</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">C</span><span class="fu">@:</span><span class="dv">4</span>,<span class="dt">Cs</span><span class="fu">@:</span><span class="dv">4</span>,<span class="dt">A</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">Fs</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">Cs</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">A</span><span class="fu">@:</span><span class="dv">2</span>,<span class="dt">Eb</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">Bb</span><span class="fu">@:</span><span class="dv">2</span>
+,<span class="dt">Eb</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">C</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">Cs</span><span class="fu">@:</span><span class="dv">4</span>,<span class="dt">A</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">Fs</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">Bb</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">Fs</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">Eb</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">G</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">Eb</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">A</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">E</span><span class="fu">@:</span><span class="dv">3</span>
+,<span class="dt">A</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">A</span><span class="fu">@:</span><span class="dv">2</span>,<span class="dt">Bb</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">A</span><span class="fu">@:</span><span class="dv">2</span>,<span class="dt">C</span><span class="fu">@:</span><span class="dv">4</span>,<span class="dt">Bb</span><span class="fu">@:</span><span class="dv">2</span>,<span class="dt">C</span><span class="fu">@:</span><span class="dv">4</span>,<span class="dt">C</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">Cs</span><span class="fu">@:</span><span class="dv">4</span>,<span class="dt">C</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">Fs</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">Cs</span><span class="fu">@:</span><span class="dv">3</span>
+,<span class="dt">Fs</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">Eb</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">G</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">Eb</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">A</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">E</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">A</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">A</span><span class="fu">@:</span><span class="dv">2</span>,<span class="dt">Bb</span><span class="fu">@:</span><span class="dv">3</span>,<span class="dt">A</span><span class="fu">@:</span><span class="dv">2</span>,<span class="dt">C</span><span class="fu">@:</span><span class="dv">4</span>,<span class="dt">Bb</span><span class="fu">@:</span><span class="dv">2</span>]</code></pre></div>
+</section>
+<section id="section-5" class="level2">
+<h2></h2>
+<figure>
+<img src="img/cyclopsPivotRot9-2-48-talk.png" width="550" />
+</figure>
+<div>
+<audio src="audio/cyclops-fortalk.mp3" controls="controls">
+</div>
+</section>
+</section>
+<section id="rhythm" class="slide level1">
+<h1>Rhythm</h1>
+<ul>
+<li class="fragment">Pitch concepts well-traveled in theory</li>
+<li class="fragment">Rhythm not so much</li>
+<li class="fragment">Need ways to generate pitch AND duration</li>
+</ul>
+</section>
+<section id="braids" class="slide level1">
+<h1>Braids</h1>
+<figure>
+<img src="img/band-terrace.png" />
+</figure>
+</section>
+<section id="braids-1" class="slide level1">
+<h1>Braids</h1>
+<section id="knot-theory" class="level2">
+<h2>Knot Theory</h2>
+<ul>
+<li class="fragment">Braids are a 2D+ projection of a knot</li>
+</ul>
+</section>
+<section id="section-6" class="level2">
+<h2></h2>
+<figure>
+<img src="img/braid.png" alt="&quot;Any knot may be represented as the closure of certain braids&quot;" /><figcaption>&quot;Any knot may be represented as the closure of certain braids&quot;</figcaption>
+</figure>
+</section>
+<section id="braid-group" class="level2">
+<h2>Braid Group</h2>
+<ul>
+<li class="fragment">The class of braids of <code>n</code> strands forms a group <em>B<sub>n</sub></em></li>
+</ul>
+</section>
+<section id="braid-group-b4" class="level2">
+<h2>Braid Group B<sub>4</sub></h2>
+<figure>
+<img src="img/id-inverse.png" alt="Identity, σ1σ2σ3, inverse, Monoid" /><figcaption>Identity, σ<sub>1</sub>σ<sub>2</sub>σ<sub>3</sub>, inverse, Monoid</figcaption>
+</figure>
+</section>
+<section id="algebra-braid-generators" class="level2">
+<h2>Algebra: Braid Generators</h2>
+<figure>
+<img src="img/artin.png" alt="Any braid can be represented as a sequence of generators. The braid on the left becomes σ2σ1-1σ3-1" width="400" /><figcaption>Any braid can be represented as a sequence of generators. The braid on the left becomes σ<sub>2</sub>σ<sub>1</sub><sup>-1</sup>σ<sub>3</sub><sup>-1</sup></figcaption>
+</figure>
+</section>
+<section id="braids-in-haskell" class="level2">
+<h2>Braids in Haskell</h2>
+<figure>
+<img src="img/artin.png" width="400" />
+</figure>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">renderBraids <span class="dv">100</span> [colorStrands] <span class="st">&quot;artin.png&quot;</span> <span class="fu">$</span>
+    [[<span class="dt">MultiGen</span> [<span class="dt">Step</span> (<span class="dt">Gen</span> <span class="dv">1</span> <span class="dt">O</span>) [],<span class="dt">Step</span> (<span class="dt">Gen</span> <span class="dv">0</span> <span class="dt">U</span>) [<span class="dt">Gen</span> <span class="dv">0</span> <span class="dt">U</span>]],
+      <span class="dt">Artin</span> [<span class="dt">Gen</span> <span class="dv">1</span> <span class="dt">O</span>, <span class="dt">Gen</span> <span class="dv">0</span> <span class="dt">U</span>, <span class="dt">Gen</span> <span class="dv">2</span> <span class="dt">U</span>]]]</code></pre></div>
+</section>
+<section id="artin-canonical-braid" class="level2">
+<h2><code>Artin</code>: Canonical Braid</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Polarity</span> <span class="fu">=</span> <span class="dt">U</span> <span class="fu">|</span> <span class="dt">O</span> <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Show</span>,<span class="dt">Enum</span>,<span class="dt">Ord</span>)
+
+<span class="kw">data</span> <span class="dt">Gen</span> a <span class="fu">=</span> <span class="dt">Gen</span> { _<span class="ot">gPos ::</span> a, _<span class="ot">gPol ::</span> <span class="dt">Polarity</span> }
+    <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Functor</span>,<span class="dt">Ord</span>)
+
+<span class="kw">newtype</span> <span class="dt">Artin</span> a <span class="fu">=</span> <span class="dt">Artin</span> { _<span class="ot">aGens ::</span> [<span class="dt">Gen</span> a] }
+    <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Show</span>,<span class="dt">Monoid</span>,<span class="dt">Functor</span>)
+
+<span class="kw">instance</span> <span class="dt">Foldable</span> <span class="dt">Artin</span> <span class="kw">where</span>
+    foldMap f <span class="fu">=</span> foldMap f <span class="fu">.</span> map _gPos <span class="fu">.</span> _aGens</code></pre></div>
+</section>
+<section id="multigen-compressed-braid" class="level2">
+<h2><code>MultiGen</code>: Compressed Braid</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">MultiGen</span> a <span class="fu">=</span> <span class="dt">MultiGen</span> { _<span class="ot">mSteps ::</span> [<span class="dt">Step</span> a] }
+    <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Monoid</span>)
+<span class="co">-- Adjacent generators on a single &quot;step&quot; are invalid!</span>
+<span class="kw">data</span> <span class="dt">Step</span> a <span class="fu">=</span>
+    <span class="dt">Empty</span> <span class="fu">|</span>
+    <span class="dt">Step</span> { _<span class="ot">sHead ::</span> <span class="dt">Gen</span> a, _<span class="ot">sOffsets ::</span> [<span class="dt">Gen</span> <span class="dt">Natural</span>]
+    } <span class="kw">deriving</span> (<span class="dt">Eq</span>)
+
+<span class="ot">stepToGens ::</span> <span class="dt">Integral</span> a <span class="ot">=&gt;</span> <span class="dt">Step</span> a <span class="ot">-&gt;</span> [<span class="dt">Gen</span> a]
+stepToGens <span class="dt">Empty</span> <span class="fu">=</span> []
+stepToGens (<span class="dt">Step</span> h gs) <span class="fu">=</span> reverse <span class="fu">$</span> foldl conv [h] gs
+    <span class="kw">where</span> conv rs<span class="fu">@</span>(<span class="dt">Gen</span> p&#39; _<span class="fu">:</span>_) (<span class="dt">Gen</span> p e) <span class="fu">=</span>
+                   <span class="dt">Gen</span> (fromIntegral p <span class="fu">+</span> p&#39; <span class="fu">+</span> <span class="dv">2</span>) e<span class="fu">:</span>rs
+          conv _ _ <span class="fu">=</span> error <span class="st">&quot;c&#39;est impossible&quot;</span></code></pre></div>
+</section>
+<section id="braid-typeclass" class="level2">
+<h2><code>Braid</code> typeclass</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> (<span class="dt">Integral</span> b, <span class="dt">Monoid</span> (a b)) <span class="ot">=&gt;</span> <span class="dt">Braid</span> (<span class="ot">a ::</span> <span class="fu">*</span> <span class="ot">-&gt;</span> <span class="fu">*</span>) b <span class="kw">where</span>
+    <span class="co">-- | &quot;Length&quot;, number of &quot;steps&quot;/columns/artin generators.</span>
+<span class="ot">    stepCount ::</span> a b <span class="ot">-&gt;</span> <span class="dt">Int</span>
+    <span class="co">-- | &quot;N&quot;, braid group index, number of strands/rows/&quot;i&quot;s.</span>
+<span class="ot">    strandCount ::</span> a b <span class="ot">-&gt;</span> b
+    <span class="co">-- | Series of &quot;steps&quot; of absolute-indexed generators.</span>
+<span class="ot">    toGens ::</span> a b <span class="ot">-&gt;</span> [[<span class="dt">Gen</span> b]]
+    <span class="co">-- | Minimum index (i) value</span>
+<span class="ot">    minIndex ::</span> a b <span class="ot">-&gt;</span> b
+    <span class="co">-- | Maximum index (i) value. Values of (i+1) obtain.</span>
+<span class="ot">    maxIndex ::</span> a b <span class="ot">-&gt;</span> b
+    <span class="co">-- | Invert indices</span>
+<span class="ot">    invert ::</span> a b <span class="ot">-&gt;</span> a b</code></pre></div>
+</section>
+</section>
+<section id="braids-for-music" class="slide level1">
+<h1>Braids for Music</h1>
+<section id="input-sequence-of-pitches" class="level2">
+<h2>Input: sequence of pitches</h2>
+<figure>
+<img src="img/10-strandSource__small.png" />
+</figure>
+</section>
+<section id="create-seed-strand" class="level2">
+<h2>Create seed strand</h2>
+<figure>
+<img src="img/strand_05.png" alt="Connect non-adjacent values with &quot;unders&quot;" /><figcaption>Connect non-adjacent values with &quot;unders&quot;</figcaption>
+</figure>
+</section>
+<section id="voila-rhythm" class="level2">
+<h2>Voila: Rhythm</h2>
+<figure>
+<img src="img/11-strandResult.png" alt="Note duration determined by distance" /><figcaption>Note duration determined by distance</figcaption>
+</figure>
+</section>
+<section id="elaboration-via-terracing" class="level2">
+<h2>Elaboration via &quot;Terracing&quot;</h2>
+<figure>
+<img src="img/strand_tcol_13.png" alt="Inverse crosses propagate away from source strand" /><figcaption>Inverse crosses propagate away from source strand</figcaption>
+</figure>
+</section>
+<section id="terraced-braid" class="level2">
+<h2>Terraced Braid</h2>
+<figure>
+<img src="img/braid_strands_13-20x7.png" />
+</figure>
+</section>
+<section id="musical-properties-loops" class="level2">
+<h2>Musical properties: Loops</h2>
+<figure>
+<img src="img/braid_seqs_13-20x7.png" alt="Braid colored by loops" /><figcaption>Braid colored by loops</figcaption>
+</figure>
+</section>
+<section id="section-7" class="level2">
+<h2></h2>
+<figure>
+<img src="img/braid13.png" width="600" />
+</figure>
+<div>
+<audio src="audio/braid13.mp3" controls="controls">
+</div>
+</section>
+<section id="musical-concept" class="level2">
+<h2>Musical concept</h2>
+<ul>
+<li class="fragment">Create rhythms from pitches</li>
+<li class="fragment">Create counterpoint from elaboration</li>
+<li class="fragment">&quot;Regular&quot; structure offering formal unity</li>
+</ul>
+</section>
+</section>
+<section id="pleonid" class="slide level1">
+<h1>Pleonid</h1>
+<section id="section-8" class="level2">
+<h2></h2>
+<ul>
+<li class="fragment">Composed entirely in code</li>
+<li class="fragment">Single &quot;seed&quot; generated 31 pitch sequences and braids</li>
+<li class="fragment">Braid counterpoint, Braid &quot;Chord&quot; improv, &quot;lines&quot; interpretation</li>
+<li class="fragment">LFSR used for arrangement</li>
+<li class="fragment">60 minutes</li>
+<li class="fragment">Performed live in 2012</li>
+</ul>
+</section>
+<section id="section-9" class="level2">
+<h2></h2>
+<div>
+<video src="audio/pleonid-excerpt-small.mp4" controls="controls">
+</div>
+</section>
+</section>
+<section id="braid-moves" class="slide level1">
+<h1>Braid Moves</h1>
+<section id="isotopy" class="level2">
+<h2>Isotopy</h2>
+<ul>
+<li class="fragment">Leaves the topology of the knot unchanged.</li>
+<li class="fragment">Used to identify different knots/braids as equivalent (word problem).</li>
+</ul>
+</section>
+<section id="reidemeister-moves" class="level2">
+<h2>Reidemeister Moves</h2>
+<ul>
+<li class="fragment">Simple concept where certain generator patterns are equivalent.</li>
+<li class="fragment">Move #1 only applies to loops: a single cross is not a knot</li>
+<li class="fragment">Move #2 straightforward: <img src="img/reid2.png" /></li>
+</ul>
+</section>
+<section id="reidemeister-move-3" class="level2">
+<h2>Reidemeister Move #3</h2>
+<figure>
+<img src="img/reid3.png" alt="Top and bottom are equivalent under inversion" width="700" /><figcaption>Top and bottom are equivalent under inversion</figcaption>
+</figure>
+</section>
+<section id="applying-move-3" class="level2">
+<h2>Applying Move 3</h2>
+<figure>
+<img src="img/move.png" width="600" />
+</figure>
+</section>
+<section id="finding-all-moves" class="level2">
+<h2>Finding all moves</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Data.Tree</span>
+<span class="co">-- structure for braid tree.</span>
+<span class="co">-- A permutation is the permuted braid + the [(move,loc)]s that</span>
+<span class="co">-- got us there. Thus the root is (original braid, []); children</span>
+<span class="co">-- are [(b1,(move,loc))].</span>
+<span class="ot">makeTree ::</span> (<span class="dt">Integral</span> i, <span class="dt">Braid</span> a i, <span class="dt">Braid</span> b i) <span class="ot">=&gt;</span>
+       [<span class="dt">Move</span> a i] <span class="ot">-&gt;</span> b i <span class="ot">-&gt;</span> <span class="dt">Tree</span> (<span class="dt">MultiGen</span> i,[(<span class="dt">Move</span> a i,<span class="dt">Loc</span> i)])
+makeTree mvs org <span class="fu">=</span> unfoldTree go (toMultiGen org,[]) <span class="kw">where</span>
+    go n<span class="fu">@</span>(seed,path) <span class="fu">=</span>
+        (n,concatMap (gen seed path) <span class="fu">$</span> moves mvs seed)
+    gen target path (mv,locs) <span class="fu">=</span>
+        map (\l <span class="ot">-&gt;</span> (applyMove mv l target,(mv,l)<span class="fu">:</span>path)) locs</code></pre></div>
+</section>
+<section id="ongoing-work" class="level2">
+<h2>Ongoing Work</h2>
+<ul>
+<li class="fragment">Find fixpoints in infinite trees (sharing)</li>
+<li class="fragment">Expand to include band generator equivalences</li>
+<li class="fragment">Music: attempt to find &quot;shortest word&quot; for &quot;prettier&quot; counterpoint</li>
+</ul>
+</section>
+</section>
+<section id="thank-you" class="slide level1">
+<h1>Thank You</h1>
+<p>Stuart Popejoy</p>
+<p><a href="http://slpopejoy.github.io/talks/boston-haskell-music-2016.html" class="uri">http://slpopejoy.github.io/talks/boston-haskell-music-2016.html</a></p>
+<p><a href="https://github.com/slpopejoy/fadno-braids" class="uri">https://github.com/slpopejoy/fadno-braids</a></p>
+<p><a href="https://github.com/slpopejoy/fadno-xml" class="uri">https://github.com/slpopejoy/fadno-xml</a></p>
+</section>
+    </div>
+  </div>
+
+  <script src="reveal.js/lib/js/head.min.js"></script>
+  <script src="reveal.js/js/reveal.js"></script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'reveal.js/plugin/zoom-js/zoom.js', async: true },
+          { src: 'reveal.js/plugin/notes/notes.js', async: true }
+        ]
+      });
+    </script>
+    </body>
+</html>
