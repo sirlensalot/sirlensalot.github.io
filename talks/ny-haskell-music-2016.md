@@ -448,6 +448,8 @@ makeTree mvs org = unfoldTree go (toMultiGen org,[]) where
 
 Stuart Popejoy
 
+[http://slpopejoy.github.io/talks/ny-haskell-music-2016.html](http://slpopejoy.github.io/talks/ny-haskell-music-2016.html)
+
 [https://github.com/slpopejoy/fadno](https://github.com/slpopejoy/fadno)
 
 [https://github.com/slpopejoy/fadno-braids](https://github.com/slpopejoy/fadno-braids)
