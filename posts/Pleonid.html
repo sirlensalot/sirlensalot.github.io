@@ -44,7 +44,7 @@
 <img alt="Seed melody of Pleonid." class="small" src="figures/pleonid/01-seed__small.png" />
 <p class="caption">Seed melody of <em>Pleonid</em>.</p>
 </div>
-<p>The pitch-class set of the source melody is determined. In Pleonid this is <code>[0,2,3,4,5,7]</code>, Forte no. <a href="https://en.wikipedia.org/wiki/List_of_pitch_class_sets">6-8</a>). However this is not used for pitch-set transformations but as a concrete scale.</p>
+<p>The pitch-class set of the source melody is determined. In Pleonid this is <code>[0,2,3,4,5,7]</code>, Forte no. <a href="https://en.wikipedia.org/wiki/List_of_pitch_class_sets">6-8</a>. However this is not used for pitch-set transformations but as a concrete scale.</p>
 <div class="figure">
 <img alt="Pitch class set and main scale." class="small" src="figures/pleonid/01a-seedScale__small.png" />
 <p class="caption">Pitch class set and main scale.</p>
@@ -86,11 +86,11 @@
 <img alt="Steering [2,1,2,2] in a 10-gamut." src="figures/pleonid/05-pleoSteering3.png" />
 <p class="caption">Steering [2,1,2,2] in a 10-gamut.</p>
 </div>
-<p>The last tuple of the second steering illustrates gamut-wrapping. The rotation of the interval is <code>[2,2,1,2]</code> puts the last <code>B</code> above the gamut boundary of <code>Bb</code>; modulo wrapping results in a <code>C#</code>. This illustrates how non-standard gamuts create melodic interest: in a 12-gamut, wrapping notes above the gamut result in the same chroma with different pitch-height; here, having a <code>C#</code> instead of a <code>B</code> adds new pitch information to the composition.</p>
+<p>The last tuple of the second steering illustrates gamut-wrapping. The rotation of the interval <code>[2,2,1,2]</code> puts the last <code>B</code> above the gamut boundary of <code>Bb</code>; modulo wrapping results in a <code>C#</code>. This illustrates how non-standard gamuts create melodic interest: in a 12-gamut, wrapping notes above the gamut result in the same chroma; here, having a <code>C#</code> instead of a <code>B</code> adds new pitch information to the composition.</p>
 <p>Of Pleonid’s 15 tuples produced above, 3 tuples are un-steerable but the rest are quite productive, producing 49 distinct steerings.</p>
 <h2 id="preserving-seed-melody-features">Preserving seed melody features</h2>
 <p>While all 49 steerings are created from a single scale, the steerings introduce a great deal more pitch information which obscures any relationship to the original material. The attempt to recover and amplify this relationship starts by filtering out sequences that do not have at least one steering chord composed entirely of seed-scale pitches.</p>
-<p>From the 5-tuple example above, the second steering <code>[0,2,3,5,7],[4,6,8,9,1]</code> is allowed, since the first tuple is made from intervals contained in the <code>[0,2,3,4,5,7]</code> seed scale. However, the first steering <code>[0,1,3,5,7],[2,4,6,8,9]</code> is discarded, since both tuples have intervals outside of the seed scale.</p>
+<p>From the 5-tuple example above, the second steering <code>([0,2,3,5,7],[4,6,8,9,1])</code> is allowed, since the first tuple is made from intervals contained in the <code>[0,2,3,4,5,7]</code> seed scale. However, the first steering <code>([0,1,3,5,7],[2,4,6,8,9])</code> is discarded, since both tuples have intervals outside of the seed scale.</p>
 <p>This filter reduces the 49 steerings to 32. The tuples then undergo a mapping procedure, designed to map any scale tones back to the register they appear in the original seed sequence. So for instance, if a <code>G</code> appears in a chord, it would be mapped to below middle-C.</p>
 <div class="figure">
 <img alt="Mapping pitches to their register in the original seed sequence." src="figures/pleonid/06-mappingCorrect.png" />
@@ -118,7 +118,7 @@
 <img alt="A braid from Pleonid. A column or step represents an eighth-note duration, with vertical positions representing specific pitches." src="figures/pleonid/braid_strands_05-20x7.png" />
 <p class="caption">A braid from Pleonid. A column or “step” represents an eighth-note duration, with vertical positions representing specific pitches.</p>
 </div>
-<p>The polarity of a cross – whether a strand passes over or under another strand – is used to decide when a strand sounds a particular pitch. An over-cross or flat cross sounds the indexed pitch, whereas an under-cross continues the pitch started in a previous cross. Under-crosses at the beginning of a strand are removed. For instance, in the braid above, the strand starting at <code>10</code> begins with an over cross, sounding the pitch <code>10</code> through the following 4 under-crosses. It then over-crosses at <code>1</code>, and again at <code>5</code>, resulting in two new notes.</p>
+<p>The polarity of a cross – whether a strand passes over or under another strand – is used to decide when a strand sounds a particular pitch. An over-cross or flat cross sounds the indexed pitch, whereas an under-cross continues the pitch started in a previous cross. Under-crosses at the beginning of a strand are removed.<a href="#fn5" class="footnoteRef" id="fnref5"><sup>5</sup></a> For instance, in the braid above, the strand starting at <code>10</code> begins with an over cross, sounding the pitch <code>10</code> through the following 4 under-crosses. It then over-crosses at <code>1</code>, and again at <code>5</code>, resulting in two new notes.</p>
 <h2 id="projecting-a-pitch-sequence-as-a-strand">Projecting a pitch sequence as a strand</h2>
 <p>Using the rules above, the generated pitch sequences are each “projected” as a strand of a braid. The sequence is analyzed to generate a pitch index for the Y-axis, and the strand starts at the first pitch, immediately travelling to the second. This method results in pitch transitions taking longer for more “remote” pitches.</p>
 <div class="figure">
@@ -142,7 +142,7 @@
 <p class="caption">The strand above as a minimal braid.</p>
 </div>
 <p>In Pleonid, braids are further elaborated using a “terracing” strategy, vertically inverting and reflecting the source strand material.</p>
-<p>Each transition in the source strand is seen as a “column” or “step”, being either UP, DOWN or FLAT; the cross type is identified as OVER or UNDER. Moving away vertically from the strand step, FLATs and crosses are alternated; when a cross is generated, it is “reflected” from the previous cross – a DOWN becomes an UP and an OVER becomes an UNDER. The alternating flats and inverting crosses produces a visually “terraced” effect. At the vertical edges, duplicate FLATs are inserted if a cross would violate the braid boundary. <a href="#fn5" class="footnoteRef" id="fnref5"><sup>5</sup></a></p>
+<p>Each transition in the source strand is seen as a “column” or “step”, being either UP, DOWN or FLAT; the cross type is identified as OVER or UNDER. Moving away vertically from the strand step, FLATs and crosses are alternated; when a cross is generated, it is “reflected” from the previous cross – a DOWN becomes an UP and an OVER becomes an UNDER. The alternating flats and inverting crosses produces a visually “terraced” effect. At the vertical edges, duplicate FLATs are inserted if a cross would violate the braid boundary. <a href="#fn6" class="footnoteRef" id="fnref6"><sup>6</sup></a></p>
 <div class="figure">
 <img alt="Elaborating a braid. The terracing result is shown on every-other step to illustrate the columnar approach." class="small" src="figures/pleonid/strand_tcol_01__small.png" />
 <p class="caption">Elaborating a braid. The “terracing” result is shown on every-other step to illustrate the columnar approach.</p>
@@ -268,67 +268,35 @@ shift (<span class="dt">LFSR</span> register tap1 tap2) <span class="fu">=</span
 <tbody>
 <tr class="odd">
 <td align="left"><code>gamut</code></td>
-<td align="left">Gamut pseudo-octave value, used in steerings</td>
+<td align="left">Gamut pseudo-octave value, used in steerings.</td>
 </tr>
 <tr class="even">
 <td align="left"><code>line</code></td>
-<td align="left">Source pitch sequence</td>
+<td align="left">Source pitch sequence.</td>
 </tr>
 <tr class="odd">
 <td align="left"><code>transposer</code></td>
-<td align="left">Voicing/register function, in Pleonid set to offset</td>
+<td align="left">Voicing/register function, in Pleonid set to offset by 10 semitones.</td>
 </tr>
 <tr class="even">
-<td align="left"></td>
-<td align="left">by 10 semitones</td>
-</tr>
-<tr class="odd">
 <td align="left"><code>scaleMapper</code></td>
-<td align="left">Function to map steerings to scale pitches, parameterized</td>
-</tr>
-<tr class="even">
-<td align="left"></td>
-<td align="left">to mimic bug in the original Java code or use new</td>
+<td align="left">Function to map steerings to scale pitches, parameterized to mimic bug in the original Java code or use new “fixed” version.</td>
 </tr>
 <tr class="odd">
-<td align="left"></td>
-<td align="left">“fixed” version</td>
-</tr>
-<tr class="even">
 <td align="left"><code>filterRestsInBraids</code></td>
-<td align="left">When true, drop any initial “under” crosses, resulting in</td>
-</tr>
-<tr class="odd">
-<td align="left"></td>
-<td align="left">rhythmic disparities in the original codebase. False instead</td>
+<td align="left">When true, drop any initial “under” crosses, resulting in rhythmic disparities in the original codebase. False instead puts a rest in its place.</td>
 </tr>
 <tr class="even">
-<td align="left"></td>
-<td align="left">puts a rest in its place.</td>
-</tr>
-<tr class="odd">
 <td align="left"><code>scaleSize</code></td>
-<td align="left">A separate gamut value used in scale mapping, and in pitch-set</td>
-</tr>
-<tr class="even">
-<td align="left"></td>
-<td align="left">discovery. Pleonid uses the standard 12-octave.</td>
+<td align="left">A separate gamut value used in scale mapping, and in pitch-set discovery. Pleonid uses the standard 12-octave.</td>
 </tr>
 <tr class="odd">
 <td align="left"><code>lfsr</code></td>
-<td align="left">A parameterized LFSR object. Pleonid’s is parameterized with</td>
+<td align="left">A parameterized LFSR object. Pleonid’s is parameterized with 5 slots with taps at 2 and 4.</td>
 </tr>
 <tr class="even">
-<td align="left"></td>
-<td align="left">5 slots with taps at 2 and 4</td>
-</tr>
-<tr class="odd">
 <td align="left"><code>parts</code></td>
-<td align="left">A list of part metadata, including names and clefs, also dictating</td>
-</tr>
-<tr class="even">
-<td align="left"></td>
-<td align="left">the number of parts.</td>
+<td align="left">A list of part metadata, including names and clefs, also dictating the number of parts.</td>
 </tr>
 </tbody>
 </table>
@@ -349,7 +317,8 @@ shift (<span class="dt">LFSR</span> register tap1 tap2) <span class="fu">=</span
 <li id="fn2"><p>For Schat the tetrads produced by a steering can be related intervallically to other triad hours in the clock, producing a relationship between hours.<a href="#fnref2">↩</a></p></li>
 <li id="fn3"><p>The bug was discovered only in a later effort to migrate the entire Pleonid program from Java to Haskell. While I’m tempted to credit Haskell’s superior expressiveness as the reason for discovering the bug, it’s really because of the extensive code-review that resulted from performing the migration.<a href="#fnref3">↩</a></p></li>
 <li id="fn4"><p>The Haskell code base in fact preserves all of the original bugs and quirks of the Java codebase, in order to exactly reproduce the Pleonid piece; however as the appendix shows, it is possible to parameterize the new codebase to operate “bug-free”, producing a different piece.<a href="#fnref4">↩</a></p></li>
-<li id="fn5"><p>Here too a “bug” was discovered in the original code, where the terracing procedure was slightly different when moving downward from the strand as opposed to upward.<a href="#fnref5">↩</a></p></li>
+<li id="fn5"><p>Handling of initial under-crosses is perhaps a bug, as by removing them, the rhythmic projection is distorted. A parameter in the Haskell code now governs whether to remove or convert to an initial rest.<a href="#fnref5">↩</a></p></li>
+<li id="fn6"><p>Here too a “bug” was discovered in the original code, where the terracing procedure was slightly different when moving downward from the strand as opposed to upward.<a href="#fnref6">↩</a></p></li>
 </ol>
 </div>
 
