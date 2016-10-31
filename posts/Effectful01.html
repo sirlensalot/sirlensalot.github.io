@@ -57,17 +57,15 @@ main <span class="fu">=</span> putStrLn <span class="st">&quot;Hello World!&quot
 <p><code>main</code> is the gateway drug into <code>IO</code>, and the first one’s free. “Hello World” is a one-liner, requiring no imports, and not even a type signature if you’re really lazy.</p>
 <p>Functions with the famous type signature <code>IO ()</code> have zero functional mojo; we run them for side-effects only. You can use <code>IO ()</code> to squander any benefits of strongly-typed functional programming, with magical values emerging from the big scary world outside the compiler.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">sendSecret ::</span> <span class="dt">IO</span> ()
-sendSecret <span class="fu">=</span> writeFile <span class="st">&quot;/tmp/secret&quot;</span> <span class="st">&quot;Who is Benjamin Disraeli?&quot;</span>
-
-<span class="ot">andTheAnswerIs ::</span> <span class="dt">IO</span> <span class="dt">String</span>
-andTheAnswerIs <span class="fu">=</span> readFile <span class="st">&quot;/tmp/secret&quot;</span> </code></pre></div>
+sendSecret <span class="fu">=</span> writeFile <span class="st">&quot;/tmp/secret&quot;</span> <span class="st">&quot;Who is Benjamin Disraeli?&quot;</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">andTheAnswerIs ::</span> <span class="dt">IO</span> <span class="dt">String</span>
+andTheAnswerIs <span class="fu">=</span> readFile <span class="st">&quot;/tmp/secret&quot;</span></code></pre></div>
 <p>Fortunately, IO isn’t an all-or-nothing proposition.</p>
 <p>First and most obviously, you can use pure code in IO whenever you like. This will arise naturally if your factoring is halfway decent.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- | pure function to count characters in a string</span>
 <span class="ot">countChar ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
-countChar c <span class="fu">=</span> length <span class="fu">.</span> filter (<span class="fu">==</span>c)
-
-<span class="co">-- | use 'countChar' in IO on a file</span>
+countChar c <span class="fu">=</span> length <span class="fu">.</span> filter (<span class="fu">==</span>c)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- | use 'countChar' in IO on a file</span>
 <span class="ot">countCharInFile ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Int</span>
 countCharInFile c f <span class="fu">=</span> <span class="kw">do</span>
   contents <span class="ot">&lt;-</span> readFile f
@@ -134,7 +132,7 @@ ioNoReturn <span class="fu">=</span> returnIsEasy <span class="st">&quot;Elvis&q
 <p>Working with bind isn’t hard once you get used to it.</p>
 <p>The bind operator, <code>&gt;&gt;=</code>, is used infix, with a monad inhabitant on the left side, and our consuming function on the right. This creates a left-to-right code “motion”:</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">countCharInFileBind ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Int</span>
-countCharInFileBind c f <span class="fu">=</span> 
+countCharInFileBind c f <span class="fu">=</span>
   readFile f <span class="fu">&gt;&gt;=</span> \cs <span class="ot">-&gt;</span> return (countChar c cs)</code></pre></div>
 <p>Our function counts how often a character shows up in a text file. We bind “<code>readFile f</code>”, of type <code>IO String</code>, with a lambda function. Its argument <code>cs</code> has the contents of the file from <code>readFile</code>. In the lambda, we call our pure function <code>countChar</code>, and <code>return</code> the Int result back to IO.</p>
 <p>With eta reduction, bind makes for some beautiful compositions:</p>
@@ -145,8 +143,8 @@ countCharInFileEta c f <span class="fu">=</span> readFile f <span class="fu">&gt
 <p>When we use functions of type <code>IO ()</code>, we’re only interested in the side effects. Nonetheless, we still have to bind to use them, leaving us with an unused argument of type <code>()</code>.</p>
 <p>An example is <code>putStrLn</code>, which writes a line of text to stdout. Let’s use it to log a message before performing our computation:</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">countCharMsgBind ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Int</span>
-countCharMsgBind c f <span class="fu">=</span> 
-   putStrLn (<span class="st">&quot;count &quot;</span> <span class="fu">++</span> [c] <span class="fu">++</span> <span class="st">&quot; in &quot;</span> <span class="fu">++</span> f) 
+countCharMsgBind c f <span class="fu">=</span>
+   putStrLn (<span class="st">&quot;count &quot;</span> <span class="fu">++</span> [c] <span class="fu">++</span> <span class="st">&quot; in &quot;</span> <span class="fu">++</span> f)
                 <span class="fu">&gt;&gt;=</span> \_ <span class="ot">-&gt;</span> readFile f    <span class="co">-- yuck</span>
                 <span class="fu">&gt;&gt;=</span> return <span class="fu">.</span> countChar c</code></pre></div>
 <p>The “<code>\_ -&gt;</code>” is pointless. Enter <code>&gt;&gt;</code>, a modified bind that swallows the useless argument.</p>
@@ -154,28 +152,28 @@ countCharMsgBind c f <span class="fu">=</span>
 <span class="ot">(&gt;&gt;) ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> m a <span class="ot">-&gt;</span> m b <span class="ot">-&gt;</span> m b</code></pre></div>
 <p>With <code>&gt;&gt;</code>, we simply “sequence” the next action.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">countCharMsg ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Int</span>
-countCharMsg c f <span class="fu">=</span> 
-   putStrLn (<span class="st">&quot;count &quot;</span> <span class="fu">++</span> [c] <span class="fu">++</span> <span class="st">&quot; in &quot;</span> <span class="fu">++</span> f) 
+countCharMsg c f <span class="fu">=</span>
+   putStrLn (<span class="st">&quot;count &quot;</span> <span class="fu">++</span> [c] <span class="fu">++</span> <span class="st">&quot; in &quot;</span> <span class="fu">++</span> f)
                 <span class="fu">&gt;&gt;</span> readFile f           <span class="co">-- much better!</span>
                 <span class="fu">&gt;&gt;=</span> return <span class="fu">.</span> countChar c</code></pre></div>
 <h2 id="local-definitions">Local definitions</h2>
 <p><code>where</code> and <code>let ... in</code> can be interchanged in pure code as a matter of style. In monadic code however, it gets tricky to use <code>where</code>.</p>
 <p>Let’s change our logging to output the character count. To do so we’ll need to capture it in a variable first, so we fire up a <code>where</code> clause. Unfortunately, the compiler yells at us.</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">countCharBroken c f <span class="fu">=</span> 
-   readFile f <span class="fu">&gt;&gt;=</span> 
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">countCharBroken c f <span class="fu">=</span>
+   readFile f <span class="fu">&gt;&gt;=</span>
       \cs <span class="ot">-&gt;</span> putStrLn (<span class="st">&quot;Counted &quot;</span> <span class="fu">++</span> show count <span class="fu">++</span> <span class="st">&quot; chars&quot;</span>)
              <span class="fu">&gt;&gt;</span> return count
-   <span class="kw">where</span> count <span class="fu">=</span> countChar c cs 
+   <span class="kw">where</span> count <span class="fu">=</span> countChar c cs
 
 posts<span class="fu">/</span>Effectful.lhs<span class="fu">:</span><span class="dv">332</span><span class="fu">:</span><span class="dv">32</span><span class="fu">-</span><span class="dv">33</span><span class="fu">:</span> <span class="dt">Not</span> <span class="kw">in</span> scope<span class="fu">:</span> ‘cs’ …
 <span class="dt">Compilation</span> failed<span class="fu">.</span></code></pre></div>
 <p>As the error shows, the lambda after <code>readFile f</code> is not in scope for the <code>where</code> section. Only <code>c</code> and <code>f</code> from the top level are in scope. There’s not really any good place to put the <code>where</code>.</p>
 <p><code>let</code> and <code>in</code> work better, “above” the lambdas that need it.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">countCharLog ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Int</span>
-countCharLog c f <span class="fu">=</span> 
-   readFile f <span class="fu">&gt;&gt;=</span> 
-      \cs <span class="ot">-&gt;</span> <span class="kw">let</span> count <span class="fu">=</span> countChar c cs 
-             <span class="kw">in</span> putStrLn (<span class="st">&quot;Counted &quot;</span> <span class="fu">++</span> show count <span class="fu">++</span> <span class="st">&quot; chars&quot;</span>) 
+countCharLog c f <span class="fu">=</span>
+   readFile f <span class="fu">&gt;&gt;=</span>
+      \cs <span class="ot">-&gt;</span> <span class="kw">let</span> count <span class="fu">=</span> countChar c cs
+             <span class="kw">in</span> putStrLn (<span class="st">&quot;Counted &quot;</span> <span class="fu">++</span> show count <span class="fu">++</span> <span class="st">&quot; chars&quot;</span>)
                 <span class="fu">&gt;&gt;</span> return count</code></pre></div>
 <h1 id="do-notation">Do notation</h1>
 <p>If you’ve got a lot of work to do, writing a ton of lambdas can get unwieldy and confusing. Our simple function <code>countCharLog</code> has three lambdas; we can easily imagine more.</p>
@@ -212,7 +210,7 @@ ghci<span class="fu">&gt;</span> <span class="fu">:</span>t (<span class="fu">=&
 <p>Unlike bind, the function used in <code>fmap</code> is “pure”: it makes the transformation from <code>a</code> to <code>b</code> without needing to <code>return</code> it to the context. The Functor implementation itself will lift the <code>b</code> result for us “outside” the function.</p>
 <p><code>fmap</code> is really the classic functional operation <code>map</code>, best known as a way to transform all of the elements in a list.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">incrementAllBy ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> [<span class="dt">Int</span>]
-incrementAllBy i is <span class="fu">=</span> fmap (<span class="fu">+</span> i) is </code></pre></div>
+incrementAllBy i is <span class="fu">=</span> fmap (<span class="fu">+</span> i) is</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">ghci<span class="fu">&gt;</span> incrementAllBy <span class="dv">2</span> [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>]
 [<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>]</code></pre></div>
 <p>Many tourists to functional programming learn <code>map</code> (and maybe its cousin <code>reduce</code>/<code>fold</code>) as a list operation only, before proudly stamping FP onto their resume. Haskellers go a lot further with <code>Functor</code>, mapping functions over <em>any</em> type with the <code>Functor</code> shape.</p>

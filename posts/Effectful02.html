@@ -58,14 +58,14 @@
 <p>Our first attempt to share this config throughout our application will simply pass it to every function that needs it. We’ll use two contrived functions as examples.</p>
 <p>The first initializes an application log file handle. It needs the log file path and the version from the config.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- | opens a handle as specified in config and writes a preamble.</span>
-<span class="ot">initLogFile ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">AppConfig</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Handle</span> 
+<span class="ot">initLogFile ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">AppConfig</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Handle</span>
 initLogFile preamble config <span class="fu">=</span> <span class="kw">do</span>
   handle <span class="ot">&lt;-</span> openFile (logfile config) <span class="dt">WriteMode</span>
   hPutStrLn handle (preamble <span class="fu">++</span> <span class="st">&quot;, version: &quot;</span> <span class="fu">++</span> version config)
   return handle</code></pre></div>
 <p>Our application will also deal with messages that cannot exceed some maximum length. We provide a validation function to enforce this, reading the maximum length from config.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">validateMessage ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">AppConfig</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">String</span> ()
-validateMessage msg config <span class="fu">=</span> 
+validateMessage msg config <span class="fu">=</span>
      <span class="kw">if</span> (length msg <span class="fu">&gt;</span> maxMessageLength config)
      <span class="kw">then</span> <span class="dt">Left</span> (<span class="st">&quot;Message too long: &quot;</span> <span class="fu">++</span> msg)
      <span class="kw">else</span> <span class="dt">Right</span> ()</code></pre></div>
@@ -79,14 +79,14 @@ validateMessage msg config <span class="fu">=</span>
 initLogFileTS <span class="fu">=</span> initLogFile
 
 <span class="ot">validateMessageTS ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ConfigReader</span> (<span class="dt">Either</span> <span class="dt">String</span> ())
-validateMessageTS <span class="fu">=</span> validateMessage </code></pre></div>
+validateMessageTS <span class="fu">=</span> validateMessage</code></pre></div>
 <p>As the equations prove, our code still works with the type synonym. We achieve a light formalization and get the explicit argument out of the signature. It’s just for show though. We still have to wrangle arguments to use the underlying functions.</p>
 <p>To illustrate, let’s write a function to call both of these functions. We’ll validate the preamble message, and only if it’s valid will we initialize the logfile.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="co">-- validate our prompt before using it to open the logfile</span>
 <span class="ot">validateAndInitLogTS ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ConfigReader</span> (<span class="dt">IO</span> (<span class="dt">Maybe</span> <span class="dt">Handle</span>))
-validateAndInitLogTS prompt config <span class="fu">=</span> 
+validateAndInitLogTS prompt config <span class="fu">=</span>
     <span class="kw">case</span> validateMessage prompt config <span class="kw">of</span>
-        <span class="dt">Left</span> err <span class="ot">-&gt;</span> putStrLn (<span class="st">&quot;Invalid prompt: &quot;</span> <span class="fu">++</span> err) 
+        <span class="dt">Left</span> err <span class="ot">-&gt;</span> putStrLn (<span class="st">&quot;Invalid prompt: &quot;</span> <span class="fu">++</span> err)
                     <span class="fu">&gt;&gt;</span> return <span class="dt">Nothing</span>
         <span class="dt">Right</span> () <span class="ot">-&gt;</span> <span class="dt">Just</span> <span class="fu">&lt;$&gt;</span> initLogFile prompt config</code></pre></div>
 <p>Our type synonym isn’t serving us very well here. We have the mystery <code>config</code> argument that is obscured by the type synonym, and we have to place it in the right spots of our calls to other functions.</p>
@@ -102,7 +102,7 @@ initLogFileCR p <span class="fu">=</span> <span class="dt">CReader</span> <span 
 validateMessageCR m <span class="fu">=</span> <span class="dt">CReader</span> <span class="fu">$</span> \c <span class="ot">-&gt;</span> validateMessage m c</code></pre></div>
 <p>Hmmm … OK. Not sure how this is better yet.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">validateAndInitLogCR ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">CReader</span> (<span class="dt">IO</span> (<span class="dt">Maybe</span> <span class="dt">Handle</span>))
-validateAndInitLogCR msg <span class="fu">=</span> <span class="dt">CReader</span> <span class="fu">$</span> \c <span class="ot">-&gt;</span> 
+validateAndInitLogCR msg <span class="fu">=</span> <span class="dt">CReader</span> <span class="fu">$</span> \c <span class="ot">-&gt;</span>
     <span class="kw">case</span> runCR (validateMessageCR msg) c <span class="kw">of</span>
         <span class="dt">Left</span> err <span class="ot">-&gt;</span> putStrLn <span class="st">&quot;Invalid init message&quot;</span> <span class="fu">&gt;&gt;</span> return <span class="dt">Nothing</span>
         <span class="dt">Right</span> () <span class="ot">-&gt;</span> <span class="dt">Just</span> <span class="fu">&lt;$&gt;</span> runCR (initLogFileCR msg) c</code></pre></div>
@@ -168,7 +168,7 @@ validateAndInitLogF1 p <span class="fu">=</span> fmap doInit (validateMessageF p
 <p>We made some progress with our formalization but ran aground. Let’s see what a Monad implementation buys us. (Yes, we skipped Applicative. See appendix for an implementation.)</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Monad</span> <span class="dt">CReader</span> <span class="kw">where</span>
    <span class="co">-- return :: a -&gt; CReader a</span>
-   return <span class="fu">=</span> <span class="dt">CReader</span> <span class="fu">.</span> const 
+   return <span class="fu">=</span> <span class="dt">CReader</span> <span class="fu">.</span> const
    <span class="co">-- &gt;&gt;= :: CReader a -&gt; (a -&gt; CReader b) -&gt; CReader b</span>
    a <span class="fu">&gt;&gt;=</span> f <span class="fu">=</span> <span class="dt">CReader</span> <span class="fu">$</span> \c <span class="ot">-&gt;</span> runCR (f ((runCR a) c)) c</code></pre></div>
 <p><code>return</code> is straightforward. Given an <code>a</code>, we simply want a <code>CReader</code> with the <code>a</code> wrapped up: <code>return a = CReader $ \c -&gt; a</code>. Point-free, this becomes <code>CReader . const</code>.</p>
@@ -176,13 +176,13 @@ validateAndInitLogF1 p <span class="fu">=</span> fmap doInit (validateMessageF p
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">    <span class="co">-- &gt;&gt;= :: CReader a -&gt; (a -&gt; CReader b) -&gt; CReader b</span>
     a <span class="fu">&gt;&gt;=</span> f <span class="fu">=</span> <span class="dt">CReader</span> <span class="fu">$</span> \c <span class="ot">-&gt;</span> <span class="kw">let</span> a' <span class="fu">=</span> runCR a c
                                   f' <span class="fu">=</span> f a'
-                              <span class="kw">in</span> runCR f' c  </code></pre></div>
+                              <span class="kw">in</span> runCR f' c</code></pre></div>
 <p>The trick here is we write a <em>new lambda</em> that uses <code>runCR</code> with the lambda’s <code>c</code> argument to get at the “internals” of <code>a</code> (as <code>a'</code>) and <code>f'</code> (the results of applying <code>f</code> to <code>a'</code>).</p>
 <p>We’re in business. Let’s roll.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">validateAndInitLogM ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">CReader</span> (<span class="dt">IO</span> (<span class="dt">Maybe</span> <span class="dt">Handle</span>))
 validateAndInitLogM p <span class="fu">=</span> <span class="kw">do</span>
    v <span class="ot">&lt;-</span> validateMessageF p
-   <span class="kw">case</span> v <span class="kw">of</span> 
+   <span class="kw">case</span> v <span class="kw">of</span>
      <span class="dt">Left</span> err <span class="ot">-&gt;</span> return (putStrLn (<span class="st">&quot;Invalid prompt: &quot;</span> <span class="fu">++</span> p)
                        <span class="fu">&gt;&gt;</span> return <span class="dt">Nothing</span>)
      <span class="dt">Right</span> () <span class="ot">-&gt;</span> <span class="kw">do</span>
@@ -252,7 +252,7 @@ initLogFileRT preamble <span class="fu">=</span> <span class="kw">do</span>
 <p>Fortunately, adapting our pure function to <code>ReaderT AppConfig IO</code> is a breeze.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">validateMsgRT ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ReaderT</span> <span class="dt">AppConfig</span> <span class="dt">IO</span> (<span class="dt">Either</span> <span class="dt">String</span> ())
 validateMsgRT msg <span class="fu">=</span> vfun <span class="fu">&lt;$&gt;</span> reader maxMessageLength
-  <span class="kw">where</span> 
+  <span class="kw">where</span>
     vfun max <span class="fu">|</span> length msg <span class="fu">&gt;</span> max <span class="fu">=</span> <span class="dt">Left</span> (<span class="st">&quot;Message too long: &quot;</span> <span class="fu">++</span> msg)
              <span class="fu">|</span> otherwise        <span class="fu">=</span> <span class="dt">Right</span> ()</code></pre></div>
 <p>A breeze, and a nice day for golfing, too. Recall that a pure function can always be <code>fmap</code>’d into a monadic result – so we put our pure validation code in <code>vfun</code> and attach it with <code>&lt;$&gt;</code>.</p>
@@ -261,10 +261,10 @@ validateMsgRT msg <span class="fu">=</span> vfun <span class="fu">&lt;$&gt;</spa
 <p>But even in the here and now, it’s kind of unfortunate we’ve bound <code>validateMsgRT</code> to <code>IO</code>. There’s no IO going on in the function after all, so it seems a shame to force any calling code to run in IO.</p>
 <h2 id="polymorphic-readert">Polymorphic ReaderT</h2>
 <p>A simple solution is to use a type variable in the two-kinded “slot” of <code>ReaderT</code>. We can’t have any old type in there though. We’ll need to constrain it to <code>Monad</code>, and because we like <code>&lt;$&gt;</code>, <code>Functor</code> too. <a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">validateMessageRTM ::</span> (<span class="dt">Functor</span> m, <span class="dt">Monad</span> m) <span class="ot">=&gt;</span> 
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">validateMessageRTM ::</span> (<span class="dt">Functor</span> m, <span class="dt">Monad</span> m) <span class="ot">=&gt;</span>
                       <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">ReaderT</span> <span class="dt">AppConfig</span> m (<span class="dt">Either</span> <span class="dt">String</span> ())
 validateMessageRTM msg <span class="fu">=</span> vfun <span class="fu">&lt;$&gt;</span> reader maxMessageLength
-  <span class="kw">where</span> 
+  <span class="kw">where</span>
     vfun max <span class="fu">|</span> length msg <span class="fu">&gt;</span> max <span class="fu">=</span> <span class="dt">Left</span> (<span class="st">&quot;Message too long: &quot;</span> <span class="fu">++</span> msg)
              <span class="fu">|</span> otherwise        <span class="fu">=</span> <span class="dt">Right</span> ()</code></pre></div>
 <p>Better: <code>IO</code> is gone. We just need our stack to operate on some Monad/Functor and we’re in business.</p>
@@ -292,17 +292,17 @@ validateMessageRTM msg <span class="fu">=</span> vfun <span class="fu">&lt;$&gt;
 </ul>
 <p>The signature of the typeclass, <code>Monad m =&gt; MonadReader r (m :: * -&gt; *) | m -&gt; r</code>, is complex, but not unlike <code>ReaderT</code> above. <code>r</code> is the environment type; <code>m</code> is constrained to be an instance of <code>Monad</code>, and must be two-kinded. (The last part is functional dependency syntax which we won’t get into here).</p>
 <p>The role of typeclasses in types is to constrain polymorphism. In the signature for <code>MonadReader</code>, we see the <code>m</code> type argument being constrained to <code>Monad</code>. In our code, we’ll want to constrain our types to <code>MonadReader</code>, which will require us to supply the <code>r</code> type, <code>AppConfig</code>:</p>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">validateMessageMR ::</span> (<span class="dt">Functor</span> m, <span class="dt">MonadReader</span> <span class="dt">AppConfig</span> m) <span class="ot">=&gt;</span> 
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">validateMessageMR ::</span> (<span class="dt">Functor</span> m, <span class="dt">MonadReader</span> <span class="dt">AppConfig</span> m) <span class="ot">=&gt;</span>
                      <span class="dt">String</span> <span class="ot">-&gt;</span> m (<span class="dt">Either</span> <span class="dt">String</span> ())
 validateMessageMR msg <span class="fu">=</span> vfun <span class="fu">&lt;$&gt;</span> reader maxMessageLength
-  <span class="kw">where</span> 
+  <span class="kw">where</span>
     vfun max <span class="fu">|</span> length msg <span class="fu">&gt;</span> max <span class="fu">=</span> <span class="dt">Left</span> (<span class="st">&quot;Message too long: &quot;</span> <span class="fu">++</span> msg)
              <span class="fu">|</span> otherwise        <span class="fu">=</span> <span class="dt">Right</span> ()</code></pre></div>
 <p>We’re open for business. This function will work with any stack or monad we can think of, as long as it provides a <code>MonadReader AppConfig</code> environment.</p>
 <h2 id="monadio">MonadIO</h2>
 <p>We can extend this polymorphic concept to our IO function too. Of course, this means that we’ll want to <em>additionally constrain</em> the monadic argument to <code>MonadIO</code>.</p>
 <p>We saw <code>MonadIO</code> above with <code>liftIO</code>. There, it was allowing <code>ReaderT</code>, an instance of <code>MonadIO</code>, to lift IO operations into its context. Now we’re going to use the typeclass itself to support any stack built off IO.</p>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">initLogFileMR ::</span> (<span class="dt">MonadReader</span> <span class="dt">AppConfig</span> m, <span class="dt">MonadIO</span> m) <span class="ot">=&gt;</span> 
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">initLogFileMR ::</span> (<span class="dt">MonadReader</span> <span class="dt">AppConfig</span> m, <span class="dt">MonadIO</span> m) <span class="ot">=&gt;</span>
                  <span class="dt">String</span> <span class="ot">-&gt;</span> m <span class="dt">Handle</span>
 initLogFileMR preamble <span class="fu">=</span> <span class="kw">do</span>
   f <span class="ot">&lt;-</span> reader logfile
@@ -315,8 +315,8 @@ initLogFileMR preamble <span class="fu">=</span> <span class="kw">do</span>
 <p>We’ve focused on how to write library functions to make use of <code>ReaderT</code>. Here we’ll write some code to show a working, if contrived, application.</p>
 <p>First, we’ll define a function to read in our values as a tuple. Don’t try this at home; using Aeson to read values as JSON, or almost anything else, is better than this hack.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">readConfig ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">AppConfig</span>
-readConfig f <span class="fu">=</span> (fromTup <span class="fu">.</span> read) <span class="fu">&lt;$&gt;</span> (readFile f) 
-    <span class="kw">where</span> fromTup (a,b,c) <span class="fu">=</span> <span class="dt">AppConfig</span> a b c </code></pre></div>
+readConfig f <span class="fu">=</span> (fromTup <span class="fu">.</span> read) <span class="fu">&lt;$&gt;</span> (readFile f)
+    <span class="kw">where</span> fromTup (a,b,c) <span class="fu">=</span> <span class="dt">AppConfig</span> a b c</code></pre></div>
 <p>Now we can create a file with the following contents:</p>
 <pre><code>(&quot;/tmp/logfile&quot;,&quot;1.0.0&quot;,20)</code></pre>
 <p>and <code>readConfig</code> will turn it into an <code>AppConfig</code>. It composes the pure function <code>read</code> (which constructs a type value from a String value) with our local function <code>fromTup</code>. Type inference figures out what <code>read</code> is inflating; the reader is encouraged to figure it out too.</p>
@@ -335,11 +335,11 @@ go <span class="fu">=</span> <span class="kw">do</span>
      m <span class="ot">&lt;-</span> liftIO <span class="fu">$</span> getLine
      v <span class="ot">&lt;-</span> validateMessageMR m
      <span class="kw">case</span> v <span class="kw">of</span>
-            (<span class="dt">Right</span> ()) <span class="ot">-&gt;</span> logMsg h <span class="fu">$</span> <span class="st">&quot;Valid Input&quot;</span> 
+            (<span class="dt">Right</span> ()) <span class="ot">-&gt;</span> logMsg h <span class="fu">$</span> <span class="st">&quot;Valid Input&quot;</span>
             (<span class="dt">Left</span> err) <span class="ot">-&gt;</span> logMsg h <span class="fu">$</span> <span class="st">&quot;Invalid input: &quot;</span> <span class="fu">++</span> err
 
 <span class="ot">logMsg ::</span> (<span class="dt">MonadIO</span> m) <span class="ot">=&gt;</span> <span class="dt">Handle</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> m ()
-logMsg h <span class="fu">=</span> liftIO <span class="fu">.</span> hPutStrLn h </code></pre></div>
+logMsg h <span class="fu">=</span> liftIO <span class="fu">.</span> hPutStrLn h</code></pre></div>
 <h2 id="runreadert">runReaderT</h2>
 <p>The <code>main</code> function loads our config file in order to launch the monad “stack.” <code>getArgs</code> obtains the array of command-line arguments, and applies the pure function <code>head</code> to get the first one; we pass this to <code>readConfig</code> to get an <code>AppConfig</code> value.</p>
 <p>With config, we’re ready to fire it up with <code>runReaderT</code>.</p>
@@ -353,7 +353,7 @@ logMsg h <span class="fu">=</span> liftIO <span class="fu">.</span> hPutStrLn h 
 <p>However, since <code>go</code> is in fact a polymorphic type, <code>runReaderT</code> also “picks the type” of <code>go</code> for this use case. This, plus the fact we’re running in IO (in <code>main</code>), fixes the type of <code>go</code> to <code>ReaderT AppConfig IO ()</code>.</p>
 <p>Indeed, we could call <code>go</code> elsewhere with a different monad stack:</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">goState ::</span> <span class="dt">IO</span> ()
-goState <span class="fu">=</span> evalStateT (runReaderT go emptyConfig) <span class="st">&quot;&quot;</span> 
+goState <span class="fu">=</span> evalStateT (runReaderT go emptyConfig) <span class="st">&quot;&quot;</span>
     <span class="kw">where</span> emptyConfig <span class="fu">=</span> <span class="dt">AppConfig</span> <span class="st">&quot;&quot;</span> <span class="st">&quot;&quot;</span> (<span class="dv">0</span><span class="ot"> ::</span> <span class="dt">Int</span>)</code></pre></div>
 <p>Here our code picks the type <code>ReaderT AppConfig (StateT String IO) ()</code>, proving that <code>go</code> is indeed polymorphic.</p>
 <p>In <code>go</code>, we loop forever, reading input, and logging validation results on it.</p>
@@ -381,14 +381,14 @@ fmap<span class="ot"> ::</span> <span class="dt">Functor</span> f <span class="o
 ghci<span class="fu">&gt;</span> <span class="fu">:</span>t (<span class="fu">&lt;*&gt;</span>)
 <span class="ot">(&lt;*&gt;) ::</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span> f (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> f a <span class="ot">-&gt;</span> f b
 ghci<span class="fu">&gt;</span> <span class="fu">:</span>t pure
-<span class="ot">pure ::</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> f a</code></pre></div>
+pure<span class="ot"> ::</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> f a</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Applicative</span> <span class="dt">CReader</span> <span class="kw">where</span>
     pure <span class="fu">=</span> return
     (<span class="dt">CReader</span> f) <span class="fu">&lt;*&gt;</span> (<span class="dt">CReader</span> a) <span class="fu">=</span> <span class="dt">CReader</span> <span class="fu">$</span> \c <span class="ot">-&gt;</span> (f c) (a c)</code></pre></div>
 <p><code>pure</code> is self-explanatory. For <code>&lt;*&gt;</code>, much like the <code>bind</code> implementation above, we simply apply the <code>c</code> from the outer lambda to the contained function argument <code>f</code> and applied value <code>a</code>, and wrap the result of applying one to the other into the new <code>CReader</code> value.</p>
 <p>A contrived usage is to trim the app version String to the max message length.</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">trimVersion ::</span> <span class="dt">CReader</span> <span class="dt">String</span>
-trimVersion <span class="fu">=</span> take <span class="fu">&lt;$&gt;</span> fmap maxMessageLength askConfig 
+trimVersion <span class="fu">=</span> take <span class="fu">&lt;$&gt;</span> fmap maxMessageLength askConfig
                    <span class="fu">&lt;*&gt;</span> fmap version askConfig</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">ghci<span class="fu">&gt;</span> runCR trimVersion (<span class="dt">AppConfig</span> <span class="st">&quot;logfile&quot;</span> <span class="st">&quot;Version 1.0 build 323451&quot;</span> <span class="dv">11</span>)
 <span class="st">&quot;Version 1.0&quot;</span></code></pre></div>

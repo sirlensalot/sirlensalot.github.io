@@ -27,123 +27,100 @@
             <h1>Algorithmic Compositional Techniques Developed for "Pleonid"</h1>
 
             <div class="info">
-    Posted on May 15, 2015
+    Posted on October 30, 2016
     
-        by Stuart Popejoy. <span id="lhs-src">
-    <a href="https://github.com/slpopejoy/tatterdemalion/blob/master/posts/Pleonid.lhs">Literate
-    source</a>
-    </div>
-    
+        by Stuart Popejoy
 </div>
 
-<p>“Pleonid” (2012, Stuart Popejoy) is an algorithmic composition for quintet. This paper describes the methods used for its creation, “warts and all”. It also discusses the advantages found after porting the entire composition from Java into Haskell, a typed functional programming language.</p>
+<h1 id="abstract">Abstract</h1>
+<p>“Pleonid” is an algorithmic composition for quintet premiered in May 2012. It is generated, arranged and scored entirely by software. This paper describes the largely generative methods employed, including a novel re-working of the “Tone Clock” by Peter Schat, as well as a new use of <em>braids</em> as both a motif- and counterpoint-generating techique.</p>
+<h1 id="introduction">Introduction</h1>
+<p>Pleonid is both a piece that was performed live in May 2012 by musicians reading from a score, as well as a software program. The software builds a piece from three types of sections: “melody” passages instruct musicians to freely interpret written motives; “vamp” sections feature a soloist improvising freely over a fixed, repeating chordal accompaniment; “braid” sections are through-composed, contrapuntal vignettes.</p>
+<p>The quintet piece from May 2012 is but a single parameterization of the software, however. The melodic material, “gamut” (a term I use to describe pseudo-octave intervals other than 12-note), the number of instruments, and instrument-transposition scheme (related to gamut) are all examples of parameters that can be changed, producing entirely new if related compositions.</p>
+<p>This paper uses the term “Pleonid” to refer to both the software and the piece. When a particular phrase or note configuration is mentioned, this reflects examples drawn from the particular piece. Techniques and methods however refer to the software and any piece that might be generated from it. <a href="#appendix-a">Appendix A</a> lists all the parameters required by the program.</p>
 <h1 id="generative-techniques-for-pitch-sequences">Generative Techniques for Pitch Sequences</h1>
-<p>“Pleonid” employs a minimum of random or stochastic techniques preferring a generative, elaborative approach. The first phase of generation involves manipulating pitch sets to arrive at a series of pitch sequences, or “lines”, which will form the basis of the piece. The path to these lines is covered in this section.</p>
-<p>The “seed” of the entire composition is a melodic sequence.</p>
+<p>The software’s first task is to generate a body of pitch-sequence material. It uses a single pitch sequence as input to get started.</p>
 <div class="figure">
 <img alt="Seed melody of Pleonid." class="small" src="figures/pleonid/01-seed__small.png" />
 <p class="caption">Seed melody of <em>Pleonid</em>.</p>
 </div>
-<p>This is normalized into a <em>pitch class set</em> of value <code>[0,2,3,4,5,7]</code> (No. 6-8 in Forte classification). Departing from set theory, I use this ordered sequence as a “scale” for further transformations.</p>
+<p>The pitch-class set of the source melody is determined. In Pleonid this is <code>[0,2,3,4,5,7]</code>, Forte no. <a href="https://en.wikipedia.org/wiki/List_of_pitch_class_sets">6-8</a>). However this is not used for pitch-set transformations but as a concrete scale.</p>
 <div class="figure">
 <img alt="Pitch class set and main scale." class="small" src="figures/pleonid/01a-seedScale__small.png" />
 <p class="caption">Pitch class set and main scale.</p>
 </div>
-<h2 id="gamut">Gamut</h2>
-<p>One of the properties of the sequence/scale is its range, namely that it is less than the 12-semitone range of a standard scale. The term “gamut” is used to describe this range, with 12 being the usual value in Western equal-tempered music. For our purposes, gamut is preferred to “octave” which invokes the chroma identity.</p>
-<p>Using gamuts other than 12 create interest by effectively transposing pitches by register, as well as limiting or expanding the search space for intervals and melodies.</p>
-<p>In this case of the pitch class set-sequence, the reduced range creates an effective gamut of 7. For many procedures in Pleonid I use a gamut of 10, such as for the “steerings” described below, mainly to create interesting non-octave symmetries. When we discuss orchestration below we’ll see 10 used again for its intervallic character.</p>
-<h2 id="generating-n-ads">Generating N-ads</h2>
-<p>The first transformation is to generate every chord or “sub-scale” that can be built from this scale/sequence.</p>
-<p>The interval vector of the pitch set is used, that is the ordered intervals or deltas between the pitches: <code>[2,1,1,1,2]</code>. By enumerating every possible ordered sum of these values, I determine every chord or “N-ad” (dyad, triad, tetrad etc) that can be projected onto this sequence.</p>
-<p>The function <code>genNAds</code> achieves this with concatenation of two recursive list comprehensions:</p>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">genNAds ::</span> <span class="dt">Num</span> a <span class="ot">=&gt;</span> [a] <span class="ot">-&gt;</span> [[a]]
-genNAds []     <span class="fu">=</span> [[]]
-genNAds (x<span class="fu">:</span>xs) <span class="fu">=</span> [x<span class="fu">:</span>ps <span class="fu">|</span> ps <span class="ot">&lt;-</span> genNAds xs] <span class="fu">++</span> 
-                     [(x<span class="fu">+</span>p)<span class="fu">:</span>ps <span class="fu">|</span> p<span class="fu">:</span>ps <span class="ot">&lt;-</span> genNAds xs]</code></pre></div>
-<p>This is a first illustration of the admirable expressiveness of functional programming. The corresponding Java code is considerably longer and more bug-prone. <a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
-<p>To illustrate, let’s take the sequence <code>C D E F</code>, whose intervals are <code>[2,2,1]</code>. The resulting tuples are <code>[[2,2,1],[2,3],[4,1],[5]]</code>.</p>
+<h2 id="finding-all-scales-in-the-source-scale">Finding all scales in the source scale</h2>
+<p>The first elaboration finds every “sub-scale” or chord that can be built from the main scale. This is done by computing every ordered sum possible in the scale’s interval vector. For example, the sequence <code>C D E F</code> has intervals <code>[2,2,1]</code>. The resulting tuples are <code>[[2,2,1],[2,3],[4,1],[5]]</code>.</p>
 <div class="figure">
-<img alt="Generating all N-ads from a sequence." class="small" src="figures/pleonid/02-genNAds__small.png" />
-<p class="caption">Generating all “N-ads” from a sequence.</p>
+<img alt="Generating all chords in scale C-D-E-F" class="small" src="figures/pleonid/02-genNAds__small.png" />
+<p class="caption">Generating all chords in scale C-D-E-F</p>
 </div>
-<p>Performing this operation on the Pleonid interval vector <code>[2,1,1,1,2]</code> produces 16 tuples. Like the example, the final dyad simply bounds the scale, so I drop it as trivial/uninteresting. Note the full scale is the first tuple.</p>
+<p>Performing this operation on the Pleonid interval vector <code>[2,1,1,1,2]</code> produces 15 tuples (the final dyad is discarded, as too trivial a “scale”).</p>
 <div class="figure">
 <img alt="Pleonid scale tuples." src="figures/pleonid/02a-genNAdsPleonid.png" />
 <p class="caption">Pleonid scale tuples.</p>
 </div>
-<h2 id="the-tone-clock">The Tone Clock</h2>
-<p>The motivation for generating these interval sets, or chords, is to subdivide a scale or gamut in a way to generate diverse yet related intervallic material. The approach borrows from by procedures invented by the Dutch composer Peter Schat, called the “Tone Clock.” <a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
-<p>The tone clock represents the 12 distinct triads that can be “set” into the 12-tone gamut. Triads are identified as <em>normalized, invertible</em> classes. Thus the major triad is represented as <code>(4,3)</code> and classified with its inverse, the minor triad <code>(3,4)</code>.</p>
-<p>The 12-tone scale has 12 of these triad classes. Schat dubs these the “hours” of the “tone clock”. Each “hour” has a fixed number of configurations by which the triad class can be placed to saturate all notes of the scale.</p>
-<p>In the case of the major/minor triad, hour “IX” on his clock, there are exactly two configurations: major/minor/major/minor at <code>0,2,6,8</code>, and minor/minor/major/major at <code>0,2,4,6</code>. Schat calls these configurations “steerings”, as if we were “steering” the chord through the 12-tone gamut.</p>
+<h1 id="steering-scales-a-modified-tone-clock">Steering Scales: a modified Tone Clock</h1>
+<p>The scales produced are now used to generate pitch sequences, using techniques inspired by the “Tone Clock” of Dutch composer Peter Schat.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> In the Tone Clock, triads are classified with their inversion: the major triad, represented by the intervals <code>[4,3]</code>, forms a class or “hour” with its inverse, the minor triad <code>[3,4]</code>, and so on. The 12-tone scale has 12 triad classes or “hours”, thus the Clock metaphor.</p>
+<p>Schat then shows that for each triad class, there is a fixed number of configurations by which placements of the triad and its inversion can saturate all 12 notes, or form a row in dodecaphonic terminology. Schat calls these configurations <em>steerings</em>, as though the triad class is being “steered” through the 12-tone space.</p>
+<p>For example, the major/minor triad class has exactly two possible steerings: major at 0, minor at 2, major at 6, and minor at 8; and minor at 0, minor at 2, major at 4, major at 6. It is noteworthy that each triad steering produces a tetrad of the triad roots, here <code>[0,2,6,8]</code> and <code>[0,2,4,6]</code>.<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
 <div class="figure">
-<img alt="Steerings of Hour IX, the major/minor triad class in the Tone Clock." src="figures/pleonid/03-ixSteerings.png" />
-<p class="caption">Steerings of “Hour IX”, the major/minor triad class in the Tone Clock.</p>
+<img alt="Steerings of the major/minor triad class hour in the Tone Clock." src="figures/pleonid/03-ixSteerings.png" />
+<p class="caption">Steerings of the major/minor triad class “hour” in the Tone Clock.</p>
 </div>
-<p>Each triad class or “hour” has a fixed number of configuration “steerings”, with 33 total configurations over all classes. Each configuration can be seen as producing a tetrad of the bottom-note placements. <a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a></p>
+<p>The 12 triad classes produce 33 steerings in total.</p>
 <h2 id="steerings-in-pleonid">Steerings in Pleonid</h2>
-<p>The classification and steering of a triad can be applied to apply to any N-ad. Clearly a dyad or a tetrad can be configured the same way within the scale. Of course, with more than 2 intervals, we are no longer simply “inverting” the chord but <em>rotating</em> it, such that for the tetrad <code>(1,3,2)</code> we have <code>(3,2,1)</code> and <code>(2,1,3)</code>.</p>
+<p>In Pleonid, Schat’s triad classes are expanded to accept any chord size or “N-ad”. With tetrad and larger chords, inversion is too limited as a classifying method; we use the more general <em>rotation</em> of chord intervals to find all class members. For triads, rotation and inversion are isomorphic: the major triad class <code>([3,4],[4,3])</code> represents all rotations of <code>[4,3]</code>. For tetrads, three such rotations are possible: the tetrad <code>[1,3,2]</code> produces the class <code>([1,3,2],[3,2,1],[2,1,3])</code>. Pentads will have four class members, and so forth.</p>
 <div class="figure">
-<img alt="Rotations of the tetrad (1,3,2)." class="small" src="figures/pleonid/03a-tetradRotation__small.png" />
-<p class="caption">Rotations of the tetrad (1,3,2).</p>
+<img alt="Rotations of the tetrad [1,3,2]." class="small" src="figures/pleonid/03a-tetradRotation__small.png" />
+<p class="caption">Rotations of the tetrad [1,3,2].</p>
 </div>
-<p>Likewise, the gamut can be other values than 12.</p>
-<p>With different chord sizes and gamuts, total saturation (i.e., “using up” all of the gamut values with a steering configuration) becomes difficult or impossible. In Pleonid this requirement is removed, instead searching for <em>maximal</em> instead of <em>total</em> saturation.</p>
-<p>By relaxing this constraint, I was able to “steer” most tuples below 1/2 the size of the gamut of 10. Even so, some chords do not “steer”, either because the note count is too large, or the intervals do not permit any further placements.</p>
+<p>Additionally, steering is expanded to configure an arbitrary gamut, instead of just the 12-tone space; in Pleonid the gamut of 10 is used. This however means that the full saturation is not always possible, as the chord size might not evenly divide into the gamut: a triad for instance will not “place” into a 10-gamut using up all pitches. Thus, the constraint of full saturation is removed: <em>maximal</em> saturation of the gamut is found, when total saturation is not possible.</p>
+<p>Lastly, a steering means there must be at least two placements: if a chord cannot be placed with its class in any way in a gamut, it is rejected altogether.</p>
 <h2 id="steering-algorithm">Steering algorithm</h2>
-<p>The search for all valid configurations of a tuple class in a gamut begins with the observation that every N-ad is steered by another “M-ad” where <code>M</code> is N divided by the gamut. Thus a 5-tuple is steered by some dyad (2-tuple) in a 10-gamut.</p>
-<p>Thus the search space is every possible “steering” M-ad in the gamut, configured with every possible rotation of the N-ad placed in each “slot” in the M-ad. Collisions are invalidated, and duplicates removed, producing a final result of valid configurations.</p>
-<p>For example, finding all steerings of the 5-tuple <code>(2,1,2,2)</code> in a 10-gamut means searching every possible dyad (90 total) with every possible rotation (4 total) resulting in 360 candidates. Some optimizations are possible, for instance dyads having intervals larger than 1/2 the gamut size are “un-steerable”. For this 5-tuple, just 2 steerings are found.</p>
+<p>The search for all valid configurations of a tuple class in a gamut begins with the observation that every N-ad is steered by another “M-ad” where <code>M</code> is N integer-divided by the gamut. Thus a triad is steered by a tetrad in the 12-gamut: <code>12 / 3 = 4</code>. In a 10-gamut, a triad would be steered by some other triad: <code>10 / 3 = 3</code> (truncated), and a pentad by a dyad: <code>10 / 5 = 2</code>.</p>
+<p>The search thus enumerates every M-ad in the gamut, and makes candidate steerings by placing each possible N-ad rotation at each position specified by the M-ad. Candidates are filtered for collisions and duplicates, producing the final result.</p>
+<p>One interesting result of using gamuts other than 12 is “gamut-wrapping”: chord placements that “wrap” around the gamut boundary are modulo-remaindered to the appropriate gamut degree. In a 12-gamut, this results in the same chroma, but in other gamuts, different chromas result, as illustrated below.</p>
+<p>For example, finding all steerings of the 5-tuple <code>[2,1,2,2]</code> in a 10-gamut means searching every possible dyad (90 total) with every possible rotation (4 total) resulting in 360 candidates. Some optimizations are possible, for instance dyads having intervals larger than 1/2 the gamut size are “un-steerable”. For this 5-tuple, just 2 steerings are found.</p>
 <div class="figure">
-<img alt="Steering (2,1,2,2) in a 10-gamut." src="figures/pleonid/05-pleoSteering3.png" />
-<p class="caption">Steering (2,1,2,2) in a 10-gamut.</p>
+<img alt="Steering [2,1,2,2] in a 10-gamut." src="figures/pleonid/05-pleoSteering3.png" />
+<p class="caption">Steering [2,1,2,2] in a 10-gamut.</p>
 </div>
-<p>The last tuple of the second steering is noteworthy, as the last note is “gamut-wrapped”. The rotation of the interval is <code>(2,2,1,2)</code> but since the last note goes above the gamut boundary (Bb), it must be “wrapped” (modulo) for the gamut, resulting in the C# pitch instead of a B.</p>
-<p>This is one way non-standard gamuts create interest. In a 12-gamut the chroma would be identical: a D above the octave “sounds the same” as the D below. Here, C# sounds quite different than B, adding new pitch information to the composition.</p>
-<p>This is performed for the 15 scale tuples shown above. Only 3 tuples are “un-steerable,” while the rest were quite productive, producing 49 distinct steerings.</p>
-<h2 id="preserving-seed-melody-features-or-not">Preserving seed melody features (or not)</h2>
-<p>The 49 steerings created have an almost random character, except for their “source” being an interval derived from the scale tuples. To amplify the intervallic character, the steerings are filtered by a rule where at least one of the steering tuples must be built from the seed scale.</p>
-<p>With the <code>[0,2,3,4,5,7]</code> seed scale, the steering <code>[0,2,3,5,7],[4,6,8,9,1]</code> is allowed, since the first tuple <code>[0,2,3,5,7]</code> can be built from the seed scale. Meanwhile, the steering <code>[0,1,3,5,7],[2,4,6,8,9]</code> is discarded, since both tuples have notes outside of the seed scale.</p>
-<p>This filter reduces the 49 steerings to 32. The tuples then undergo a mapping procedure, intended to map any scale tones back to the register they appear in the original seed sequence. So for instance, if a <code>G</code> appears in a chord, it would be mapped to below middle-C.</p>
+<p>The last tuple of the second steering illustrates gamut-wrapping. The rotation of the interval is <code>[2,2,1,2]</code> puts the last <code>B</code> above the gamut boundary of <code>Bb</code>; modulo wrapping results in a <code>C#</code>. This illustrates how non-standard gamuts create melodic interest: in a 12-gamut, wrapping notes above the gamut result in the same chroma with different pitch-height; here, having a <code>C#</code> instead of a <code>B</code> adds new pitch information to the composition.</p>
+<p>Of Pleonid’s 15 tuples produced above, 3 tuples are un-steerable but the rest are quite productive, producing 49 distinct steerings.</p>
+<h2 id="preserving-seed-melody-features">Preserving seed melody features</h2>
+<p>While all 49 steerings are created from a single scale, the steerings introduce a great deal more pitch information which obscures any relationship to the original material. The attempt to recover and amplify this relationship starts by filtering out sequences that do not have at least one steering chord composed entirely of seed-scale pitches.</p>
+<p>From the 5-tuple example above, the second steering <code>[0,2,3,5,7],[4,6,8,9,1]</code> is allowed, since the first tuple is made from intervals contained in the <code>[0,2,3,4,5,7]</code> seed scale. However, the first steering <code>[0,1,3,5,7],[2,4,6,8,9]</code> is discarded, since both tuples have intervals outside of the seed scale.</p>
+<p>This filter reduces the 49 steerings to 32. The tuples then undergo a mapping procedure, designed to map any scale tones back to the register they appear in the original seed sequence. So for instance, if a <code>G</code> appears in a chord, it would be mapped to below middle-C.</p>
 <div class="figure">
-<img alt="Intended mapping of pitches onto original seed sequence." src="figures/pleonid/06-mappingCorrect.png" />
-<p class="caption">Intended mapping of pitches onto original seed sequence.</p>
+<img alt="Mapping pitches to their register in the original seed sequence." src="figures/pleonid/06-mappingCorrect.png" />
+<p class="caption">Mapping pitches to their register in the original seed sequence.</p>
 </div>
-<p>This mapping procedure did not go as planned however! A bug in the original Java code resulted in a more or less random mapping.</p>
+<p>Unfortunately, I did not verify these original results carefully, as I discovered later: a bug in the code in fact results in a fairly chaotic remapping of pitches. <a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a></p>
 <div class="figure">
-<img alt="Buggy mapping makes for unplanned results." src="figures/pleonid/07-mappingIncorrect.png" />
-<p class="caption">Buggy mapping makes for unplanned results.</p>
+<img alt="Actual mapping in Pleonid code." src="figures/pleonid/07-mappingIncorrect.png" />
+<p class="caption">Actual mapping in Pleonid code.</p>
 </div>
-<p>Thus the attempt to “preserve seed melody features” more or less fails. The filtering above prefers tuples carrying the seed-scale pitches, but the buggy mapping affects seed-scale pitches <em>more</em> than non-seed-scale ones. Thus these very pitches are the most distorted. At least, the mapping succeeds in adding some intervallic interest to a gamut-limited set of chords.</p>
-<p>This bug was only discovered during the port to Haskell. Like much combinatorial code in Java, the mapping code was creaky and complex, while the Haskell code is concise and far simpler. I now have both methods, the broken and the correct one. Future works will choose which “sounds better”. So much for formal purity!</p>
-<h2 id="lines-from-chords">Lines from chords</h2>
-<p>We now have 32 steerings, which group tuples of a particular size: 2 5-tuples, or 3 3-tuples, etc. Melodies are generated from this by simply interleaving the values to create a longer line.</p>
+<p>Thus, this attempt to preserve seed melody features fails: by mis-assigning pitches found in the original pitch-set, values reflecting the seed melody are <em>more distorted</em> than other values. Nonetheless, it creates more intervallic motion than would otherwise be present.<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a></p>
+<h2 id="pitch-sequences-from-steerings">Pitch sequences from steerings</h2>
+<p>The 32 modified steerings are made into pitch sequences or “lines” by arpeggiating the tuples constituting the steering, and then interleaving the results.</p>
 <div class="figure">
 <img alt="Interleaving steerings to generate lines." src="figures/pleonid/08-interleave.png" />
 <p class="caption">Interleaving steerings to generate lines.</p>
 </div>
-<p>To maximize interest, monotonically increasing or decreasing lines – lines that only move in one direction – are discarded. Interestingly this results in only one result filtered.</p>
-<p>This results in 31 lines, which form the foundation of the actual musical composition. We’re ready to create real musical ideas.</p>
-<h1 id="rhythm-melody-motif-braids">Rhythm + Melody = Motif: Braids</h1>
-<p>The next step in composing Pleonid is to use the pitch information in the lines to produce rhythmic information. This is accomplished by projecting the pitch sequences into a “strand” and using this to generate a “braid” of contrapuntally-related motives.</p>
-<p>My concept of braids borrows from <em>knot theory</em> in mathematics, in which idealized knots or braids are formalized as polynomials, and categorized by salient features such as how many crosses occur, how many strands are being tied, etc. <a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a></p>
-<p>A braid in Pleonid is derived from the “braid representation” of a knot. It is a two-dimensional representation, of fixed dimension, where strands cross over and under each other as they move horizontally.<a href="#fn5" class="footnoteRef" id="fnref5"><sup>5</sup></a></p>
+<p>Monotonically increasing or decreasing lines are filtered, removing one result. 31 sequences remain, representing the totality of intervallic material used in the composition.</p>
+<h1 id="rhythm-pitch-motif-braids-for-rhythmic-generation">Rhythm + Pitch = Motif: Braids for Rhythmic Generation</h1>
+<p>The 31 sequences are given rhythmic character to form the main motivic “lines” of the piece. This is accomplished by projecting the pitch sequences onto a strand of a <em>braid</em>.</p>
+<p>Braids are 2-dimensional representations of knots, used in a <a href="https://en.wikipedia.org/wiki/Knot_theory">branch of mathematics</a> that seeks to describe and understand the essential features of knots, with applications in bioinformatics, fluid mechanics and cryptography. Braids themselves form a <a href="https://en.wikipedia.org/wiki/Braid_group">group</a>, but most significantly for Pleonid, they present a cartesian-style left-to-right “plot” of information that resembles music notation or “piano rolls”.</p>
+<h2 id="musical-interpretation-of-a-braid-strand">Musical interpretation of a braid strand</h2>
+<p>A braid is built from “strands” which proceed from left to right, crossing over or under other strands as it weaves through the braid representation. The musical interpretation reads each strand as a pitch sequence changing in time, with the x-axis representing a time quanta (an eighth-note in Pleonid), and the y-axis <em>indexing</em> pitch degrees from some pitchset.</p>
 <div class="figure">
-<img alt="A braid from Pleonid. The numbers index the vertical position to pitches." src="figures/pleonid/braid_strands_05-20x7.png" />
-<p class="caption">A braid from Pleonid. The numbers index the vertical position to pitches.</p>
+<img alt="A braid from Pleonid. A column or step represents an eighth-note duration, with vertical positions representing specific pitches." src="figures/pleonid/braid_strands_05-20x7.png" />
+<p class="caption">A braid from Pleonid. A column or “step” represents an eighth-note duration, with vertical positions representing specific pitches.</p>
 </div>
-<p>In Pleonid, all of these features are given musical meaning.</p>
-<h2 id="braid-musical-features">Braid musical features</h2>
-<p>A braid is built from “strands” which proceed from left to right; as such, each strand represents a voice changing pitch in time. Positions on the x-axis are fixed time intervals (like an eighth note). Positions on the y-axis are <em>indexed</em> to a scale, instead of a direct y-axis representation of pitch. A chromatic scale would therefore reproduce the y-axis values.</p>
-<p>In braids, any change in y-position indicates a <em>cross</em>, meaning an adjacent strand will make the complementary change at the same x-position. The cross has a particular <em>polarity</em> such that one strand is crossing “over” the other.</p>
-<p>For musical assignment, an <code>UNDER</code> cross is seen as a “hidden” pitch change, meaning the previous pitch still plays for that unit of time. An <code>OVER</code> cross means an immediate shift to the indexed pitch.</p>
+<p>The polarity of a cross – whether a strand passes over or under another strand – is used to decide when a strand sounds a particular pitch. An over-cross or flat cross sounds the indexed pitch, whereas an under-cross continues the pitch started in a previous cross. Under-crosses at the beginning of a strand are removed. For instance, in the braid above, the strand starting at <code>10</code> begins with an over cross, sounding the pitch <code>10</code> through the following 4 under-crosses. It then over-crosses at <code>1</code>, and again at <code>5</code>, resulting in two new notes.</p>
 <h2 id="projecting-a-pitch-sequence-as-a-strand">Projecting a pitch sequence as a strand</h2>
-<p>To generate a braid, we first “project” a pitch sequence as a <em>strand</em>. An index is made from the sorted set of all pitches used, so that pitches will be plotted on the y-axis at their index.</p>
-<p>Strands are built from “steps” defined as a pitch index value and a “weave”, which is an instruction for how to move to the next step. Weaves indicate if the move is <code>UP</code>, <code>DOWN</code>, or <code>FLAT</code>, as well as whether the move is <code>UNDER</code> or <code>OVER</code> (for non-<code>FLAT</code> weaves).</p>
-<p>The algorithm locates the next pitch index in the sequence. If adjacent to the current index, it assigns an <code>OVER</code> transition with <code>UP</code> or <code>DOWN</code>. If the pitch index is the same, it assigns <code>FLAT</code>.</p>
-<p>If the pitch index is not adjacent, it assigns <code>UNDER</code>, with a direction <code>UP</code> or <code>DOWN</code> which will “lead to” the next index. This continues until the next pitch index is reached.</p>
-<p>The process repeats until the last pitch, which does not need its own “step” since the index has already been determined by the steps leading up to it.</p>
+<p>Using the rules above, the generated pitch sequences are each “projected” as a strand of a braid. The sequence is analyzed to generate a pitch index for the Y-axis, and the strand starts at the first pitch, immediately travelling to the second. This method results in pitch transitions taking longer for more “remote” pitches.</p>
 <div class="figure">
 <img alt="The source line." class="small" src="figures/pleonid/10-strandSource__small.png" />
 <p class="caption">The source line.</p>
@@ -152,51 +129,227 @@ genNAds (x<span class="fu">:</span>xs) <span class="fu">=</span> [x<span class="
 <img alt="The strand generated from the source line." src="figures/pleonid/strand_05.png" />
 <p class="caption">The strand generated from the source line.</p>
 </div>
-<p>The resulting rhythmic behavior of the projection turns the pitch sequence into a motive. A strange feature of the strand realization is the last pitch. Since there is no “step” governing it, it is assigned an “extra” time value.</p>
 <div class="figure">
-<img alt="The strand realized as motive." src="figures/pleonid/11-strandResult.png" />
-<p class="caption">The strand realized as motive.</p>
+<img alt="The resulting melody." src="figures/pleonid/11-strandResult.png" />
+<p class="caption">The resulting melody.</p>
 </div>
-<h2 id="braid-generation-from-a-strand-contrapuntal-motives">Braid generation from a strand: contrapuntal motives</h2>
-<p>With the single strand, braid crossing rules indicate how other strands might interact with the source strand. To fill an entire braid however requires a generation algorithm. The approach taken is to generate one “column” at a time, starting with the first “step” of the braid and moving forward.</p>
-<p>Within a given column, generation proceeds from the step’s row upwards, simply iterating a fixed order of “weaves” (<code>DOWN_UNDER</code>, <code>UP_OVER</code>, <code>FLAT</code>, <code>DOWN_OVER</code>, <code>UP_UNDER</code>), starting from the weave at the step. This produces a “terraced” effect of flat alternating with crosses; plus, the crosses switch “polarity” (<code>OVER</code> vs <code>UNDER</code>) for additional diversity.</p>
-<p>This is then repeated downward from the step, with the terracing order reversed. In the original code, the downward generator loses the “polarity switch” effect (a bug); in the Haskell version this quirk is offered as an option.</p>
-<p>Finally, a “capping” rule is applied. Braids cannot have an upward cross from the top position, nor a downward cross from the bottom, so these are coverted to <code>FLAT</code>.</p>
+<p>The last note of a strand presents a problem with this interpretation, as it has no length information. In Pleonid, we simply assign this last note the minimum duration, an eighth-note.</p>
+<p>By projecting the 31 sequences onto strands, we have now provided rhythmic information to arrive at 31 melodies or motives. These are used in the “interpretive” sections of the piece, where a musician uses a melody to ground structured improvisation.</p>
+<h1 id="elaboration-braids-for-counterpoint">Elaboration: Braids for Counterpoint</h1>
+<p>The creation of a strand actually specifies an entire braid in itself, but not a very musically-interesting one, with other strands sustaining their indexed pitch until they encounter the source strand.</p>
 <div class="figure">
-<img alt="Filling a braid from a single strand. The terraced generator results are shown on odd columns only, to illustrate the columnar algorithm." class="small" src="figures/pleonid/strand_tcol_01__small.png" />
-<p class="caption">Filling a braid from a single strand. The “terraced” generator results are shown on odd columns only, to illustrate the columnar algorithm.</p>
+<img alt="The strand above as a minimal braid." class="small" src="figures/pleonid/sbraid_strands_10-16x7__small.png" />
+<p class="caption">The strand above as a minimal braid.</p>
+</div>
+<p>In Pleonid, braids are further elaborated using a “terracing” strategy, vertically inverting and reflecting the source strand material.</p>
+<p>Each transition in the source strand is seen as a “column” or “step”, being either UP, DOWN or FLAT; the cross type is identified as OVER or UNDER. Moving away vertically from the strand step, FLATs and crosses are alternated; when a cross is generated, it is “reflected” from the previous cross – a DOWN becomes an UP and an OVER becomes an UNDER. The alternating flats and inverting crosses produces a visually “terraced” effect. At the vertical edges, duplicate FLATs are inserted if a cross would violate the braid boundary. <a href="#fn5" class="footnoteRef" id="fnref5"><sup>5</sup></a></p>
+<div class="figure">
+<img alt="Elaborating a braid. The terracing result is shown on every-other step to illustrate the columnar approach." class="small" src="figures/pleonid/strand_tcol_01__small.png" />
+<p class="caption">Elaborating a braid. The “terracing” result is shown on every-other step to illustrate the columnar approach.</p>
 </div>
 <div class="figure">
 <img alt="The resulting braid." class="small" src="figures/pleonid/braid_strands_01-11x6__small.png" />
 <p class="caption">The resulting braid.</p>
 </div>
-<p>Thus the full braids are generated. Each strand generated is a different motif, but within the same scale, and lasting the same amount of time, as the source strand.</p>
-<h2 id="braid-sequences">Braid “sequences”</h2>
-<p>An key feature of braids is the representation of a <em>loop</em> within a knot, where a strand “loops back” to make a different cross, potentially with itself or a distinct strand.</p>
-<p>In a braid, a loop is indicated by a strand ending on a different y-position than where it starts. This “extends” the strand to the beginning of the strand starting at the end position. This continues until a strand’s ending position points back at the first strand’s starting position. <a href="#fn6" class="footnoteRef" id="fnref6"><sup>6</sup></a></p>
-<p>Since “loop” has a different connotation in music, I call these longer, joined strands <em>sequences</em>. Sequences can consume every strand in a braid, or a braid can have two or three sequences, or just one-strand sequences with no loops.</p>
+<p>The resulting braid now has more motion in the non-source strands, and importantly has more <em>looping</em> than the minimal braid.</p>
+<h2 id="braid-loops">Braid Loops</h2>
+<p>When a braid strand terminates at a different Y-position than where it started, it is seen as joining the strand starting at the ending Y-position of the first. The integrity of the braid representation means that this strand will too end at a different position, eventually forming a “loop” that joins back with the starting strand. A complex braid of many strands may indeed represent a single loop.</p>
 <div class="figure">
-<img alt="Sequences of a braid." src="figures/pleonid/braid_seqs_13-20x7.png" />
-<p class="caption">“Sequences” of a braid.</p>
+<img alt="A braid with 7 strands, but only 3 loops, differentiated by color." src="figures/pleonid/braid_seqs_13-20x7.png" />
+<p class="caption">A braid with 7 strands, but only 3 loops, differentiated by color.</p>
 </div>
-<p>In the figure, the strand starting at index 10 ends at index 9, thus looping to the strand at index 9. This strand ends at 10 completing the loop as a two-strand sequence. The strand at 8 ends at 8, so it is a one-strand sequence. Finally, the strands at 6, 0, 5 and 1 join as a 4-strand sequence.</p>
-<p>Sequences add an interesting “metric” dimension to braids. While sequences are potentially of different length, they will always be a multiple of the strand length. This creates “multi-bar” longer motives, with the shorter motives repeating at the “bar” interval.</p>
+<p>Loops have compelling musical properties, as interpreted in Pleonid: a loop length will always be a multiple of the “braid length” or number of steps. If the braid length is a “bar”, single-strand loops repeat every bar, while 2-loops only repeat every two bars, and so forth, creating easily discernable temporal interplay between parts. In Pleonid loops, not strands, are assigned to parts, so two braids of the same “height” will often have different polyphony.</p>
 <div class="figure">
-<img alt="Braid sequences realized." src="figures/pleonid/braid-13.png" />
-<p class="caption">Braid sequences realized.</p>
+<img alt="Braid loops realized. The first staff is a 4-bar phrase, the second 1-bar, the third 2-bar." src="figures/pleonid/braid-13.png" />
+<p class="caption">Braid loops realized. The first staff is a 4-bar phrase, the second 1-bar, the third 2-bar.</p>
 </div>
-<p>The figure shows a realization of the three sequences from the braid above, transposed a 10th apart from each other. The 4-sequence is on the top staff, lasting 4 bars. The 1-sequence in the middle repeates 4 times, while the 2-seauence on the bottom staff repeats twice.</p>
-<h1 id="braid-chords">Braid Chords</h1>
-<p>I also chose 10 as a register “layout” for the quintet instrumentation. 10, the “dominant 7” interval, is near the major- and minor-sixth interval that makes for sonorous and pleasing voicings. Meanwhile each voice ends up with a harmonic/melodic “neighborhood” distinct from the other instruments.</p>
+<p>In the figure, the braid loops shown above are orchestrated for three parts, using a 10-semitone register divide. The top staff has the longest loop, lasting the full 4 bars. The second staff has the shortest loop, repeating a one-bar figure 4 times. The third staff has a 2-bar figure, repeated twice.</p>
+<p>The 31 melodic figures thus create 31 contrapuntal passages, forming the “braid” sections of the piece.</p>
+<h1 id="braid-vamps">Braid “Vamps”</h1>
+<p>The final generative procedure filters each of the 31 braid passages to find simultaneous note onsets across all parts. The note lengths are matched to the longest note in the onset group.</p>
+<div class="figure">
+<img alt="A braid realization with simultaenous note onsets colored in red." src="figures/pleonid/braid_03-chords.png" />
+<p class="caption">A braid realization with simultaenous note onsets colored in red.</p>
+</div>
+<div class="figure">
+<img alt="The resulting chordal passage. For each chord, the longest note found determines the ensemble length." src="figures/pleonid/chords_03.png" />
+<p class="caption">The resulting chordal passage. For each chord, the longest note found determines the ensemble length.</p>
+</div>
+<p>These form the “vamp” sections. As the chord sections are generated, the software keeps track of a “soloist” index which is advanced for each section, skipping those who are playing; this selects an instrument to be instructed to improvise freely over the chordal accompaniment.</p>
+<h1 id="arrangement-and-orchestration">Arrangement and Orchestration</h1>
+<p>With all musical material now generated, the piece is ready to be assembled.</p>
+<h2 id="voicing-instruments">Voicing instruments</h2>
+<p>As each section is generated, it is “voiced” for the quintet by offsetting each part by the gamut “register” of 10 semitones.</p>
+<p>Pleonid is arranged for violin, alto saxophone, vibraphone, trombone and electric bass, with the generated material being generated around <code>C5</code>, in the soprano range. Thus as the part index increases, 10 semitones are subtracted, which worked well for the instruments except vibraphone. Some notes fell beneath the vibraphone range, for which special-purpose code adjusts individual bars up as necessary.</p>
+<p>As seen in the “chordal” sections, the gamut-register 10 results in sonorous, “wide” voicings with plenty of intervallic interest.</p>
+<h2 id="pseudorandom-behavior-with-a-lfsr">Pseudorandom behavior with a LFSR</h2>
+<p>The construction of the piece is by pseudo-random selection of one of three section types, representing the three bodies of material generated: lines, chords, and braids. Preferring a parameterizable, deterministic and low-entropy solution, I use a <a href="https://en.wikipedia.org/wiki/Linear-feedback_shift_register">linear frequency shift register (LFSR)</a> to produce a stream of on-off values. In Pleonid, this LFSR is parameterized with a bit length of 5 and tap points of 2 and 4.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">LFSR</span> <span class="fu">=</span> <span class="dt">LFSR</span> {<span class="ot"> _lState ::</span> [<span class="dt">Bool</span>],
+<span class="ot">                   _lTap1 ::</span> <span class="dt">Int</span>,
+<span class="ot">                   _lTap2 ::</span> <span class="dt">Int</span> }
+            <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Show</span>)
+
+<span class="co">-- | Create an LFSR with initial True values.</span>
+<span class="co">-- | Errors not handled (like taps &gt; length) for brevity.</span>
+<span class="ot">initLFSR ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">LFSR</span>
+initLFSR len tap1 tap2 <span class="fu">=</span> <span class="dt">LFSR</span> (replicate len <span class="dt">True</span>) tap1 tap2
+
+<span class="co">-- | Feed head with XOR of tap points.</span>
+<span class="ot">shift ::</span> <span class="dt">LFSR</span> <span class="ot">-&gt;</span> <span class="dt">LFSR</span>
+shift (<span class="dt">LFSR</span> register tap1 tap2) <span class="fu">=</span> <span class="dt">LFSR</span> (gen<span class="fu">:</span>init register) tap1 tap2
+    <span class="kw">where</span> gen <span class="fu">=</span> register <span class="fu">!!</span> tap1 <span class="fu">/=</span> register <span class="fu">!!</span> tap2
+
+<span class="fu">&gt;</span> mapM_ (print <span class="fu">.</span> _lState) <span class="fu">$</span> take <span class="dv">6</span> <span class="fu">$</span> iterate shift <span class="fu">$</span> initLFSR <span class="dv">5</span> <span class="dv">2</span> <span class="dv">4</span>
+[<span class="dt">True</span>,<span class="dt">True</span>,<span class="dt">True</span>,<span class="dt">True</span>,<span class="dt">True</span>]
+[<span class="dt">False</span>,<span class="dt">True</span>,<span class="dt">True</span>,<span class="dt">True</span>,<span class="dt">True</span>]
+[<span class="dt">False</span>,<span class="dt">False</span>,<span class="dt">True</span>,<span class="dt">True</span>,<span class="dt">True</span>]
+[<span class="dt">False</span>,<span class="dt">False</span>,<span class="dt">False</span>,<span class="dt">True</span>,<span class="dt">True</span>]
+[<span class="dt">True</span>,<span class="dt">False</span>,<span class="dt">False</span>,<span class="dt">False</span>,<span class="dt">True</span>]
+[<span class="dt">True</span>,<span class="dt">True</span>,<span class="dt">False</span>,<span class="dt">False</span>,<span class="dt">False</span>]</code></pre></div>
+<p>The code example shows the Pleonid LFSR stepping through six iterations, pushing a new boolean value atop the 5-value list each time.</p>
+<h2 id="stepwise-section-selection">Stepwise section selection</h2>
+<p>Section type selection is controlled by two values, the section type itself, which can be in the ordered range of <code>[Chord,Line,Braid]</code>, and a “step direction”, an integer value that ranges between <code>(-1,0,1)</code>. The LFSR is sampled, which then increments the step direction up or down, wrapping around such that a <code>False</code> value with a direction of <code>-1</code> wraps to <code>1</code>, and so forth. This direction is then applied to the section type value, which in turn wraps: <code>Braid</code> increments up to <code>Chord</code> and down to <code>Line</code>. The effect is to “slew” or smooth the random LFSR to follow the section type sequence in one direction or another.</p>
+<p>In Pleonid, the section type is initialized to <code>Chord</code> and the direction to <code>0</code>. The LFSR is iterated and sampled, which gives <code>False</code>. This results in a direction of <code>-1</code>, which wraps the section type to <code>Braid</code>. Thus the piece starts with a Braid section. The first 5 bars are summarized in the following table:</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">LFSR</th>
+<th align="left">Direction</th>
+<th align="left">Type</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><code>False</code></td>
+<td align="left"><code>-1</code></td>
+<td align="left">Braid</td>
+</tr>
+<tr class="even">
+<td align="left"><code>False</code></td>
+<td align="left"><code>1</code> (wrapped)</td>
+<td align="left">Chord (wrapped)</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>False</code></td>
+<td align="left"><code>0</code></td>
+<td align="left">Chord</td>
+</tr>
+<tr class="even">
+<td align="left"><code>True</code></td>
+<td align="left"><code>1</code></td>
+<td align="left">Line</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>True</code></td>
+<td align="left"><code>-1</code> (wrapped)</td>
+<td align="left">Chord</td>
+</tr>
+</tbody>
+</table>
+<h2 id="section-rendering">Section rendering</h2>
+<p>The “lines” sections are the only ones requiring assembly at this late stage. The LFSR’s length comes into play here, as it is used to select which instruments will play in a given lines section. When the fourth section is dertermined to be <code>Line</code>, the LFSR reads <code>[True,False,False,False,True]</code>. This means the violin (instrument 1) and the bass (instrument 5) are selected to play together. The first two lines are “popped off” the lines list and given to the two instruments to interpret. As a result, lines are used much more frequently than chord or braid sections, so the lines are stored in a “cycling list”, repeating indefinitely.</p>
+<p>Meanwhile, when a chord or braid section is selected, that section is “popped off” the list permanently, and the piece ends when one of these lists is empty. in Pleonid, the braids run out first (with only 2 chord sections left), so the piece ends with a braid section. In total, 79 sections are thus generated.</p>
+<h2 id="scoring-and-representation">Scoring and representation</h2>
+<p>Scoring is accomplished by rendering the music data as MusicXML, and using Sibelius software to load and print the parts. MusicXML representation can be done with my open-source libraries which are listed in <a href="#appendix-b">Appendix B</a>.</p>
+<p>The hard part of output is not the XML transformation, but beating the data into a shape that can be read by musicians. Toward this end, a lot of work is done to have proper note-lengths (ie, a 5/8 note is not notatable, but must be written as a quarter tied to an eighth) and to auto-select bar lengths to avoid brutal time signatures like <code>21/8</code>. This work is beyond the scope of this paper, but code for tie rules and re-barring phrases can be found in the open source code.</p>
+<h1 id="conclusion">Conclusion</h1>
+<p>Pleonid represents my most far-reaching work in algorithmic composition, but in truth I’ve only scratched the surface. Just exploring the possibilities of the <a href="#appendix-a">parameters</a> alone represents new works waiting to be realized.</p>
+<p>Braids also have far more promise than just my treatment, as my musical interpretation is by no means the only way to use this way to structure data with such formal regularity; work can be done also on using some of the braid isotopy transformations (Reidemeister moves) to see what kinds of contrapuntal transformations might ensue.</p>
+<p>The purpose of this paper is to document these approaches in hopes that they will inspire new work by more composers in the realm of generative, algorithmic software. I also feel like the interaction of algorithmic composition with improvisational performance is very fertile, as reflected also in the work of Anthony Braxton and others.</p>
+<h1 id="appendix-a">Appendix A: Input Parameters</h1>
+<p>The Pleonid software accepts the following input parameters:</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Parameter</th>
+<th align="left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><code>gamut</code></td>
+<td align="left">Gamut pseudo-octave value, used in steerings</td>
+</tr>
+<tr class="even">
+<td align="left"><code>line</code></td>
+<td align="left">Source pitch sequence</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>transposer</code></td>
+<td align="left">Voicing/register function, in Pleonid set to offset</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">by 10 semitones</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>scaleMapper</code></td>
+<td align="left">Function to map steerings to scale pitches, parameterized</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">to mimic bug in the original Java code or use new</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">“fixed” version</td>
+</tr>
+<tr class="even">
+<td align="left"><code>filterRestsInBraids</code></td>
+<td align="left">When true, drop any initial “under” crosses, resulting in</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">rhythmic disparities in the original codebase. False instead</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">puts a rest in its place.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>scaleSize</code></td>
+<td align="left">A separate gamut value used in scale mapping, and in pitch-set</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">discovery. Pleonid uses the standard 12-octave.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>lfsr</code></td>
+<td align="left">A parameterized LFSR object. Pleonid’s is parameterized with</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">5 slots with taps at 2 and 4</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>parts</code></td>
+<td align="left">A list of part metadata, including names and clefs, also dictating</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">the number of parts.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="appendix-b">Appendix B: Relevant open-source libraries by the author</h1>
+<h2 id="fadno">fadno</h2>
+<p><a href="https://github.com/slpopejoy/fadno" class="uri">https://github.com/slpopejoy/fadno</a></p>
+<p>Provides music primitives, like a polymorphic note and note-list “bar” datatype. Uses <code>fadno-xml</code> to render output to MusicXML, and can also produce midi files. Also supports the advanced barring and note-tying features used in Pleonid in the <code>Fadno.Meter</code> module.</p>
+<h2 id="fadno-braids">fadno-braids</h2>
+<p><a href="https://github.com/slpopejoy/fadno-braids" class="uri">https://github.com/slpopejoy/fadno-braids</a></p>
+<p>Provides the braid representations used by the Haskell version of Pleonid, plus graphics utilities used for this paper.</p>
+<h2 id="fadno-xml">fadno-xml</h2>
+<p><a href="https://github.com/slpopejoy/fadno-xml" class="uri">https://github.com/slpopejoy/fadno-xml</a></p>
+<p>Provides a type-model of MusicXML 2.0, generated automatically from the music-xml-2.0 xsd. Attempts to provide a general-purpose XSD-to-datamodel code generator, but that so far only works on MusicXML :)</p>
 <div class="footnotes">
 <hr />
 <ol>
-<li id="fn1"><p>Credit is due to “Cale” on the #haskell IRC channel for producing this brilliant formation in response to my desperate plea for help. There were other equally delightful offers, one using monadic list notation.<a href="#fnref1">↩</a></p></li>
-<li id="fn2"><p>Schat, Peter (1993). Also see <a href="http://en.wikipedia.org/wiki/Tone_Clock" class="uri">http://en.wikipedia.org/wiki/Tone_Clock</a> and <a href="http://www.peterschat.nl/clockwise.html" class="uri">http://www.peterschat.nl/clockwise.html</a>. Thanks to Jochem van Dijk for hipping me to it.<a href="#fnref2">↩</a></p></li>
-<li id="fn3"><p>For Schat these tetrads can be related intervallically to other triad hours in the clock, producing a relationship between hours.<a href="#fnref3">↩</a></p></li>
-<li id="fn4"><p>Knot theory is obscure but has contributions from Markov and others, with applications in bioinformatics, fluid mechanics, cryptography. See <a href="http://en.wikipedia.org/wiki/Knot_theory" class="uri">http://en.wikipedia.org/wiki/Knot_theory</a>.<a href="#fnref4">↩</a></p></li>
-<li id="fn5"><p>See <a href="http://katlas.org/wiki/Braid_Representatives" class="uri">http://katlas.org/wiki/Braid_Representatives</a> for examples of braid generation from knots in Mathematica.<a href="#fnref5">↩</a></p></li>
-<li id="fn6"><p>The well-formed-ness of braids is a fascinating topic in math, with braids forming a formal group with an identity and an inverse operation. See <a href="http://en.wikipedia.org/wiki/Braid_group" class="uri">http://en.wikipedia.org/wiki/Braid_group</a>.<a href="#fnref6">↩</a></p></li>
+<li id="fn1"><p>Schat, Peter (1993). Also see <a href="http://en.wikipedia.org/wiki/Tone_Clock" class="uri">http://en.wikipedia.org/wiki/Tone_Clock</a> and <a href="http://www.peterschat.nl/clockwise.html" class="uri">http://www.peterschat.nl/clockwise.html</a>. Thanks to Jochem van Dijk for hipping me to it.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>For Schat the tetrads produced by a steering can be related intervallically to other triad hours in the clock, producing a relationship between hours.<a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p>The bug was discovered only in a later effort to migrate the entire Pleonid program from Java to Haskell. While I’m tempted to credit Haskell’s superior expressiveness as the reason for discovering the bug, it’s really because of the extensive code-review that resulted from performing the migration.<a href="#fnref3">↩</a></p></li>
+<li id="fn4"><p>The Haskell code base in fact preserves all of the original bugs and quirks of the Java codebase, in order to exactly reproduce the Pleonid piece; however as the appendix shows, it is possible to parameterize the new codebase to operate “bug-free”, producing a different piece.<a href="#fnref4">↩</a></p></li>
+<li id="fn5"><p>Here too a “bug” was discovered in the original code, where the terracing procedure was slightly different when moving downward from the strand as opposed to upward.<a href="#fnref5">↩</a></p></li>
 </ol>
 </div>
 

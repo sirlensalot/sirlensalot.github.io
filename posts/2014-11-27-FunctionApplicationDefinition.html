@@ -64,12 +64,12 @@ x == <span class="fu">y</span>() == <span class="dv">1</span>;          <span cl
 <p>Regardless, even if we want to go all-functions in our imperative code, we’re going to hit some roadblocks. First, we’d <em>lose local scope entirely,</em> since C-family languages lack any facility for declaring functions in local scope. Even functional-friendly imperative languages have similar restrictions: for example, Common LISP reserves <code>defun</code> for the top level only. But there’s a more pressing concern.</p>
 <h2 id="eager-vs-lazy-evaluation">Eager vs Lazy evaluation</h2>
 <p>In the code below, we call <code>add5</code> with <code>y()</code>. What happens?</p>
-<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="dt">int</span> <span class="fu">y</span>() { <span class="kw">return</span> <span class="dv">2</span>; } 
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="dt">int</span> <span class="fu">y</span>() { <span class="kw">return</span> <span class="dv">2</span>; }
 
 <span class="dt">int</span> <span class="fu">add5</span>(<span class="dt">int</span> i) { <span class="kw">return</span> i + <span class="dv">5</span>; }
 
 <span class="dt">void</span> <span class="fu">callAFunction</span> () {
-    <span class="fu">add5</span> ( <span class="fu">y</span>() ); 
+    <span class="fu">add5</span> ( <span class="fu">y</span>() );
 }</code></pre></div>
 <p>When the call to <code>add5</code> is executed, the function <code>y()</code> is <em>evaluated eagerly</em> and assigned to the argument variable <code>i</code>. Thus within the body of <code>add5</code>, our nullary function is long gone. We’re back to variables and assignment as soon as we invoke a function.</p>
 <p>If we wanted to preserve our immutable, pure semantics, we’d need the compiler to “weave in” the actual definition of <code>y()</code> into the code of <code>add5</code>. In other words, when we call functions, we want to <em>substitute</em> our function invocation wherever the argument is referenced.</p>
@@ -96,7 +96,7 @@ x == <span class="fu">y</span>() == <span class="dv">1</span>;          <span cl
 <h2 id="type-inference">Type Inference</h2>
 <p>Haskell is strongly-typed. So what type is <code>x</code> above?</p>
 <p>A debate has raged pitting typed, compiled languages like C versus dynamic, untyped languages like Javascript, with the claim that types slow down development and get in the way. Haskell does an end-run around this whole debate by allowing us to have our types, but only specify them when we have to. It does this with <em>type inference,</em> meaning that in many cases, the compiler can figure it the type by itself.</p>
-<p>Let’s use the Haskell interpreter to see what type <code>x</code> is. If you have ghci, the Haskell REPL, up and running, you can issue <code>let x = 1</code> to follow along. Alternately, you can <a href="https://raw.githubusercontent.com/slpopejoy/tatterdemalion/master/haskell/FunctionApplicationDefinition.lhs%20&quot;Article%20source&quot;">download the source</a> of this article, which is “literate haskell” and therefore can be loaded up in your interpreter with the “:load” command, and just reference <code>x</code> directly.</p>
+<p>Let’s use the Haskell interpreter to see what type <code>x</code> is. If you have ghci, the Haskell REPL, up and running, you can issue <code>let x = 1</code> to follow along. Alternately, you can <a href="https://raw.githubusercontent.com/slpopejoy/tatterdemalion/master/posts/2014-11-27-FunctionApplicationDefinition.lhs">download the source</a> of this article, which is “literate haskell” and therefore can be loaded up in your interpreter with the “:load” command, and just reference <code>x</code> directly.</p>
 <p>We ask ghci using the <code>:t</code> command:</p>
 <pre><code>ghci&gt; :t x
 x :: Num a =&gt; a</code></pre>
@@ -110,7 +110,7 @@ y <span class="fu">=</span> <span class="dv">2</span></code></pre></div>
 y :: Int</code></pre>
 <h2 id="invoking-functions">Invoking functions</h2>
 <p>When the time comes to use these expressions, Haskell offers a much cleaner syntax, with no parentheses required. Below are the Haskell versions of our imperative code above:</p>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">someTests <span class="fu">=</span> ( 
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">someTests <span class="fu">=</span> (
              (x <span class="fu">+</span> <span class="dv">3</span>) <span class="fu">==</span> <span class="dv">4</span>,         <span class="co">-- addition</span>
              ([<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>] <span class="fu">!!</span> x) <span class="fu">==</span> <span class="dv">2</span>,  <span class="co">-- list-index</span>
              x <span class="fu">/=</span> y                <span class="co">-- (in)equality</span>
@@ -120,15 +120,15 @@ y :: Int</code></pre>
 <p>We talked about how nice it would be to declare functions in local scope. In Haskell we have all the same tools for local definition as we do at top level:</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">localWithWhere <span class="fu">=</span> y <span class="fu">*</span> <span class="dv">30</span> <span class="fu">+</span> y <span class="fu">^</span> <span class="dv">2</span>
                  <span class="kw">where</span> y <span class="fu">=</span> <span class="dv">3</span></code></pre></div>
-<p>Here, we’ve defined <code>y</code> to be used twice in the outer function body. The <code>where</code> <a href="http://www.haskell.org/haskellwiki/Keywords#where" title="Keywords: where">keyword</a> starts a block of code for definitions in local scope.</p>
+<p>Here, we’ve defined <code>y</code> to be used twice in the outer function body. The <code>where</code> <a href="http://www.haskell.org/haskellwiki/Keywords#where">keyword</a> starts a block of code for definitions in local scope.</p>
 <p>Note that this article’s code has already defined of <code>y</code> at the top level, above. Haskell allows definitions with the same name in local scope, which will override the top-level definition. This is called <em>shadowing</em> the top-level definition.</p>
-<p>You can also use <a href="http://www.haskell.org/haskellwiki/Keywords#let" title="Keywords: let">“let” and “in”</a>:</p>
-<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">localWithLet <span class="fu">=</span> <span class="kw">let</span> y <span class="fu">=</span> <span class="dv">3</span> 
+<p>You can also use <a href="http://www.haskell.org/haskellwiki/Keywords#let">“let” and “in”</a>:</p>
+<div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">localWithLet <span class="fu">=</span> <span class="kw">let</span> y <span class="fu">=</span> <span class="dv">3</span>
                <span class="kw">in</span> y <span class="fu">*</span> <span class="dv">30</span> <span class="fu">+</span> y <span class="fu">^</span> <span class="dv">2</span></code></pre></div>
 <p>This is more familiar to the imperative idiom, in that something that looks like a variable is defined before the consuming code. I recommend imperative programmers stick with <code>where</code>, since it looks the least like imperative assignment. Otherwise, it’s a matter of style: <code>where</code> allows you to put the high-level functionality first, followed by details; <code>let</code>/<code>in</code> is maybe clearer in some situations.</p>
 <p>Local definitions can have type signatures, too:</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">localWithTypeDecl ::</span> <span class="dt">Int</span>
-localWithTypeDecl <span class="fu">=</span> y <span class="fu">*</span> <span class="dv">30</span> <span class="fu">+</span> y <span class="fu">^</span> <span class="dv">2</span> 
+localWithTypeDecl <span class="fu">=</span> y <span class="fu">*</span> <span class="dv">30</span> <span class="fu">+</span> y <span class="fu">^</span> <span class="dv">2</span>
                     <span class="kw">where</span><span class="ot"> y ::</span> <span class="dt">Int</span>
                           y <span class="fu">=</span> <span class="dv">3</span></code></pre></div>
 <p>Here we start to see some real benefits of type inference. At top level, leaving off type signatures will generally make your code <em>harder</em> to understand, but at local level, type inference makes your code <em>easier</em> to read. The type signature for <code>y</code> above is simply verbose: it’s clear from the top-level type that we’re dealing with <code>Int</code> values.</p>
@@ -138,10 +138,10 @@ localWithTypeDecl <span class="fu">=</span> y <span class="fu">*</span> <span cl
 <p>In a pure language, a unary (one-argument) function directly maps input to output. Let’s define one:</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">unaryFunction ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
 unaryFunction x <span class="fu">=</span> x <span class="fu">*</span> <span class="dv">3</span> <span class="fu">+</span> <span class="dv">2</span></code></pre></div>
-<p>The type signature is <code>Int -&gt; Int</code>, meaning the function takes an <code>Int</code> argument and returns an <code>Int</code>. Thinking of it as mapping input to output, we can imagine the argument “indexing” the output. Indeed <code>Int -&gt; Int</code> even looks like mapping syntax from languages like Perl. The arrow dividing the argument from the result type is the <em><a href="http://www.haskell.org/haskellwiki/Keywords#-.3E%20&quot;Keywords:%20-&gt;&quot;">function type constructor</a></em>, which we’ll be seeing a lot.</p>
+<p>The type signature is <code>Int -&gt; Int</code>, meaning the function takes an <code>Int</code> argument and returns an <code>Int</code>. Thinking of it as mapping input to output, we can imagine the argument “indexing” the output. Indeed <code>Int -&gt; Int</code> even looks like mapping syntax from languages like Perl. The arrow dividing the argument from the result type is the <em><a href="http://www.haskell.org/haskellwiki/Keywords#-.3E">function type constructor</a></em>, which we’ll be seeing a lot.</p>
 <p>A binary (two-argument) function can also be thought of as a mapping or indexing operation, but in two dimensions. Here’s a binary function:</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">binaryFunction ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
-binaryFunction x y <span class="fu">=</span> x <span class="fu">*</span> y <span class="fu">+</span> x </code></pre></div>
+binaryFunction x y <span class="fu">=</span> x <span class="fu">*</span> y <span class="fu">+</span> x</code></pre></div>
 <p>This is when the type signatures stop looking like anything you’ve seen in an imperative language. The type signature is growing to the left, with arrows dividing the arguments <em>and</em> delimiting the argument from the result type. Here’s an example with different types to make the positions clearer:</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell"><span class="ot">lengthIsDivisible ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>
 lengthIsDivisible s i <span class="fu">=</span> (mod (length s) i) <span class="fu">==</span> <span class="dv">0</span></code></pre></div>
@@ -164,7 +164,7 @@ invokeBinary <span class="fu">=</span> binaryFunction <span class="dv">2</span> 
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">binaryFunctionSubstituted <span class="fu">=</span> <span class="dv">2</span> <span class="fu">*</span> (unaryFunction <span class="dv">3</span>) <span class="fu">+</span> <span class="dv">2</span></code></pre></div>
 <p><code>x</code> becomes 2, and <code>y</code> becomes <code>(unaryFunction 3)</code>. With this substitution, we now have a <em>new expression</em>, which Haskell will evaluate lazily when the results become needed.</p>
 <h2 id="the-application-operator">The Application Operator</h2>
-<p>Parentheses are not the only way to delimit function arguments. Haskell also has <code>$</code>, the <em><a href="http://hackage.haskell.org/package/base-4.7.0.1/docs/Prelude.html#v:-36-&quot;Prelude&quot;">application operator</a></em>. Here’s how we can write the code above without parentheses:</p>
+<p>Parentheses are not the only way to delimit function arguments. Haskell also has <code>$</code>, the <em><a href="http://hackage.haskell.org/package/base-4.7.0.1/docs/Prelude.html#v:-36-">application operator</a></em>. Here’s how we can write the code above without parentheses:</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">invokeAppOp <span class="fu">=</span> binaryFunction <span class="dv">2</span> <span class="fu">$</span> unaryFunction <span class="dv">3</span></code></pre></div>
 <p>This looks nice. Everything after the <code>$</code> is “bunched together” as the second argument to <code>binaryFunction</code>. It has the same meaning as <code>binaryFunction 2 (unaryFunction 3)</code> but with a sweet functional look.</p>
 <p>We could leave it at that, and marvel at Haskell’s flexible syntax. But let’s look deeper. A common mistake is to think that <code>$</code> is a keyword, or lexical syntax. In reality it’s nothing more than a library function.</p>
@@ -214,7 +214,7 @@ intAdd 2 3 :: Int</code></pre>
 binaryFunction 2 :: Int -&gt; Int</code></pre>
 <p>Finally, we’ve unpacked how <code>$</code> does its magic: it simply relies on normal function application. <code>binaryFunction 2 $ unaryFunction 3</code> can be written entirely with parentheses to make this clear:</p>
 <div class="sourceCode"><pre class="sourceCode literate haskell"><code class="sourceCode haskell">invokePartialParens <span class="fu">=</span> (binaryFunction <span class="dv">2</span>) (unaryFunction <span class="dv">3</span>)</code></pre></div>
-<p>And indeed, the definition of <code>($)</code> is nothing but <a href="http://hackage.haskell.org/package/base-4.7.0.1/docs/src/GHC-Base.html#%24%20&quot;GHC/Base.lhs&quot;">function application itself</a>:</p>
+<p>And indeed, the definition of <code>($)</code> is nothing but <a href="http://hackage.haskell.org/package/base-4.7.0.1/docs/src/GHC-Base.html#%24">function application itself</a>:</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">    ($)             ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> b
     f <span class="fu">$</span> x           <span class="fu">=</span>  f x</code></pre></div>
 <p>There you have it: <code>f $ x</code> just calls <code>f x</code>. Further up the source file, we also see</p>
