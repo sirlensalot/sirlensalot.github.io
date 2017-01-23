@@ -160,11 +160,15 @@
 ```
 ```{.commonlisp}
 (define-keyset 'admin-keyset (read-keyset "keyset"))
+
 (module bonus 'admin-keyset
+
   (deftable bonus)
+
   (defun supersize-bonus (me)
     (enforce-keyset 'admin-keyset) ;; must be admin
     (update bonus me { "amount": 1000000.0 }))
+
   ;;anybody can view bonuses!
   (defun read-bonus (id) (read bonus id)))
 ```
@@ -198,6 +202,13 @@ Keysets can be stored in the database and used for "row-level" auth.
 
 ![Type inference => types on tables, ancilliary functions only.](img/pact/pact-typed-or-not.png)
 
+## "Just enough" typing
+
+- Rapid prototype without types, or just schemas
+- Typechecker helps development
+- Runtime only enforces declared types
+- TC necessary for prover
+
 # Confidentiality
 
 ## &nbsp;
@@ -206,13 +217,13 @@ Keysets can be stored in the database and used for "row-level" auth.
 
 ## Disjoint Databases
 
-![In a "single-chain" confidentiality configuration, transactions in the ledger do not have corresponding entries in the smart contract database.](img/pact/disjoint-dbs.png)
+![In a "single-chain" confidentiality configuration, obscured transactions in the ledger do not have corresponding entries in the smart contract database.](img/pact/disjoint-dbs.png)
 
-## "Pacts"
+## "Pacts" (Coroutines)
 
 ```{.commonlisp}
-(defpact payment (payer payer-entity
-                  payee payee-entity amount date)
+(defpact pay (payer payer-entity
+              payee payee-entity amount date)
 
   ; step 1: debit from payer
   (step-with-rollback payer-entity
@@ -230,22 +241,81 @@ Keysets can be stored in the database and used for "row-level" auth.
 
 ![](img/pact/pact-execution.png)
 
-# Pact 2.0 - Types
+# Formal Verification with Z3
 
-# Z3/Prover preview
+## Pact makes proving ~~easy~~ tractable
+
+- Already SSA
+- No recursion
+- Already "inlined"
+- Typechecker outputs typed AST
 
 ## &nbsp;
 
 ![](img/pact/pactToZ3-1000.png)
 
+## But what do we prove?
+
+- DB is a big, mutable global variable
+- Let's track a column
+- Does it stay within range?
+- Does it "conserve mass"?
+
+## "DocTest" proof specification
+
+```{.commonlisp}
+(defun pay (from to amount)
+
+  "Transfer money between accounts \
+  \{-# PROVE 'accounts.balance' [ConservesMass, Column >= 0] #-}"
+
+  (with-read accounts from { "balance":= from-bal }
+    (with-read accounts to { "balance":= to-bal }
+      (enforce (>= from-bal amount) "Insufficient Funds")
+      (update accounts from
+        { "balance": (- from-bal amount) })
+      (update accounts to
+        { "balance": (+ to-bal amount) }))))
+```
+
+## Talk is cheap: Demo time!
+
+```{.commonlisp}
+(set-option :dump-models true)
+(declare-fun analyze-tests.pay_from0 () String)
+(declare-fun analyze-tests.pay_to1 () String)
+(declare-fun analyze-tests.pay_amount2 () Int)
+(declare-fun bind*5_from-bal6 () Int)
+(declare-fun bind*10_to-bal11 () Int)
+(declare-fun analyze-tests.accounts-insert-balance20 () Int)
+(declare-fun analyze-tests.accounts-insert-balance25 () Int)
+(assert (>= bind*5_from-bal6 analyze-tests.pay_amount2))
+(assert (= analyze-tests.accounts-insert-balance20 (- bind*5_from-bal6 analyze-tests.pay_amount2)))
+(assert (= analyze-tests.accounts-insert-balance25 (+ bind*10_to-bal11 analyze-tests.pay_amount2)))
+(push 1)
+(echo "Verifying mass conservation (by attempting to violate it) for: analyze-tests.accounts.balance")
+(assert (not (= (+ bind*5_from-bal6 bind*10_to-bal11) (+ analyze-tests.accounts-insert-balance20 analyze-tests.accounts-insert-balance25))))
+(echo "Mass is conserved IFF unsat")
+(check-sat)
+(pop 1)
+(push 1)
+(echo "Verifying Domain and Range Stability (by attempting to violate it) for: analyze-tests.accounts.balance")
+(assert (>= bind*5_from-bal6 0))
+(assert (>= bind*10_to-bal11 0))
+(assert (or (not (>= analyze-tests.accounts-insert-balance20 0)) (not (>= analyze-tests.accounts-insert-balance25 0))))
+(echo "Domain/Range relation holds IFF unsat")
+(check-sat)
+(pop 1)
+```
+
 # Thank You
 
 Stuart Popejoy
 
-[http://slpopejoy.github.io/talks/ny-haskell-music-2016.html](http://slpopejoy.github.io/talks/ny-haskell-music-2016.html)
+Pact Github [https://github.com/kadena-io/pact](https://github.com/kadena-io/pact)
 
-[https://github.com/slpopejoy/fadno](https://github.com/slpopejoy/fadno)
+Pact site [http://kadena.io/pact](http://kadena.io/pact)
 
-[https://github.com/slpopejoy/fadno-braids](https://github.com/slpopejoy/fadno-braids)
+Web editor [http::/kadena.io/try-pact](http::/kadena.io/try-pact)
 
-[https://github.com/slpopejoy/fadno-xml](https://github.com/slpopejoy/fadno-xml)
+[http://slpopejoy.github.io/talks/stanford-blockchain-pact-2017.html](http://slpopejoy.github.io/talks/stanford-blockchain-pact-2017.html)
