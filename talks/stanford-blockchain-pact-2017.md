@@ -189,13 +189,54 @@ Keysets can be stored in the database and used for "row-level" auth.
 
 ## Human-readable
 
--
+- Interpreted vs compiled
+- LISP "Just the AST please"
+- Modules not addresses
+- Module == Smart Contract API
 
-# Confidentiality & "Pacts"
+## "Just enough" typing
+
+![Type inference => types on tables, ancilliary functions only.](img/pact/pact-typed-or-not.png)
+
+# Confidentiality
+
+## &nbsp;
+
+![](img/pact/confidentiality-sysdiagram.png)
+
+## Disjoint Databases
+
+![In a "single-chain" confidentiality configuration, transactions in the ledger do not have corresponding entries in the smart contract database.](img/pact/disjoint-dbs.png)
+
+## "Pacts"
+
+```{.commonlisp}
+(defpact payment (payer payer-entity
+                  payee payee-entity amount date)
+
+  ; step 1: debit from payer
+  (step-with-rollback payer-entity
+    (debit payer amount date { "payee": payee })
+    ; rollback if step 2 fails
+    (credit payer amount date))
+
+  ; step 2: credit to payee
+  (step payee-entity
+    (credit payee amount date { "payer": payer }))
+)
+```
+
+## &nbsp;
+
+![](img/pact/pact-execution.png)
 
 # Pact 2.0 - Types
 
 # Z3/Prover preview
+
+## &nbsp;
+
+![](img/pact/pactToZ3-1000.png)
 
 # Thank You
 
