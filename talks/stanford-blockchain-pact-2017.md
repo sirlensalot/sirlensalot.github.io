@@ -14,7 +14,7 @@
 ## Pervasive Determinism
 
 - Consensus
-- Commit
+- Commit w/ Immediate Confirmation
 - Transaction Execution (Pact)
 
 ## Roadmap
