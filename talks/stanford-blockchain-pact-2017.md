@@ -1,5 +1,5 @@
 % Pact: A LISP for Smart Contracts and "Pervasive Determinism"
-% Stuart Popejoy stuart@kadena.io
+% Stuart Popejoy stuart@kadena.io @SirLensALot
 % January 2017
 
 # Pact: A LISP for Smart Contracts
@@ -325,12 +325,12 @@ Pact -> SMT-LIB2 -> Z3
 
 # Thank You
 
-Stuart Popejoy
+Stuart Popejoy stuart@kadena.io @SirLensALot
 
 Pact Github [https://github.com/kadena-io/pact](https://github.com/kadena-io/pact)
 
 Pact site [http://kadena.io/pact](http://kadena.io/pact)
 
-Web editor [http::/kadena.io/try-pact](http::/kadena.io/try-pact)
+Web editor [http://kadena.io/try-pact](http://kadena.io/try-pact)
 
 [http://slpopejoy.github.io/talks/stanford-blockchain-pact-2017.html](http://slpopejoy.github.io/talks/stanford-blockchain-pact-2017.html)

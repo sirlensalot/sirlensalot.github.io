@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="generator" content="pandoc">
-  <meta name="author" content="Stuart Popejoy, Kadena">
+  <meta name="author" content="Stuart Popejoy stuart@kadena.io @SirLensALot">
   <title>Pact: A LISP for Smart Contracts and &quot;Pervasive Determinism&quot;</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -66,7 +66,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <section>
   <h1 class="title">Pact: A LISP for Smart Contracts and &quot;Pervasive Determinism&quot;</h1>
-  <p class="author">Stuart Popejoy, Kadena</p>
+  <p class="author">Stuart Popejoy stuart@kadena.io <span class="citation" data-cites="SirLensALot">@SirLensALot</span></p>
   <p class="date">January 2017</p>
 </section>
 
@@ -85,7 +85,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <h2>Pervasive Determinism</h2>
 <ul>
 <li>Consensus</li>
-<li>Commit</li>
+<li>Commit w/ Immediate Confirmation</li>
 <li>Transaction Execution (Pact)</li>
 </ul>
 </section>
@@ -200,11 +200,10 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <section id="concepts" class="level2">
 <h2>Concepts</h2>
 <ul>
-<li>OLTP good (but not enough for blockchain)</li>
-<li>OLAP bad</li>
+<li>OLTP good (but not enough)</li>
+<li>OLAP bad (but need latest value)</li>
 <li>Versioning good</li>
 <li>One lang to rule them all</li>
-<li>No <code>NULL</code>s</li>
 </ul>
 </section>
 <section id="key-row-structure" class="level2">
@@ -264,8 +263,8 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <h2>RDBMS back end</h2>
 <ul>
 <li>Kadena defaults to SQLite (fast)</li>
-<li>But then you have to hit the API ...</li>
-<li>Plug in Oracle, DB2, Postgres!</li>
+<li>Data is &quot;trapped in the blockchain&quot;</li>
+<li>Plug in Oracle, DB2, Postgres</li>
 </ul>
 </section>
 </section>
@@ -329,7 +328,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li>Interpreted vs compiled</li>
 <li>LISP &quot;Just the AST please&quot;</li>
 <li>Modules not addresses</li>
-<li>Module == Smart Contract API</li>
+<li>&quot;Module&quot; == &quot;Smart Contract API&quot;</li>
 </ul>
 </section>
 <section id="just-enough-typing" class="level2">
@@ -441,10 +440,10 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 </section>
 <section id="thank-you" class="slide level1">
 <h1>Thank You</h1>
-<p>Stuart Popejoy</p>
+<p>Stuart Popejoy stuart@kadena.io <span class="citation" data-cites="SirLensALot">@SirLensALot</span></p>
 <p>Pact Github <a href="https://github.com/kadena-io/pact" class="uri">https://github.com/kadena-io/pact</a></p>
 <p>Pact site <a href="http://kadena.io/pact" class="uri">http://kadena.io/pact</a></p>
-<p>Web editor <a href="http::/kadena.io/try-pact" class="uri">http::/kadena.io/try-pact</a></p>
+<p>Web editor <a href="http://kadena.io/try-pact" class="uri">http://kadena.io/try-pact</a></p>
 <p><a href="http://slpopejoy.github.io/talks/stanford-blockchain-pact-2017.html" class="uri">http://slpopejoy.github.io/talks/stanford-blockchain-pact-2017.html</a></p>
 </section>
     </div>
