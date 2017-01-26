@@ -1,7 +1,7 @@
 ;; -*- mode: emacs-lisp -*-
 
-;; pandoc-mode local settings file for ny-haskell-music-2016.md
-;; saved on 2016.10.09 16:36
+;; pandoc-mode local settings file for stanford-blockchain-pact-2017.md
+;; saved on 2017.01.26 09:48
 
 ((latexmathml)
  (mathml)
@@ -39,7 +39,7 @@
  (reference-links)
  (atx-headers)
  (number-sections)
- (incremental . t)
+ (incremental)
  (slide-level)
  (reference-odt)
  (reference-docx)

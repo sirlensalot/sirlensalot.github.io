@@ -1,85 +1,40 @@
-% Pact: A LISP for Smart Contracts
-% Stuart Popejoy, Kadena
+% Pact: A LISP for Smart Contracts and "Pervasive Determinism"
+% Stuart Popejoy stuart@kadena.io
 % January 2017
 
-# Introduction
+# Pact: A LISP for Smart Contracts
 
-## Kadena
+## About Kadena
 
 - Founded in 2016 from JPM blockchain group
 - Tangaroa -> Juno
 - ScalableBFT, the "first real private blockchain"
-- Pact
+- Masala, Hopper ... Pact
 
-## Me
+## Pervasive Determinism
 
-- Musician - programming in C in 1988
-- C, Java, JS, Clojure, SuperCollider, Haskell
-- Apple 1992->DBs->Webs->Finance 2001-2016
-- Algo Genetics
-- JPM NPD 2014-2016
-- Kadena
-
-## Pact
-- Interpreted LISP
-- Turing-incomplete
-- Single-assignment
-- DB-focused, backend-agnostic
-- Type inference
+- Consensus
+- Commit
+- Transaction Execution (Pact)
 
 ## Roadmap
 
-- Pact Architecture
 - Smart Contracts
+- Pact Overview
 - Database Metaphor
 - Public-key Auth
 - Safer Contracts
-- Confidentiality & "Pacts"
+- Confidentiality
 - Types & Z3/Prover preview
 
-# Pact Architecture
-
-##
-
-![](img/pact/pact-system-diagram.png)
-
-## System Requirements: DL Front end
-
-- Total ordering
-- Single-threaded
-- Signatures verified, Multi-sig support
-- Provide ordered transaction ID
-
-## System Requirements: DB Back end
-
-- Fast
-- Key-Value/JSON support
-
-## Modules, Tables, Keysets
-
-- A `module` defines functions, types and tables
-- Keysets guard admin and business operations
-
-```{.commonlisp}
-(module employees 'employees-admin ;; admin keyset
-
-  (defschema employee
-    name:string age:integer salary:decimal)
-
-  (deftable 'employees:{employee})
-
-  (defun add-employee (id name age salary)
-    (enforce-keyset 'empl-operator) ;; biz keyset
-    (insert employees id
-      { "name": name, "age": age, "salary": salary })))
-```
 
 # Smart Contracts
 
 ## What Aren't They?
 
 - Autonomous orgs/AI
-- "Experts Only"
+- Lawyers
+- "Experts Only" code
 - Hard forks/binary installs
 
 ## What Are They?
@@ -98,49 +53,121 @@
 - Human-readable
 - Testability/Verification
 
+
+# Pact Overview
+
+## Language
+- Interpreted LISP
+- Turing-incomplete
+- Single-assignment
+- DB-focused, backend-agnostic
+- Type inference
+
+## System architecture
+
+![](img/pact/pact-system-diagram.png)
+
+## System Requirements: DL Front end
+
+- Total ordering
+- Single-threaded
+- Signatures verified, Multi-sig support
+- Provide ordered transaction ID
+
+## System Requirements: DB Back end
+
+- Fast
+- Key-Value/JSON support
+
+## Modules + Tables + Keysets
+
+- A `module` defines functions, types and tables
+- Keysets guard admin and business operations
+
+## Modules + Tables + Keysets
+
+```{.commonlisp}
+(define-keyset 'employees-admin (read-keyset "admin-ks"))
+
+(module employees 'employees-admin ;; admin keyset
+
+  (defschema employee
+    name:string
+    age:integer
+    salary:decimal)
+
+  (deftable 'employees:{employee})
+
+  (defun add-employee (id name age salary)
+    (enforce-keyset 'empl-operator) ;; biz keyset
+    (insert employees id
+      { "name": name, "age": age, "salary": salary }))
+)
+```
+
 # Database Metaphor
 
 ## Concepts
 
-- OLTP good
-- OLAP not so much
-- Versioned history needed
+- OLTP good (but not enough)
+- OLAP bad (but need latest value)
+- Versioning good
 - One lang to rule them all
-- No Nulls!
 
 ## "Key-Row" Structure
 
-- Latest value always available
-- JSON-like representation in code
-- Special binding form: `with-read`
+- Key-Value with field access, schema
+- Mutable metaphor ("latest value")
+- Direct, JSON-like representation in code
+
+## Special binding form: `with-read`
 
 ```{.commonlisp}
-(with-read accounts acct-key { "balance" := bal, "ccy" := ccy }
-  (format "balance for {}: {} {}" acct-key bal ccy))
+
+(defun read-balance (acct-key)
+
+  (with-read accounts acct-key
+    {
+      "balance" := bal
+    , "ccy"     := ccy
+    }
+
+    (format "balance for {}: {} {}" acct-key bal ccy))
+)
+
+> (read-balance "stu")
+"balance for stu: 100.0 USD"
+
 ```
 
 ## Automatic versioning
 
 ![All updates recorded with tx id](img/pact/pact-versioned-db.png)
 
-## No Nulls
+## No `NULL`s
 
-- Violates relational calculus :)
+- Violates relational calculus ;)
 - Enforces totality
 - Avoids control flow
-- Missing rows ok
 
-```{.commonlisp}
-(with-read-default inventory inv-item { "count" := count }
-  { "count" : 0 }
-  (format "found {} widgets" count))
-```
+## No `NULL`s
+
+Missing rows OK though!
+
+<div class="sourceCode"><pre class="sourceCode"><code class="sourceCode commonlisp">
+  (<span class="kw">with-read-default</span> inventory inv-item
+    { <span class="st">"count"</span> := count } <span class="co">; variable binding</span>
+    { <span class="st">"count"</span> : 0 }      <span class="co">; default row value</span>
+    (format <span class="st">"found {} widgets"</span> count)
+  )
+
+</code></pre></div>
 
 ## RDBMS back end
 
 - Kadena defaults to SQLite (fast)
-- But then you have to hit the API ...
-- Plug in Oracle, DB2, Postgres!
+- Data is "trapped in the blockchain"
+- Plug in Oracle, DB2, Postgres
 
 # Public-key Auth
 
@@ -167,20 +194,28 @@
 
   (defun supersize-bonus (me)
     (enforce-keyset 'admin-keyset) ;; must be admin
-    (update bonus me { "amount": 1000000.0 }))
+    (update bonus me { "amount": 1000000.0 })
+  )
 
   ;;anybody can view bonuses!
-  (defun read-bonus (id) (read bonus id)))
+  (defun read-bonus (id) (read bonus id))
+)
 ```
 ## Row-level keysets
 
 Keysets can be stored in the database and used for "row-level" auth.
 
 ```{.commonlisp}
-  (defun update-ssn (id ssn)
-    (with-read persons id { "keyset" := ks }
-      (enforce-keyset ks)
-      (update persons id { "ssn": ssn })))
+
+(defun update-ssn (id ssn)
+
+  (with-read persons id
+      { "keyset" := ks }
+    (enforce-keyset ks) ; enforce against keyset in database
+
+    (update persons id { "ssn": ssn }))
+)
+
 ```
 
 # Safer Contracts
@@ -196,11 +231,11 @@ Keysets can be stored in the database and used for "row-level" auth.
 - Interpreted vs compiled
 - LISP "Just the AST please"
 - Modules not addresses
-- Module == Smart Contract API
+- "Module" == "Smart Contract API"
 
 ## "Just enough" typing
 
-![Type inference => types on tables, ancilliary functions only.](img/pact/pact-typed-or-not.png)
+![](img/pact/pact-typed-or-not.png)
 
 ## "Just enough" typing
 
@@ -278,35 +313,15 @@ Keysets can be stored in the database and used for "row-level" auth.
         { "balance": (+ to-bal amount) }))))
 ```
 
-## Talk is cheap: Demo time!
+## Demo
 
-```{.commonlisp}
-(set-option :dump-models true)
-(declare-fun analyze-tests.pay_from0 () String)
-(declare-fun analyze-tests.pay_to1 () String)
-(declare-fun analyze-tests.pay_amount2 () Int)
-(declare-fun bind*5_from-bal6 () Int)
-(declare-fun bind*10_to-bal11 () Int)
-(declare-fun analyze-tests.accounts-insert-balance20 () Int)
-(declare-fun analyze-tests.accounts-insert-balance25 () Int)
-(assert (>= bind*5_from-bal6 analyze-tests.pay_amount2))
-(assert (= analyze-tests.accounts-insert-balance20 (- bind*5_from-bal6 analyze-tests.pay_amount2)))
-(assert (= analyze-tests.accounts-insert-balance25 (+ bind*10_to-bal11 analyze-tests.pay_amount2)))
-(push 1)
-(echo "Verifying mass conservation (by attempting to violate it) for: analyze-tests.accounts.balance")
-(assert (not (= (+ bind*5_from-bal6 bind*10_to-bal11) (+ analyze-tests.accounts-insert-balance20 analyze-tests.accounts-insert-balance25))))
-(echo "Mass is conserved IFF unsat")
-(check-sat)
-(pop 1)
-(push 1)
-(echo "Verifying Domain and Range Stability (by attempting to violate it) for: analyze-tests.accounts.balance")
-(assert (>= bind*5_from-bal6 0))
-(assert (>= bind*10_to-bal11 0))
-(assert (or (not (>= analyze-tests.accounts-insert-balance20 0)) (not (>= analyze-tests.accounts-insert-balance25 0))))
-(echo "Domain/Range relation holds IFF unsat")
-(check-sat)
-(pop 1)
-```
+Pact -> SMT-LIB2 -> Z3
+
+## What's Next
+
+- Full Datatype Support
+- More DSL Cases
+- Richer operators
 
 # Thank You
 

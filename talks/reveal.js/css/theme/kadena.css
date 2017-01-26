@@ -60,7 +60,12 @@ body {
   word-wrap: break-word; }
 
 .reveal h1 {
-  font-size: 1.6em; }
+    font-size: 1.3em;
+    color: #C00;
+}
+
+.reveal .title {
+    font-size: 1.6em; }
 
 .reveal h2 {
   font-size: 1.3em; }
