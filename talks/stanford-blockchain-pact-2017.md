@@ -224,8 +224,7 @@ Keysets can be stored in the database and used for "row-level" auth.
 
 - No recursion (allows inlining)
 - Looping only over (non-infinite) lists
-- `map`, `fold`, `filter`, `compose`
-- Single assignment
+- Single assignment variables
 
 ## Human-readable
 
