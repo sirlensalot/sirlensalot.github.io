@@ -5,12 +5,9 @@
 
 # Pact: A Smart-Contract Language
 
-## Smart Contracts WTF
+## Smart Contracts
 
-- "Code that runs in a blockchain"
-- "World Computer" (Ethereum)
-- Distributed stored procedures?
-- Business rules?
+"Code that runs in a blockchain"
 
 ## Blockchain WTF
 
@@ -20,6 +17,7 @@
 - Private/Non-Probabilistic Consensus
 - Blockchain != BFT
 
+
 ## Blockchain == Trustworthy ...
 
 - Distributed & Replicated
@@ -28,9 +26,18 @@
 - Highly Available
 - Highly Auditable
 
+## Smart Contracts WTF
+
+- "Code that runs in a blockchain"
+- "World Computer" (Ethereum)
+- Distributed stored procedures ... ?
+- Business rules ... ?
+- Transaction/Asset modeling ... ?
+
+
 ## Smart Contracts a la Pact
 
-<i>Hot-deployed, interpreted code <br> implementing deterministic logic <br> for capturing ordered events in <br>
+<i>Hot-deployed, simple, interpreted code <br> implementing deterministic logic <br> for capturing ordered events in <br>
 a distributed (maybe disjoint) database, <br> enforcing invariants and authorization rules.</i>
 
 # Design Approach
@@ -73,6 +80,13 @@ a distributed (maybe disjoint) database, <br> enforcing invariants and authoriza
 - Simplicity => Safer
 - Simplicity => Faster
 - Simplicity => Wider Audience
+
+## Write Me (Us) Some Haskell
+
+- First impl done in a month
+- O/S'd September 2016
+- GHCJS/Web editor
+- Typechecker/SMT-LIB2 compiler Jan 2016
 
 # Introduction to Pact
 
