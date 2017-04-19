@@ -1,40 +1,86 @@
 % Pact: A Smart-Contract Language in Haskell
 % Stuart Popejoy stuart@kadena.io @SirLensALot
-% Boston Haskell March 2017
+% Boston Haskell April 2017
 
 
-# Smart Contracts
+# Pact: A Smart-Contract Language
 
-## What Aren't They?
+## Smart Contracts WTF
 
-- Autonomous orgs/AI
-- Lawyers
-- "Experts Only" code
-- Hard forks/binary installs
+- "Code that runs in a blockchain"
+- "World Computer" (Ethereum)
+- Distributed stored procedures?
+- Business rules?
 
-## What Are They?
+## Blockchain WTF
 
-- User code
-- Mobile code/code-as-data
-- Event representation
-- Authentication/Authorization
-- As simple/safe as possible
+- Cryptocurrencies
+- Public/Mining/Probabilistic Consensus
+- Distributed Ledger aka Database
+- Private/Non-Probabilistic Consensus
+- Blockchain != BFT
 
-## How?
+## Blockchain == Trustworthy ...
 
-- Database metaphor
-- Public-key auth support
-- "Just enough" computation
-- Human-readable
-- Testability/Verification
+- Distributed & Replicated
+- Fault Tolerant
+- Disaster-resistant
+- Highly Available
+- Highly Auditable
 
+## Smart Contracts a la Pact
+
+<i>Hot-deployed, interpreted code <br> implementing deterministic logic <br> for capturing ordered events in <br>
+a distributed (maybe disjoint) database, <br> enforcing invariants and authorization rules.</i>
+
+# Design Approach
+
+## &nbsp;
+
+- Learn from Bitcoin
+- Learn from Ethereum
+- Learn from Experience
+- Write Some Haskell
+
+## Learn from Bitcoin
+
+![](img/en-p2pkh-stack.svg)
+
+## Learn from Bitcoin
+
+- Highly constrained
+- Turing-incomplete
+- Authorization-focused
+- Stylized runtime environment
+
+## Learn from Ethereum (Good)
+
+- [github.com/kadena-io/masala](https://github.com/kadena-io/masala)
+- Deterministic
+- Transactional
+
+## Learn from Ethereum (Bad)
+
+- Compiled => Too Low Level
+- Solidity => O.R. Sucks
+- Interop/Services Hard
+- Unsafe
+
+## Learn from Experience
+
+- RDBMS languages
+- DSLs in Trading Systems
+- Simplicity => Safer
+- Simplicity => Faster
+- Simplicity => Wider Audience
 
 # Introduction to Pact
 
 ## Pact Basics
 
-- Interpreted
+- Interpreted LISP
 - DB-focused, backend-agnostic
+- Authorization (not authentication)
 - Turing-incomplete
 - Single-assignment
 - Type inference
@@ -43,25 +89,25 @@
 
 ![](img/pact/pact-system-diagram.png)
 
-## Smart Contract == (Modules|Tables|Keysets)
+## &nbsp;
 
 ```{.commonlisp}
-(define-keyset 'employees-admin (read-keyset "admin-ks"))
+(define-keyset 'keyset-admin (read-keyset "ks-admin"))
+(define-keyset 'keyset-operator (read-keyset "ks-op"))
 
-(module employees 'employees-admin ;; admin keyset
+(module employees 'keyset-admin
+  "Employee management smart contract."
+  (defschema employee name:string
+                      age:integer
+                      salary:decimal)
 
-  (defschema employee
-    name:string
-    age:integer
-    salary:decimal)
-
-  (deftable 'employees:{employee})
+  (deftable employees:{employee})
 
   (defun add-employee (id name age salary)
-    (enforce-keyset 'empl-operator) ;; biz keyset
+    (enforce-keyset 'keyset-operator)
     (insert employees id
-      { "name": name, "age": age, "salary": salary }))
-)
+      { "name": name, "age": age, "salary": salary })))
+(create-table employees)
 ```
 
 # Database Metaphor
@@ -88,6 +134,7 @@
 - Kadena defaults to SQLite (fast)
 - Data is "trapped in the blockchain"
 - Plug in Oracle, DB2, Postgres
+- Build your own
 
 # Developing with Pact
 
@@ -97,27 +144,6 @@
 
 
 # Formal Verification with Z3
-
-
-## Safety & Correctness in Smart Contracts
-
-- Blockchains & Culture of Correctness
-- Smart Contract Errors are Costly
-- Bugs == Vulns
-
-## Finding Bugs
-
-- Types
-- Unit Tests
-- Static Analysis (FindBugz)
-- Formal Verification
-
-## Formal Verification In Use
-
-- TLA+ @ Amazon
-- Cryptol/Z3 @ Galois
-- Z3 & Pact
-- Many More, but not a ton of industrial use
 
 ## Pact makes proving ~~easy~~ tractable
 

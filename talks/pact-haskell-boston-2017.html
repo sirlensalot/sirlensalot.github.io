@@ -67,38 +67,96 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <section>
   <h1 class="title">Pact: A Smart-Contract Language in Haskell</h1>
   <p class="author">Stuart Popejoy stuart@kadena.io <span class="citation" data-cites="SirLensALot">@SirLensALot</span></p>
-  <p class="date">Boston Haskell March 2017</p>
+  <p class="date">Boston Haskell April 2017</p>
 </section>
 
-<section id="smart-contracts" class="slide level1">
-<h1>Smart Contracts</h1>
-<section id="what-arent-they" class="level2">
-<h2>What Aren't They?</h2>
+<section id="pact-a-smart-contract-language" class="slide level1">
+<h1>Pact: A Smart-Contract Language</h1>
+<section id="smart-contracts-wtf" class="level2">
+<h2>Smart Contracts WTF</h2>
 <ul>
-<li>Autonomous orgs/AI</li>
-<li>Lawyers</li>
-<li>&quot;Experts Only&quot; code</li>
-<li>Hard forks/binary installs</li>
+<li>&quot;Code that runs in a blockchain&quot;</li>
+<li>&quot;World Computer&quot; (Ethereum)</li>
+<li>Distributed stored procedures?</li>
+<li>Business rules?</li>
 </ul>
 </section>
-<section id="what-are-they" class="level2">
-<h2>What Are They?</h2>
+<section id="blockchain-wtf" class="level2">
+<h2>Blockchain WTF</h2>
 <ul>
-<li>User code</li>
-<li>Mobile code/code-as-data</li>
-<li>Event representation</li>
-<li>Authentication/Authorization</li>
-<li>As simple/safe as possible</li>
+<li>Cryptocurrencies</li>
+<li>Public/Mining/Probabilistic Consensus</li>
+<li>Distributed Ledger aka Database</li>
+<li>Private/Non-Probabilistic Consensus</li>
+<li>Blockchain != BFT</li>
 </ul>
 </section>
-<section id="how" class="level2">
-<h2>How?</h2>
+<section id="blockchain-trustworthy-..." class="level2">
+<h2>Blockchain == Trustworthy ...</h2>
 <ul>
-<li>Database metaphor</li>
-<li>Public-key auth support</li>
-<li>&quot;Just enough&quot; computation</li>
-<li>Human-readable</li>
-<li>Testability/Verification</li>
+<li>Distributed &amp; Replicated</li>
+<li>Fault Tolerant</li>
+<li>Disaster-resistant</li>
+<li>Highly Available</li>
+<li>Highly Auditable</li>
+</ul>
+</section>
+<section id="smart-contracts-a-la-pact" class="level2">
+<h2>Smart Contracts a la Pact</h2>
+<p><i>Hot-deployed, interpreted code <br> implementing deterministic logic <br> for capturing ordered events in <br> a distributed (maybe disjoint) database, <br> enforcing invariants and authorization rules.</i></p>
+</section>
+</section>
+<section id="design-approach" class="slide level1">
+<h1>Design Approach</h1>
+<section id="section" class="level2">
+<h2> </h2>
+<ul>
+<li>Learn from Bitcoin</li>
+<li>Learn from Ethereum</li>
+<li>Learn from Experience</li>
+<li>Write Some Haskell</li>
+</ul>
+</section>
+<section id="learn-from-bitcoin" class="level2">
+<h2>Learn from Bitcoin</h2>
+<figure>
+<img src="img/en-p2pkh-stack.svg" />
+</figure>
+</section>
+<section id="learn-from-bitcoin-1" class="level2">
+<h2>Learn from Bitcoin</h2>
+<ul>
+<li>Highly constrained</li>
+<li>Turing-incomplete</li>
+<li>Authorization-focused</li>
+<li>Stylized runtime environment</li>
+</ul>
+</section>
+<section id="learn-from-ethereum-good" class="level2">
+<h2>Learn from Ethereum (Good)</h2>
+<ul>
+<li><a href="https://github.com/kadena-io/masala">github.com/kadena-io/masala</a></li>
+<li>Deterministic</li>
+<li>Transactional</li>
+</ul>
+</section>
+<section id="learn-from-ethereum-bad" class="level2">
+<h2>Learn from Ethereum (Bad)</h2>
+<ul>
+<li>Compiled =&gt; Too Low Level</li>
+<li>Solidity =&gt; O.R. Sucks</li>
+<li>Interop/Services Hard</li>
+<li>Unsafe</li>
+</ul>
+</section>
+<section id="learn-from-experience" class="level2">
+<h2>Learn from Experience</h2>
+<ul>
+<li>RDBMS languages</li>
+<li>DSLs in Trading Systems</li>
+<li>Simplicity =&gt; Safer</li>
+<li>Simplicity =&gt; Faster</li>
+<li>Simplicity =&gt; Wider Audience</li>
 </ul>
 </section>
 </section>
@@ -107,8 +165,9 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <section id="pact-basics" class="level2">
 <h2>Pact Basics</h2>
 <ul>
-<li>Interpreted</li>
+<li>Interpreted LISP</li>
 <li>DB-focused, backend-agnostic</li>
+<li>Authorization (not authentication)</li>
 <li>Turing-incomplete</li>
 <li>Single-assignment</li>
 <li>Type inference</li>
@@ -120,24 +179,24 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <img src="img/pact/pact-system-diagram.png" />
 </figure>
 </section>
-<section id="smart-contract-modulestableskeysets" class="level2">
-<h2>Smart Contract == (Modules|Tables|Keysets)</h2>
-<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(define-keyset &#39;employees-admin (read-keyset <span class="st">&quot;admin-ks&quot;</span>))
+<section id="section-1" class="level2">
+<h2> </h2>
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(define-keyset &#39;keyset-admin (read-keyset <span class="st">&quot;ks-admin&quot;</span>))
+(define-keyset &#39;keyset-operator (read-keyset <span class="st">&quot;ks-op&quot;</span>))
 
-(module employees &#39;employees-admin <span class="co">;; admin keyset</span>
+(module employees &#39;keyset-admin
+  <span class="st">&quot;Employee management smart contract.&quot;</span>
+  (defschema employee name:string
+                      age:integer
+                      salary:decimal)
 
-  (defschema employee
-    name:string
-    age:integer
-    salary:decimal)
-
-  (deftable &#39;employees:{employee})
+  (deftable employees:{employee})
 
   (<span class="kw">defun</span><span class="fu"> add-employee </span>(id name age salary)
-    (enforce-keyset &#39;empl-operator) <span class="co">;; biz keyset</span>
+    (enforce-keyset &#39;keyset-operator)
     (insert employees id
-      { <span class="st">&quot;name&quot;</span>: name, <span class="st">&quot;age&quot;</span>: age, <span class="st">&quot;salary&quot;</span>: salary }))
-)</code></pre></div>
+      { <span class="st">&quot;name&quot;</span>: name, <span class="st">&quot;age&quot;</span>: age, <span class="st">&quot;salary&quot;</span>: salary })))
+(create-table employees)</code></pre></div>
 </section>
 </section>
 <section id="database-metaphor" class="slide level1">
@@ -171,6 +230,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li>Kadena defaults to SQLite (fast)</li>
 <li>Data is &quot;trapped in the blockchain&quot;</li>
 <li>Plug in Oracle, DB2, Postgres</li>
+<li>Build your own</li>
 </ul>
 </section>
 </section>
@@ -184,32 +244,6 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 </section>
 <section id="formal-verification-with-z3" class="slide level1">
 <h1>Formal Verification with Z3</h1>
-<section id="safety-correctness-in-smart-contracts" class="level2">
-<h2>Safety &amp; Correctness in Smart Contracts</h2>
-<ul>
-<li>Blockchains &amp; Culture of Correctness</li>
-<li>Smart Contract Errors are Costly</li>
-<li>Bugs == Vulns</li>
-</ul>
-</section>
-<section id="finding-bugs" class="level2">
-<h2>Finding Bugs</h2>
-<ul>
-<li>Types</li>
-<li>Unit Tests</li>
-<li>Static Analysis (FindBugz)</li>
-<li>Formal Verification</li>
-</ul>
-</section>
-<section id="formal-verification-in-use" class="level2">
-<h2>Formal Verification In Use</h2>
-<ul>
-<li>TLA+ @ Amazon</li>
-<li>Cryptol/Z3 @ Galois</li>
-<li>Z3 &amp; Pact</li>
-<li>Many More, but not a ton of industrial use</li>
-</ul>
-</section>
 <section id="pact-makes-proving-easy-tractable" class="level2">
 <h2>Pact makes proving <del>easy</del> tractable</h2>
 <ul>
@@ -219,7 +253,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li>Typechecker outputs typed AST</li>
 </ul>
 </section>
-<section id="section" class="level2">
+<section id="section-2" class="level2">
 <h2> </h2>
 <figure>
 <img src="img/pact/pactToZ3-1000.png" />
