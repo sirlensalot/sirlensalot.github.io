@@ -225,4 +225,4 @@ Pact site [http://kadena.io/pact](http://kadena.io/pact)
 
 Web editor [http://kadena.io/try-pact](http://kadena.io/try-pact)
 
-[http://slpopejoy.github.io/talks/pact-haskell-boston-2017.html](http://slpopejoy.github.io/talks/pact-compose-2017.html)
+[http://slpopejoy.github.io/talks/pact-compose-2017.html](http://slpopejoy.github.io/talks/pact-compose-2017.html)
