@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="author" content="Stuart Popejoy stuart@kadena.io @SirLensALot">
+  <title>Smart Contracts and Formal Verification with Pact</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="reveal.js/css/reveal.css">
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+  <link rel="stylesheet" href="reveal.js/css/theme/kadena.css" id="theme">
+  <!-- Printing and PDF exports -->
+  <script>
+    var link = document.createElement( 'link' );
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+    document.getElementsByTagName( 'head' )[0].appendChild( link );
+  </script>
+  <!--[if lt IE 9]>
+  <script src="reveal.js/lib/js/html5shiv.js"></script>
+  <![endif]-->
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+<section>
+  <h1 class="title">Smart Contracts and Formal Verification with Pact</h1>
+  <p class="author">Stuart Popejoy stuart@kadena.io <span class="citation" data-cites="SirLensALot">@SirLensALot</span></p>
+  <p class="date">Compose Conference 2017</p>
+</section>
+
+<section id="why-smart-contracts" class="slide level1">
+<h1>Why Smart Contracts</h1>
+<section id="section" class="level2">
+<h2> </h2>
+<ul>
+<li>Make a simple solution</li>
+<li>Make a simple service</li>
+<li>Run on a trustless system</li>
+<li>Make an API</li>
+<li>Make money</li>
+</ul>
+</section>
+</section>
+<section id="why-a-new-language" class="slide level1">
+<h1>Why a New Language</h1>
+<section id="section-1" class="level2">
+<h2> </h2>
+<ul>
+<li>Fit to purpose: Authorization</li>
+<li>Fit to purpose: Database</li>
+<li>Reduce surface area for attacks</li>
+<li>Reduce difficulty</li>
+<li>Speed solution, API dev</li>
+</ul>
+</section>
+<section id="why-not-solidity" class="level2">
+<h2>Why not Solidity</h2>
+<ul>
+<li>Unsafe: compiled</li>
+<li>Unsafe: general-purpose</li>
+<li>OO vs SQL</li>
+<li>Unsafe: Mutability</li>
+<li>Hard: APIs, RPC etc</li>
+<li>DAO attack, december vuln, etc.</li>
+</ul>
+</section>
+<section id="why-pact" class="level2">
+<h2>Why Pact</h2>
+<ul>
+<li>Safer: Interpreted</li>
+<li>Safer: Turing-incomplete</li>
+<li>Simpler: Auth + SQL</li>
+<li>Safer: &quot;Single Assignment&quot;</li>
+<li>Easier: APIs, Services, etc</li>
+</ul>
+</section>
+</section>
+<section id="pact" class="slide level1">
+<h1>Pact</h1>
+<section id="interpreted" class="level2">
+<h2>Interpreted</h2>
+<ul>
+<li>Better for &quot;live-code environments&quot;</li>
+<li>LISP for minimal lowering</li>
+<li>REPL-powered development</li>
+<li>Types??</li>
+</ul>
+</section>
+<section id="untyped" class="level2">
+<h2>Untyped</h2>
+<ul>
+<li>&quot;Biz-readable&quot;</li>
+<li>&quot;Devs don't like types&quot;</li>
+<li>Pact 1.0</li>
+</ul>
+</section>
+<section id="type-inference" class="level2">
+<h2>Type Inference</h2>
+<ul>
+<li>SMT-LIB2: We Must Have Types</li>
+<li>H-M: We Can Haz Types</li>
+<li>But we're interpreted ... ?</li>
+</ul>
+</section>
+<section id="just-enough-types" class="level2">
+<h2>&quot;Just Enough Types&quot;</h2>
+<ul>
+<li>Expose typechecker to tooling</li>
+<li>Use for formal verification</li>
+<li>Enforce only declared types</li>
+<li>In practice like SQL</li>
+</ul>
+</section>
+<section id="safety" class="level2">
+<h2>Safety</h2>
+<ul>
+<li>Interpreted vs compiled</li>
+<li>&quot;Single assignment&quot;</li>
+<li>Turing-incomplete (no recursion, unbounded loops)</li>
+<li>No catching of exceptions</li>
+</ul>
+</section>
+<section id="dsl-vs-lang" class="level2">
+<h2>DSL vs Lang</h2>
+<ul>
+<li>Auth DSL: Keysets</li>
+<li>Biz DSL: Rule Enforcement</li>
+<li>Key-Value DB lang ...</li>
+<li>... extended to modules (<code>bind</code>)</li>
+<li>... and reusable computation</li>
+</ul>
+</section>
+</section>
+<section id="writing-pact-in-haskell" class="slide level1">
+<h1>Writing Pact in Haskell</h1>
+<section id="general-considerations" class="level2">
+<h2>General Considerations</h2>
+<ul>
+<li>Best/Easiest Lang Lang: Haskell</li>
+<li>But Not Everybody Gets Haskell</li>
+<li>Don't Write Haskell in Haskell</li>
+</ul>
+</section>
+<section id="types" class="level2">
+<h2>Types</h2>
+<ul>
+<li><code>Term a</code>: Monad/Traversable + Bound</li>
+<li>Parse: Text -&gt; <code>Exp</code></li>
+<li>Compile: <code>Exp</code> -&gt; <code>Term Name</code></li>
+<li>Resolve: <code>Term Name</code> -&gt; <code>Eval e (Term Ref)</code></li>
+<li>Eval: <code>Term Name</code> -&gt; <code>Eval e (Term Name)</code></li>
+<li>Typecheck: <code>Term Ref</code> -&gt; <code>AST UserType</code></li>
+<li>Solver: <code>AST UserType</code> -&gt; SMT-LIB2</li>
+</ul>
+</section>
+<section id="extensibility" class="level2">
+<h2>Extensibility</h2>
+<ul>
+<li><code>Eval e a</code>: Parameterized over backend state</li>
+<li>Execute a <code>PactDb e</code></li>
+<li>Performance problems with MTL-style typeclass</li>
+</ul>
+</section>
+<section id="libraries" class="level2">
+<h2>Libraries</h2>
+<ul>
+<li><code>bound</code></li>
+<li><code>trifecta</code> (<code>TokenParsing</code>,<code>DeltaParsing</code>)</li>
+<li><code>ed25519-donna</code></li>
+<li><code>cacophony</code> (<code>Curve25519</code>)</li>
+<li><code>blake2</code></li>
+<li><code>snap</code></li>
+<li><code>direct-sqlite</code></li>
+</ul>
+</section>
+</section>
+<section id="pact-design" class="slide level1">
+<h1>Pact Design</h1>
+<section id="system-architecture" class="level2">
+<h2>System architecture</h2>
+<figure>
+<img src="img/pact/pact-system-diagram.png" />
+</figure>
+</section>
+<section id="section-2" class="level2">
+<h2> </h2>
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(define-keyset &#39;keyset-admin (read-keyset <span class="st">&quot;ks-admin&quot;</span>))
+(define-keyset &#39;keyset-operator (read-keyset <span class="st">&quot;ks-op&quot;</span>))
+
+(module employees &#39;keyset-admin
+  <span class="st">&quot;Employee management smart contract.&quot;</span>
+  (defschema employee name:string
+                      age:integer
+                      salary:decimal)
+
+  (deftable employees:{employee})
+
+  (<span class="kw">defun</span><span class="fu"> add-employee </span>(id name age salary)
+    (enforce-keyset &#39;keyset-operator)
+    (insert employees id
+      { <span class="st">&quot;name&quot;</span>: name, <span class="st">&quot;age&quot;</span>: age, <span class="st">&quot;salary&quot;</span>: salary })))
+(create-table employees)</code></pre></div>
+</section>
+</section>
+<section id="database-metaphor" class="slide level1">
+<h1>Database Metaphor</h1>
+<section id="concepts" class="level2">
+<h2>Concepts</h2>
+<ul>
+<li>OLTP good (but not enough)</li>
+<li>OLAP bad (but need latest value)</li>
+<li>Versioning good</li>
+<li>One lang to rule them all</li>
+</ul>
+</section>
+<section id="key-row-structure" class="level2">
+<h2>&quot;Key-Row&quot; Structure</h2>
+<ul>
+<li>Key-Value with field access, schema</li>
+<li>Mutable metaphor (&quot;latest value&quot;)</li>
+<li>Direct, JSON-like representation in code</li>
+<li>Instant API-ification</li>
+</ul>
+</section>
+<section id="automatic-versioning" class="level2">
+<h2>Automatic versioning</h2>
+<figure>
+<img src="img/pact/pact-versioned-db.png" alt="(update accounts &quot;A&quot; { &quot;balance&quot;: 18500.0, &quot;amount&quot;: -1500.0}) (update accounts &quot;B&quot; { &quot;balance&quot;: 1500.0,  &quot;amount&quot;: 1500.0 })" /><figcaption><code>(update accounts &quot;A&quot; { &quot;balance&quot;: 18500.0, &quot;amount&quot;: -1500.0})</code><br><code>(update accounts &quot;B&quot; { &quot;balance&quot;: 1500.0,  &quot;amount&quot;: 1500.0 })</code></figcaption>
+</figure>
+</section>
+<section id="rdbms-back-end" class="level2">
+<h2>RDBMS back end</h2>
+<ul>
+<li>Kadena defaults to SQLite (fast)</li>
+<li>Data is &quot;trapped in the blockchain&quot;</li>
+<li>Plug in Oracle, DB2, Postgres</li>
+<li>Build your own</li>
+</ul>
+</section>
+</section>
+<section id="formal-verification-with-z3" class="slide level1">
+<h1>Formal Verification with Z3</h1>
+<section id="pact-makes-proving-easy-tractable" class="level2">
+<h2>Pact makes proving <del>easy</del> tractable</h2>
+<ul>
+<li>Already &quot;SSA&quot;</li>
+<li>No recursion</li>
+<li>Already &quot;inlined&quot;</li>
+<li>Typechecker outputs typed AST</li>
+</ul>
+</section>
+<section id="section-3" class="level2">
+<h2> </h2>
+<figure>
+<img src="img/pact/pactToZ3-1000.png" />
+</figure>
+</section>
+<section id="formal-verification-to-the-masses" class="level2">
+<h2>Formal Verification To The Masses</h2>
+<ul>
+<li>What do we prove??</li>
+<li>DB is a big, mutable global variable</li>
+<li>Let's track a column</li>
+<li>Does it stay within range?</li>
+<li>Does it &quot;conserve mass&quot;?</li>
+</ul>
+</section>
+<section id="doctest-proof-specification" class="level2">
+<h2>&quot;DocTest&quot; proof specification</h2>
+<div class="sourceCode"><pre class="sourceCode commonlisp"><code class="sourceCode commonlisp">(<span class="kw">defun</span><span class="fu"> pay </span>(from to amount)
+
+  <span class="st">&quot;Transfer money between accounts \</span>
+<span class="st">  \{-# PROVE &#39;accounts.balance&#39; [ConservesMass, Column &gt;= 0] #-}&quot;</span>
+
+  (with-read accounts from { <span class="st">&quot;balance&quot;</span>:= from-bal }
+    (with-read accounts to { <span class="st">&quot;balance&quot;</span>:= to-bal }
+      (enforce (<span class="op">&gt;=</span> from-bal amount) <span class="st">&quot;Insufficient Funds&quot;</span>)
+      (update accounts from
+        { <span class="st">&quot;balance&quot;</span>: (<span class="op">-</span> from-bal amount) })
+      (update accounts to
+        { <span class="st">&quot;balance&quot;</span>: (<span class="op">+</span> to-bal amount) }))))</code></pre></div>
+</section>
+<section id="whats-next-for-formal-verification" class="level2">
+<h2>What's Next For Formal Verification</h2>
+<ul>
+<li>Full Datatype Support</li>
+<li>More DSL Cases</li>
+<li>Richer operators</li>
+</ul>
+</section>
+</section>
+<section id="thank-you" class="slide level1">
+<h1>Thank You</h1>
+<p>Stuart Popejoy stuart@kadena.io <span class="citation" data-cites="SirLensALot">@SirLensALot</span></p>
+<p>Pact Github <a href="https://github.com/kadena-io/pact" class="uri">https://github.com/kadena-io/pact</a></p>
+<p>Pact site <a href="http://kadena.io/pact" class="uri">http://kadena.io/pact</a></p>
+<p>Web editor <a href="http://kadena.io/try-pact" class="uri">http://kadena.io/try-pact</a></p>
+<p><a href="http://slpopejoy.github.io/talks/pact-compose-2017.html">http://slpopejoy.github.io/talks/pact-haskell-boston-2017.html</a></p>
+</section>
+    </div>
+  </div>
+
+  <script src="reveal.js/lib/js/head.min.js"></script>
+  <script src="reveal.js/js/reveal.js"></script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'reveal.js/plugin/zoom-js/zoom.js', async: true },
+              { src: 'reveal.js/plugin/notes/notes.js', async: true }
+        ]
+      });
+    </script>
+    </body>
+</html>
