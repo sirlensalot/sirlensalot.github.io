@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="generator" content="pandoc">
   <meta name="author" content="Stuart Popejoy stuart@kadena.io @SirLensALot">
-  <title>Formal Verification, Governance and Safety on the Blockchain</title>
+  <title>Advanced Smart Contracts: Formal Verification, Governance and Safety on the Blockchain</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
@@ -86,13 +86,13 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
     <div class="slides">
 
 <section>
-  <h1 class="title">Formal Verification, Governance and Safety on the Blockchain</h1>
+  <h1 class="title">Advanced Smart Contracts: Formal Verification, Governance and Safety on the Blockchain</h1>
   <p class="author">Stuart Popejoy stuart@kadena.io <span class="citation" data-cites="SirLensALot">@SirLensALot</span></p>
   <p class="date">hack.summit(“blockchain”) 2018</p>
 </section>
 
-<section id="smart-contracts" class="slide level1">
-<h1>Smart Contracts</h1>
+<section id="advanced-smart-contracts" class="slide level1">
+<h1>Advanced Smart Contracts</h1>
 <section id="need-to-be-safe" class="level2">
 <h2>Need to be Safe</h2>
 <ul>
@@ -123,8 +123,8 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 </section>
 <section id="formal-verification" class="slide level1">
 <h1>Formal Verification</h1>
-<section id="tests-only-test-what-you-know" class="level2">
-<h2>Tests only test what you know</h2>
+<section id="tests-can-only-test-what-you-know" class="level2">
+<h2>Tests can only test what you know</h2>
 <ul>
 <li>Developers must think of every scenario</li>
 <li>Fuzzers, Quickcheck are probabilistic</li>
@@ -133,17 +133,23 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 <section id="use-a-theorem-prover-hard-mode" class="level2">
 <h2>Use a Theorem Prover, Hard Mode</h2>
 <ul>
-<li>Full specification: entire language is simulated by prover</li>
-<li>Proofs are written in the Prover’s dialect (Coq, SMTLIB2 etc)</li>
+<li>Full specification: entire language is simulated</li>
+<li>Proofs are written in Prover’s dialect (Coq, SMTLIB2)</li>
 <li>PhD please</li>
 </ul>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="dt">Theorem</span> orb_is_or <span class="fu">:</span></div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">  (forall a b, <span class="dt">Is_true</span> (orb a b) <span class="ot">&lt;-</span><span class="fu">&gt;</span> <span class="dt">Is_true</span> a \<span class="fu">/</span> <span class="dt">Is_true</span> b)<span class="fu">.</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3"><span class="dt">Proof</span><span class="fu">.</span></div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">  intros a b<span class="fu">.</span></div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">  unfold iff<span class="fu">.</span></div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">  refine (conj _ _)</div></code></pre>
 </section>
 <section id="use-a-theorem-prover-easy-mode" class="level2">
 <h2>Use a Theorem Prover, Easy Mode</h2>
 <ul>
 <li>Model checking: instrument code with small proofs</li>
 <li>Provide a DSL that is easy to read and write</li>
-<li>Prove what is most important (DB state, authorization, etc)</li>
+<li>Prove what is most important (DB state, authorization)</li>
 <li>No PhDs required</li>
 </ul>
 </section>

@@ -1,9 +1,9 @@
-% Formal Verification, Governance and Safety on the Blockchain
+% Advanced Smart Contracts: Formal Verification, Governance and Safety on the Blockchain
 % Stuart Popejoy stuart@kadena.io @SirLensALot
 % hack.summit("blockchain") 2018
 
 
-# Smart Contracts
+# Advanced Smart Contracts
 
 ## Need to be Safe
 
@@ -28,22 +28,30 @@
 
 # Formal Verification
 
-## Tests only test what you know
+## Tests can only test what you know
 
 - Developers must think of every scenario
 - Fuzzers, Quickcheck are probabilistic
 
 ## Use a Theorem Prover, Hard Mode
 
-- Full specification: entire language is simulated by prover
-- Proofs are written in the Prover's dialect (Coq, SMTLIB2 etc)
+- Full specification: entire language is simulated
+- Proofs are written in Prover's dialect (Coq, SMTLIB2)
 - PhD please
+```haskell
+Theorem orb_is_or :
+  (forall a b, Is_true (orb a b) <-> Is_true a \/ Is_true b).
+Proof.
+  intros a b.
+  unfold iff.
+  refine (conj _ _)
+```
 
 ## Use a Theorem Prover, Easy Mode
 
 - Model checking: instrument code with small proofs
 - Provide a DSL that is easy to read and write
-- Prove what is most important (DB state, authorization, etc)
+- Prove what is most important (DB state, authorization)
 - No PhDs required
 
 ## Demo of Pact Model Checking
