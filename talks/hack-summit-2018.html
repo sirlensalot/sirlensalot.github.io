@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="author" content="Stuart Popejoy stuart@kadena.io @SirLensALot">
+  <title>Formal Verification, Governance and Safety on the Blockchain</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="reveal.js/css/reveal.css">
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      .smallcaps{font-variant: small-caps;}
+      .line-block{white-space: pre-line;}
+      .column{display: inline-block;}
+  </style>
+  <style type="text/css">
+div.sourceLine, a.sourceLine { display: inline-block; min-height: 1.25em; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; }
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+div.sourceLine, a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource div.sourceLine, .numberSource a.sourceLine
+  { position: relative; }
+pre.numberSource div.sourceLine::before, .numberSource a.sourceLine::before
+  { content: attr(data-line-number);
+    position: absolute; left: -5em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em; }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; color: #aaaaaa;  padding-left: 4px; }
+@media screen {
+a.sourceLine::before { text-decoration: underline; color = initial; }
+}
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.bn { color: #40a070; } /* BaseN */
+code span.fl { color: #40a070; } /* Float */
+code span.ch { color: #4070a0; } /* Char */
+code span.st { color: #4070a0; } /* String */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.ot { color: #007020; } /* Other */
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.fu { color: #06287e; } /* Function */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code span.cn { color: #880000; } /* Constant */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.im { } /* Import */
+code span.va { color: #19177c; } /* Variable */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.op { color: #666666; } /* Operator */
+code span.bu { } /* BuiltIn */
+code span.ex { } /* Extension */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.at { color: #7d9029; } /* Attribute */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+  <link rel="stylesheet" href="reveal.js/css/theme/kadena.css" id="theme">
+  <!-- Printing and PDF exports -->
+  <script>
+    var link = document.createElement( 'link' );
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+    document.getElementsByTagName( 'head' )[0].appendChild( link );
+  </script>
+  <!--[if lt IE 9]>
+  <script src="reveal.js/lib/js/html5shiv.js"></script>
+  <![endif]-->
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+<section>
+  <h1 class="title">Formal Verification, Governance and Safety on the Blockchain</h1>
+  <p class="author">Stuart Popejoy stuart@kadena.io <span class="citation" data-cites="SirLensALot">@SirLensALot</span></p>
+  <p class="date">hack.summit(“blockchain”) 2018</p>
+</section>
+
+<section id="smart-contracts" class="slide level1">
+<h1>Smart Contracts</h1>
+<section id="need-to-be-safe" class="level2">
+<h2>Need to be Safe</h2>
+<ul>
+<li>Smart-contract blockchains: automation with live ammo</li>
+<li>Ethereum: numerous bugs/exploits with costs in the $MM</li>
+<li>Developers are not superheroes</li>
+<li>Tests are not enough</li>
+</ul>
+</section>
+<section id="need-to-be-simple" class="level2">
+<h2>Need to be Simple</h2>
+<ul>
+<li>Simple means <strong>easy to understand</strong></li>
+<li>Simple means <strong>fast to code</strong></li>
+<li>Simple means <strong>safer</strong></li>
+<li>Simple means <strong>other stakeholders can understand it</strong></li>
+</ul>
+</section>
+<section id="need-to-be-maintainable" class="level2">
+<h2>Need to be Maintainable</h2>
+<ul>
+<li>Upgrades are essential</li>
+<li>Data migration is essential</li>
+<li>Per-contract governance</li>
+<li>Contracts need to be interoperable</li>
+</ul>
+</section>
+</section>
+<section id="formal-verification" class="slide level1">
+<h1>Formal Verification</h1>
+<section id="tests-only-test-what-you-know" class="level2">
+<h2>Tests only test what you know</h2>
+<ul>
+<li>Developers must think of every scenario</li>
+<li>Fuzzers, Quickcheck are probabilistic</li>
+</ul>
+</section>
+<section id="use-a-theorem-prover-hard-mode" class="level2">
+<h2>Use a Theorem Prover, Hard Mode</h2>
+<ul>
+<li>Full specification: entire language is simulated by prover</li>
+<li>Proofs are written in the Prover’s dialect (Coq, SMTLIB2 etc)</li>
+<li>PhD please</li>
+</ul>
+</section>
+<section id="use-a-theorem-prover-easy-mode" class="level2">
+<h2>Use a Theorem Prover, Easy Mode</h2>
+<ul>
+<li>Model checking: instrument code with small proofs</li>
+<li>Provide a DSL that is easy to read and write</li>
+<li>Prove what is most important (DB state, authorization, etc)</li>
+<li>No PhDs required</li>
+</ul>
+</section>
+<section id="demo-of-pact-model-checking" class="level2">
+<h2>Demo of Pact Model Checking</h2>
+<pre class="sourceCode lisp"><code class="sourceCode commonlisp"><div class="sourceLine" id="1" href="#1" data-line-number="1">  (defschema account</div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">    (<span class="st">&quot;Row type for accounts table.&quot;</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">      (invariant (<span class="op">&gt;=</span> balance <span class="fl">0.0</span>)))</div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">     balance:decimal</div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">     amount:decimal</div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">     ccy:string</div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7">     )</div></code></pre>
+</section>
+</section>
+<section id="governance-and-maintainability" class="slide level1">
+<h1>Governance and Maintainability</h1>
+<section id="maintaining-code-on-the-blockchain" class="level2">
+<h2>Maintaining Code on the Blockchain</h2>
+<ul>
+<li>Requires upgrades!</li>
+<li>Requires data migration</li>
+<li>Requires a name/directory based approach, not addresses</li>
+<li>Requires governance</li>
+</ul>
+</section>
+<section id="governance-in-pact-today" class="level2">
+<h2>Governance in Pact Today</h2>
+<ul>
+<li>Public-key based</li>
+<li>Multisig friendly, like all of Pact</li>
+<li>Allows upgrades</li>
+<li>Allows direct data manipulation</li>
+</ul>
+<pre class="sourceCode lisp"><code class="sourceCode commonlisp"><div class="sourceLine" id="1" href="#1" data-line-number="1">(module inventory &#39;inventory-admins-keyset</div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">  <span class="st">&quot;Inventory component&quot;</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">  (defschema inventory-record</div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">    ...)</div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">  (deftable inventory:{inventory-record})</div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">...</div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7">)</div></code></pre>
+</section>
+<section id="governance-in-pact-tomorrow" class="level2">
+<h2>Governance in Pact Tomorrow</h2>
+<ul>
+<li>Fully general governance</li>
+<li>Decentralized: collect votes on hash of upgrade tx</li>
+<li>More complex keyset regimes</li>
+</ul>
+<pre class="sourceCode lisp"><code class="sourceCode commonlisp"><div class="sourceLine" id="1" href="#1" data-line-number="1">(module inventory inventory-governance</div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">...</div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">  (<span class="kw">defun</span><span class="fu"> inventory-governance </span>()</div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">    (tally-votes (tx-hash)))</div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">...</div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">)</div></code></pre>
+</section>
+</section>
+<section id="safety-in-smart-contracts" class="slide level1">
+<h1>Safety in Smart Contracts</h1>
+<section id="ethereum-hard-to-write-safe-code" class="level2">
+<h2>Ethereum: Hard to Write Safe Code</h2>
+<ul>
+<li>EVM: Fully general machine model</li>
+<li>“Run the Contract and See What Happens”</li>
+<li>No multisig support</li>
+<li><strong>slow</strong> development time</li>
+</ul>
+</section>
+<section id="pact-safe-by-design" class="level2">
+<h2>Pact: Safe by Design</h2>
+<ul>
+<li>No recursion (source of DAO bug)</li>
+<li>SQL-like instead of OO-like (source of Rubixi bug)</li>
+<li>Inlined dependencies (source of Parity Wallet bug)</li>
+</ul>
+</section>
+<section id="pact-safe-means-easier-faster" class="level2">
+<h2>Pact: Safe means Easier, Faster</h2>
+<ul>
+<li>More built-in functionality, standard library</li>
+<li>Pacts: easy multi-step transactions, avoid bugs</li>
+<li>Multisig support built-in</li>
+<li>Simple, easy database model</li>
+</ul>
+</section>
+<section id="demo-of-escrow-pact" class="level2">
+<h2>Demo of Escrow Pact</h2>
+<pre class="sourceCode lisp"><code class="sourceCode commonlisp"><div class="sourceLine" id="1" href="#1" data-line-number="1">  (defpact two-party-escrow (deb-acct cred-acct</div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">                             escrow-amount:decimal timeout)</div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">    <span class="st">&quot;Simple two-party escrow pact&quot;</span></div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">    (step-with-rollback</div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">      (init-escrow deb-acct escrow-amount)</div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">      (cancel-escrow timeout deb-acct cred-acct escrow-amount))</div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7">    (<span class="kw">step</span></div>
+<div class="sourceLine" id="8" href="#8" data-line-number="8">      (finish-escrow deb-acct cred-acct</div>
+<div class="sourceLine" id="9" href="#9" data-line-number="9">                     escrow-amount)))</div></code></pre>
+</section>
+</section>
+<section id="thank-you" class="slide level1">
+<h1>Thank You!</h1>
+<p>Stuart Popejoy stuart@kadena.io <span class="citation" data-cites="SirLensALot">@SirLensALot</span></p>
+<p>Pact Github <a href="https://github.com/kadena-io/pact" class="uri">https://github.com/kadena-io/pact</a></p>
+<p>Pact site <a href="http://kadena.io/pact" class="uri">http://kadena.io/pact</a></p>
+<p>Web editor <a href="http://kadena.io/try-pact" class="uri">http://kadena.io/try-pact</a></p>
+<p>This talk <a href="http://slpopejoy.github.io/talks/hack-summit-2018.html" class="uri">http://slpopejoy.github.io/talks/hack-summit-2018.html</a></p>
+</section>
+    </div>
+  </div>
+
+  <script src="reveal.js/lib/js/head.min.js"></script>
+  <script src="reveal.js/js/reveal.js"></script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        // Push each slide change to the browser history
+        history: true,
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'reveal.js/plugin/zoom-js/zoom.js', async: true },
+          { src: 'reveal.js/plugin/notes/notes.js', async: true }
+        ]
+      });
+    </script>
+    </body>
+</html>
