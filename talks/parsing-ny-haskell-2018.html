@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="author" content="Stuart Popejoy stuart@kadena.io @SirLensALot">
+  <title>Parsing parsed parseables, from music to Megaparsec</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="reveal.js/css/reveal.css">
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      .smallcaps{font-variant: small-caps;}
+      .line-block{white-space: pre-line;}
+      .column{display: inline-block;}
+  </style>
+  <style type="text/css">
+div.sourceLine, a.sourceLine { display: inline-block; min-height: 1.25em; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; }
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+div.sourceLine, a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource div.sourceLine, .numberSource a.sourceLine
+  { position: relative; }
+pre.numberSource div.sourceLine::before, .numberSource a.sourceLine::before
+  { content: attr(data-line-number);
+    position: absolute; left: -5em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em; }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; color: #aaaaaa;  padding-left: 4px; }
+@media screen {
+a.sourceLine::before { text-decoration: underline; color = initial; }
+}
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.bn { color: #40a070; } /* BaseN */
+code span.fl { color: #40a070; } /* Float */
+code span.ch { color: #4070a0; } /* Char */
+code span.st { color: #4070a0; } /* String */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.ot { color: #007020; } /* Other */
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.fu { color: #06287e; } /* Function */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code span.cn { color: #880000; } /* Constant */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.im { } /* Import */
+code span.va { color: #19177c; } /* Variable */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.op { color: #666666; } /* Operator */
+code span.bu { } /* BuiltIn */
+code span.ex { } /* Extension */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.at { color: #7d9029; } /* Attribute */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+  <link rel="stylesheet" href="reveal.js/css/theme/kadena-unbranded.css" id="theme">
+  <!-- Printing and PDF exports -->
+  <script>
+    var link = document.createElement( 'link' );
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+    document.getElementsByTagName( 'head' )[0].appendChild( link );
+  </script>
+  <!--[if lt IE 9]>
+  <script src="reveal.js/lib/js/html5shiv.js"></script>
+  <![endif]-->
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+<section>
+  <h1 class="title">Parsing parsed parseables, from music to Megaparsec</h1>
+  <p class="author">Stuart Popejoy stuart@kadena.io <span class="citation" data-cites="SirLensALot">@SirLensALot</span></p>
+  <p class="date">NY Haskell, Oct 2018</p>
+</section>
+
+<section id="parsing-in-haskell" class="slide level1">
+<h1>Parsing in Haskell</h1>
+<ul>
+<li>16:32 <strong>haskn00b</strong>: any pointers on good regex libs in haskell? thanks!</li>
+<li>16:33 <strong>shw</strong>: yeah … parsec</li>
+<li>16:33 <strong>haskn00b</strong>: cool!</li>
+<li>16:53 <strong>haskn00b</strong>: shw: i don’t see the regex part. How am I supposed to handle text?</li>
+<li>16:54 <strong>shw</strong>: Regex can deceive you. Stretch out with your feelings!</li>
+<li>16:54 <strong>haskn00b</strong>: <em>writes entire app in bash</em></li>
+</ul>
+</section>
+<section id="parser-combinators" class="slide level1">
+<h1>Parser Combinators</h1>
+<section id="section" class="level2">
+<h2> </h2>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="ot">expr ::</span> <span class="dt">CharParsing</span> m <span class="ot">=&gt;</span> m <span class="dt">Expr</span></div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">expr <span class="fu">=</span> (<span class="dt">ENumber</span> <span class="fu">&lt;$&gt;</span> scientific) <span class="fu">&lt;|&gt;</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">       (<span class="dt">EString</span> <span class="fu">&lt;$&gt;</span> stringLiteral) <span class="fu">&lt;|&gt;</span></div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">       (<span class="dt">EAtom</span> <span class="fu">&lt;$&gt;</span> identifier) <span class="fu">&lt;|&gt;</span></div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">       (<span class="dt">EList</span> <span class="fu">&lt;$&gt;</span> parens (sepBy expr spaces))</div></code></pre>
+</section>
+<section id="main-elements" class="level2">
+<h2>Main elements</h2>
+<ul>
+<li>Alternative: <code>&lt;|&gt;</code>, <code>empty</code>, <code>some</code>, <code>many</code></li>
+<li>Functor: <code>&lt;$&gt;</code></li>
+<li>Applicative: <code>pure</code>, <code>&lt;*&gt;</code>, <code>&lt;*</code>, <code>*&gt;</code></li>
+<li>MonadPlus: <code>mzero</code>, <code>mplus</code></li>
+<li>Other: <code>sepBy</code>, <code>optional</code>, <code>satisfy</code></li>
+</ul>
+</section>
+<section id="dogfooding" class="level2">
+<h2>Dogfooding</h2>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="kw">class</span> (<span class="dt">Alternative</span> m,<span class="dt">MonadPlus</span> m) <span class="ot">=&gt;</span> <span class="dt">CharParser</span> m <span class="kw">where</span></div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2"><span class="ot">  satisfy ::</span> (<span class="dt">Char</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>) <span class="ot">-&gt;</span> m <span class="dt">Char</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3"></div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4"><span class="ot">char ::</span> <span class="dt">CharParser</span> m <span class="ot">=&gt;</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> m <span class="dt">Char</span></div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">char c <span class="fu">=</span> satisfy (c <span class="fu">==</span>)</div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6"></div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7"><span class="ot">parens ::</span> (<span class="dt">CharParser</span> m) <span class="ot">=&gt;</span> m a <span class="ot">-&gt;</span> m a</div>
+<div class="sourceLine" id="8" href="#8" data-line-number="8">parens p <span class="fu">=</span> char <span class="ch">&#39;(&#39;</span> <span class="fu">*&gt;</span> p <span class="fu">&lt;*</span> char <span class="ch">&#39;)&#39;</span></div></code></pre>
+</section>
+<section id="parse-you-a-lisp" class="level2">
+<h2>Parse you a LISP</h2>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="kw">data</span> <span class="dt">Expr</span> <span class="fu">=</span></div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">     <span class="dt">ENumber</span> <span class="dt">Scientific</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">   <span class="fu">|</span> <span class="dt">EString</span> <span class="dt">Text</span></div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">   <span class="fu">|</span> <span class="dt">EAtom</span> <span class="dt">Text</span></div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">   <span class="fu">|</span> <span class="dt">EList</span> [<span class="dt">Expr</span>]</div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6"></div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7"><span class="ot">expr ::</span> <span class="dt">CharParsing</span> m <span class="ot">=&gt;</span> m <span class="dt">Expr</span></div>
+<div class="sourceLine" id="8" href="#8" data-line-number="8">expr <span class="fu">=</span> (<span class="dt">ENumber</span> <span class="fu">&lt;$&gt;</span> scientific) <span class="fu">&lt;|&gt;</span></div>
+<div class="sourceLine" id="9" href="#9" data-line-number="9">       (<span class="dt">EString</span> <span class="fu">&lt;$&gt;</span> stringLiteral) <span class="fu">&lt;|&gt;</span></div>
+<div class="sourceLine" id="10" href="#10" data-line-number="10">       (<span class="dt">EAtom</span> <span class="fu">&lt;$&gt;</span> identifier) <span class="fu">&lt;|&gt;</span></div>
+<div class="sourceLine" id="11" href="#11" data-line-number="11">       (<span class="dt">EList</span> <span class="fu">&lt;$&gt;</span> parens (sepBy expr spaces))</div></code></pre>
+<pre class="sourceCode lisp"><code class="sourceCode commonlisp"><div class="sourceLine" id="1" href="#1" data-line-number="1">(<span class="kw">defun</span><span class="fu"> div </span>(a b)</div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">  <span class="st">&quot;Divide A by B and return rounded amount.&quot;</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">  (<span class="kw">if</span> (<span class="kw">eq</span> b <span class="dv">0</span>) (<span class="kw">error</span> <span class="st">&quot;Div by 0!&quot;</span>)</div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">    (<span class="kw">round</span> (<span class="op">/</span> a b))))</div></code></pre>
+</section>
+<section id="parse-you-a-lisp-1" class="level2">
+<h2>Parse you a LISP</h2>
+<pre class="sourceCode lisp"><code class="sourceCode commonlisp"><div class="sourceLine" id="1" href="#1" data-line-number="1">(<span class="kw">defun</span><span class="fu"> div </span>(a b)</div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">  <span class="st">&quot;Divide A by B and return rounded amount.&quot;</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">  (<span class="kw">if</span> (<span class="kw">eq</span> b <span class="dv">0</span>) (<span class="kw">error</span> <span class="st">&quot;Div by 0!&quot;</span>)</div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">    (<span class="kw">round</span> (<span class="op">/</span> a b))))</div></code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="dt">EList</span> [<span class="dt">EAtom</span> <span class="st">&quot;defun&quot;</span>, <span class="dt">EAtom</span> <span class="st">&quot;div&quot;</span>, <span class="dt">EList</span> [<span class="dt">EAtom</span> <span class="st">&quot;a&quot;</span>, <span class="dt">EAtom</span> <span class="st">&quot;b&quot;</span>]</div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">  , <span class="dt">EString</span> <span class="st">&quot;Divide A by B and return rounded amount.&quot;</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">  , <span class="dt">EList</span> [<span class="dt">EAtom</span> <span class="st">&quot;if&quot;</span>, <span class="dt">EList</span> [<span class="dt">EAtom</span> <span class="st">&quot;eq&quot;</span>, <span class="dt">EAtom</span> <span class="st">&quot;b&quot;</span>, <span class="dt">ENumber</span> <span class="dv">0</span>]</div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">          , <span class="dt">EList</span> [<span class="dt">EAtom</span> <span class="st">&quot;error&quot;</span>, <span class="dt">EString</span> <span class="st">&quot;Div by 0!&quot;</span>]</div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">          , <span class="dt">EList</span> [<span class="dt">EAtom</span> <span class="st">&quot;round&quot;</span></div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">                  , <span class="dt">EList</span> [<span class="dt">EAtom</span> <span class="st">&quot;/&quot;</span>, <span class="dt">EAtom</span> <span class="st">&quot;a&quot;</span>, <span class="dt">EAtom</span> <span class="st">&quot;b&quot;</span>]]]]</div></code></pre>
+</section>
+</section>
+<section id="my-war-musicxml" class="slide level1">
+<h1>My War: MusicXML</h1>
+<section id="section-1" class="level2">
+<h2> </h2>
+<p><img data-src="img/mywar-xml.png" /> <img data-src="img/henry-rollins.jpg" /> <img data-src="img/mywar-music.png" /></p>
+</section>
+<section id="the-problem" class="level2">
+<h2>The Problem</h2>
+<ul>
+<li>I’ve generated a bunch of music data</li>
+<li>I need to perform it with humans</li>
+<li>I need to create decent sheet music</li>
+<li>Lilypond jumps the shark, MusicABC too trivial</li>
+</ul>
+</section>
+<section id="the-solution" class="level2">
+<h2>The “Solution”</h2>
+<ul>
+<li>MusicXML, the “pro” way to go</li>
+<li>Lots of printing support</li>
+<li>In Java, use JAXB</li>
+<li>In Haskell …</li>
+</ul>
+</section>
+<section id="use-a-hand-rolled-musicxml-emitter-on-hackage" class="level2">
+<h2>Use a hand-rolled MusicXML emitter on hackage</h2>
+<ul>
+<li>Only implements whatever the author got around to</li>
+<li>Only supports author’s idiosyncratic music lib</li>
+<li>MusicXML v2.0 only</li>
+</ul>
+</section>
+<section id="wait-i-have-a-terrible-idea" class="level2">
+<h2>Wait! I have a terrible idea</h2>
+<ul>
+<li>MusicXML fully specified in XSD</li>
+<li>Ooh look a library to spit out DSLs from XSD!</li>
+<li>Ooh look it’s been abandoned since 2011</li>
+</ul>
+<p><em>(rolls up sleeves)</em></p>
+</section>
+<section id="lets-generate-a-musicxml-library-from-xsd" class="level2">
+<h2>Let’s generate a MusicXML library from XSD</h2>
+<ul>
+<li>Generate a DSL that will always correctly spit out XML</li>
+<li>Load XSD as an AST</li>
+<li>Need to “recognize” streams of XSD XML</li>
+</ul>
+</section>
+<section id="huh-that-sounds-a-lot-like-a-parser" class="level2">
+<h2>Huh, that sounds a lot like a … parser</h2>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="co">-- | Recognize attribute group</span></div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2"><span class="ot">attributeGroup ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> m <span class="dt">AttributeGroup</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">attributeGroup <span class="fu">=</span> <span class="kw">do</span></div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">  atEl (xsName <span class="st">&quot;attributeGroup&quot;</span>)</div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">  <span class="dt">AttributeGroup</span> <span class="fu">.</span> qn <span class="fu">&lt;$&gt;</span> attr (name <span class="st">&quot;name&quot;</span>)</div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">        <span class="fu">&lt;*&gt;</span> attrs <span class="fu">&lt;*&gt;</span> documentation</div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7">     <span class="fu">&lt;|&gt;</span> (<span class="dt">AttributeGroupRef</span> <span class="fu">.</span> <span class="dt">Unresolved</span> <span class="fu">.</span> qn)</div>
+<div class="sourceLine" id="8" href="#8" data-line-number="8">        <span class="fu">&lt;$&gt;</span> attr (name <span class="st">&quot;ref&quot;</span>)</div>
+<div class="sourceLine" id="9" href="#9" data-line-number="9"></div>
+<div class="sourceLine" id="10" href="#10" data-line-number="10"><span class="co">-- | Recognize attributes and attributeGroups</span></div>
+<div class="sourceLine" id="11" href="#11" data-line-number="11"><span class="co">--   (which often come together).</span></div>
+<div class="sourceLine" id="12" href="#12" data-line-number="12"><span class="ot">attrs ::</span> <span class="dt">XParser</span> m <span class="ot">=&gt;</span> m <span class="dt">Attributes</span></div>
+<div class="sourceLine" id="13" href="#13" data-line-number="13">attrs <span class="fu">=</span> <span class="dt">Attributes</span> <span class="fu">&lt;$&gt;</span></div>
+<div class="sourceLine" id="14" href="#14" data-line-number="14">    findChildren (xsName <span class="st">&quot;attribute&quot;</span>) attribute <span class="fu">&lt;*&gt;</span></div>
+<div class="sourceLine" id="15" href="#15" data-line-number="15">    findChildren (xsName <span class="st">&quot;attributeGroup&quot;</span>) attributeGroup</div></code></pre>
+</section>
+</section>
+<section id="xml-element-parser-combinator" class="slide level1">
+<h1>XML element parser combinator</h1>
+<section id="take-1-statet-list-exceptt" class="level2">
+<h2>Take 1: StateT List + ExceptT</h2>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="co">-- | XParser constraint kind. Stack state + alternative + errors.</span></div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2"><span class="kw">type</span> <span class="dt">XParser</span> m <span class="fu">=</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">  (<span class="dt">Alternative</span> m, <span class="dt">MonadState</span> [<span class="dt">X.Element</span>] m, <span class="dt">MonadError</span> <span class="dt">String</span> m)</div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4"></div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5"><span class="co">-- | run XParser on an element.</span></div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6"><span class="ot">parseX ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">StateT</span> [<span class="dt">X.Element</span>] (<span class="dt">ExceptT</span> <span class="dt">String</span> m) b</div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7">       <span class="ot">-&gt;</span> <span class="dt">X.Element</span> <span class="ot">-&gt;</span> m (<span class="dt">Either</span> <span class="dt">String</span> b)</div>
+<div class="sourceLine" id="8" href="#8" data-line-number="8">parseX sel e <span class="fu">=</span> runExceptT (evalStateT sel [e])</div></code></pre>
+</section>
+</section>
+    </div>
+  </div>
+
+  <script src="reveal.js/lib/js/head.min.js"></script>
+  <script src="reveal.js/js/reveal.js"></script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        // Push each slide change to the browser history
+        history: true,
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'reveal.js/plugin/zoom-js/zoom.js', async: true },
+          { src: 'reveal.js/plugin/notes/notes.js', async: true }
+        ]
+      });
+    </script>
+    </body>
+</html>
