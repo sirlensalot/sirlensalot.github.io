@@ -235,8 +235,8 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 </section>
 <section id="xml-element-parser-combinator" class="slide level1">
 <h1>XML element parser combinator</h1>
-<section id="take-1-statet-list-exceptt" class="level2">
-<h2>Take 1: StateT List + ExceptT</h2>
+<section id="take-1-statet-list-except" class="level2">
+<h2>Take 1: StateT List + Except</h2>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="co">-- | XParser constraint kind. Stack state + alternative + errors.</span></div>
 <div class="sourceLine" id="2" href="#2" data-line-number="2"><span class="kw">type</span> <span class="dt">XParser</span> m <span class="fu">=</span></div>
 <div class="sourceLine" id="3" href="#3" data-line-number="3">  (<span class="dt">Alternative</span> m, <span class="dt">MonadState</span> [<span class="dt">X.Element</span>] m, <span class="dt">MonadError</span> <span class="dt">String</span> m)</div>
@@ -245,7 +245,428 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 <div class="sourceLine" id="6" href="#6" data-line-number="6"><span class="ot">parseX ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">StateT</span> [<span class="dt">X.Element</span>] (<span class="dt">ExceptT</span> <span class="dt">String</span> m) b</div>
 <div class="sourceLine" id="7" href="#7" data-line-number="7">       <span class="ot">-&gt;</span> <span class="dt">X.Element</span> <span class="ot">-&gt;</span> m (<span class="dt">Either</span> <span class="dt">String</span> b)</div>
 <div class="sourceLine" id="8" href="#8" data-line-number="8">parseX sel e <span class="fu">=</span> runExceptT (evalStateT sel [e])</div></code></pre>
+<p>Just like that, <code>&lt;|&gt;</code>, <code>optional</code>, failure/try/catch …</p>
 </section>
+<section id="build-you-a-musicxml-dsl-emitter" class="level2">
+<h2>Build you a MusicXML DSL emitter</h2>
+<ul>
+<li>Was able to parse the entire MusicXML XSD (~4500 lines)</li>
+<li>Generated a monster Haskell module (~8000 lines)</li>
+<li>Shipped the piece</li>
+</ul>
+</section>
+<section id="but-not-a-musicxml-reader" class="level2">
+<h2>But not a MusicXML reader</h2>
+<ul>
+<li>Wanted to also <em>read</em> MusicXML to populate the DSL</li>
+<li><code>XParser</code> unable to preserve element order (not needed in the MusicXML XSD)</li>
+<li>Bad <code>try</code> semantics (no way to fail to parent)</li>
+</ul>
+</section>
+<section id="take-2-statet-cursor-except" class="level2">
+<h2>Take 2: StateT Cursor + Except</h2>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Text.XML.Light.Cursor</span> <span class="kw">as</span> <span class="dt">C</span></div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2"></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3"><span class="kw">newtype</span> <span class="dt">XParse</span> a <span class="fu">=</span> <span class="dt">XParse</span></div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">    {<span class="ot"> unXParse ::</span> <span class="dt">StateT</span> <span class="dt">C.Cursor</span> (<span class="dt">Except</span> <span class="dt">XErrors</span>) a }</div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">  <span class="kw">deriving</span> (<span class="dt">Functor</span>,<span class="dt">Applicative</span>,<span class="dt">Monad</span>,<span class="dt">MonadState</span> <span class="dt">C.Cursor</span>,</div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">            <span class="dt">MonadError</span> <span class="dt">XErrors</span>,<span class="dt">Alternative</span>)</div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7"></div>
+<div class="sourceLine" id="8" href="#8" data-line-number="8"><span class="ot">runXParse ::</span> <span class="dt">X.Element</span> <span class="ot">-&gt;</span> <span class="dt">XParse</span> a <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">XErrors</span> a</div>
+<div class="sourceLine" id="9" href="#9" data-line-number="9">runXParse e act <span class="fu">=</span></div>
+<div class="sourceLine" id="10" href="#10" data-line-number="10">  runExcept (evalStateT (unXParse act) (C.fromElement e))</div></code></pre>
+</section>
+<section id="a-two-headed-beast" class="level2">
+<h2>A two-headed beast</h2>
+<ul>
+<li>New parser works for codegen MusicXML reading (module now ~11,500 lines)</li>
+<li>Wasn’t able to quickly replace the old XSD parser</li>
+<li>Future work: bootstrap from the XSD XSD</li>
+</ul>
+</section>
+</section>
+<section id="the-pact-parser-and-compiler" class="slide level1">
+<h1>The Pact Parser and Compiler</h1>
+<section id="what-is-pact" class="level2">
+<h2>What is Pact?</h2>
+<ul>
+<li>LISP/sexp syntax smart contract language</li>
+<li>Part of the Kadena blockchain platform</li>
+<li>Key/value DB language, public-key multisig support</li>
+<li>Turing incomplete: strict, no recursion, no lambdas</li>
+<li>Type inference, partial application, map/filter/fold/compose</li>
+<li>Formal verification via embedded DSL, direct compilation to SMT-LIB2</li>
+</ul>
+</section>
+<section id="pact-parsercompiler-v1" class="level2">
+<h2>Pact Parser/Compiler, v1</h2>
+<ul>
+<li>Parser written using <code>parsers</code>: <code>Text</code> -&gt; <code>Exp</code></li>
+<li>Uses <code>trifecta</code> in SDK, <code>attoparsec</code> on blockchain</li>
+<li>“Compiler” written in spaghetti Haskell: <code>Exp</code> -&gt; <code>Term Name</code></li>
+</ul>
+</section>
+<section id="pattern-based-recognition" class="level2">
+<h2>Pattern-based recognition</h2>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="ot">defconst ::</span> [<span class="dt">Exp</span>] <span class="ot">-&gt;</span> <span class="dt">Info</span> <span class="ot">-&gt;</span> <span class="dt">Compile</span> (<span class="dt">Term</span> <span class="dt">Name</span>)</div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">defconst es i <span class="fu">=</span> <span class="kw">case</span> es <span class="kw">of</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">  [<span class="dt">EAtom</span> dn <span class="dt">Nothing</span> ct _,t] <span class="ot">-&gt;</span> mkConst dn ct t <span class="dt">Nothing</span></div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">  [<span class="dt">EAtom</span> dn <span class="dt">Nothing</span> ct _,t,<span class="dt">ELitString</span> docs] <span class="ot">-&gt;</span></div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">    mkConst dn ct t (justDocs docs)</div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">  [<span class="dt">EAtom</span> dn <span class="dt">Nothing</span> ct _,t,<span class="dt">EList&#39;</span> (<span class="dt">ELitString</span> docs<span class="fu">:</span>ps)] <span class="ot">-&gt;</span></div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7">    mkMeta docs ps <span class="fu">&gt;&gt;=</span> \m <span class="ot">-&gt;</span> mkConst dn ct t m</div>
+<div class="sourceLine" id="8" href="#8" data-line-number="8">  _ <span class="ot">-&gt;</span> syntaxError i <span class="st">&quot;Invalid defconst&quot;</span></div>
+<div class="sourceLine" id="9" href="#9" data-line-number="9">  <span class="kw">where</span></div>
+<div class="sourceLine" id="10" href="#10" data-line-number="10">    mkConst dn ty v docs <span class="fu">=</span> <span class="kw">do</span></div>
+<div class="sourceLine" id="11" href="#11" data-line-number="11">      v&#39; <span class="ot">&lt;-</span> run v</div>
+<div class="sourceLine" id="12" href="#12" data-line-number="12">      cm <span class="ot">&lt;-</span> currentModule i</div>
+<div class="sourceLine" id="13" href="#13" data-line-number="13">      a <span class="ot">&lt;-</span> <span class="dt">Arg</span> <span class="fu">&lt;$&gt;</span> pure dn <span class="fu">&lt;*&gt;</span> maybeTyVar i ty <span class="fu">&lt;*&gt;</span> pure i</div>
+<div class="sourceLine" id="14" href="#14" data-line-number="14">      return <span class="fu">$</span> <span class="dt">TConst</span> a (fst cm) (<span class="dt">CVRaw</span> v&#39;) docs i</div></code></pre>
+</section>
+<section id="pattern-based-recognition-1" class="level2">
+<h2>Pattern-based recognition</h2>
+<ul>
+<li>Hard to reuse matching logic</li>
+<li>Pattern syms not enough</li>
+<li>Hard to factor</li>
+<li>Fast and “just works”</li>
+</ul>
+</section>
+<section id="embedding-a-fv-dsl-in-pact" class="level2">
+<h2>Embedding a FV DSL in Pact</h2>
+<pre class="sourceCode lisp"><code class="sourceCode commonlisp"><div class="sourceLine" id="1" href="#1" data-line-number="1">(module accounts &#39;accounts-admin-keyset</div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">  @doc <span class="st">&quot;Accounts module&quot;</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">  @model [(defproperty conserves-mass</div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">            (<span class="op">=</span> (column-delta &#39;accounts &#39;balance) <span class="fl">0.0</span>))]</div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">  (defschema account</div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">    @model (invariant (<span class="op">&gt;=</span> balance <span class="fl">0.0</span>))</div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7">    balance:decimal</div>
+<div class="sourceLine" id="8" href="#8" data-line-number="8">    amount:decimal</div>
+<div class="sourceLine" id="9" href="#9" data-line-number="9">    auth:keyset)</div>
+<div class="sourceLine" id="10" href="#10" data-line-number="10">  (deftable accounts:{account})</div>
+<div class="sourceLine" id="11" href="#11" data-line-number="11">  (<span class="kw">defun</span><span class="fu"> transfer </span>(src:string dest:string amount:decimal)</div>
+<div class="sourceLine" id="12" href="#12" data-line-number="12">    @doc   <span class="st">&quot;transfer AMOUNT from SRC to DEST&quot;</span></div>
+<div class="sourceLine" id="13" href="#13" data-line-number="13">    @model (property conserves-mass)</div>
+<div class="sourceLine" id="14" href="#14" data-line-number="14">    (debit src amount)</div>
+<div class="sourceLine" id="15" href="#15" data-line-number="15">    (credit dest amount)) ...</div></code></pre>
+</section>
+<section id="embedding-a-fv-dsl-in-pact-1" class="level2">
+<h2>Embedding a FV DSL in Pact</h2>
+<ul>
+<li>Pact parser too “smart”</li>
+<li>All literal types recognized in parser</li>
+<li>Need “sexps only”</li>
+</ul>
+</section>
+<section id="the-pact-parser-v2" class="level2">
+<h2>The Pact Parser, v2:</h2>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="kw">data</span> <span class="dt">Exp</span> i <span class="fu">=</span></div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">  <span class="dt">ELiteral</span> (<span class="dt">LiteralExp</span> i) <span class="fu">|</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">  <span class="dt">EAtom</span> (<span class="dt">AtomExp</span> i) <span class="fu">|</span></div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">  <span class="dt">EList</span> (<span class="dt">ListExp</span> i) <span class="fu">|</span></div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">  <span class="dt">ESeparator</span> (<span class="dt">SeparatorExp</span> i)</div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">  <span class="kw">deriving</span> (<span class="dt">Eq</span>,<span class="dt">Ord</span>,<span class="dt">Generic</span>,<span class="dt">Functor</span>,<span class="dt">Foldable</span>,<span class="dt">Traversable</span>)</div></code></pre>
+</section>
+<section id="but-what-about-the-compiler" class="level2">
+<h2>But what about the compiler</h2>
+<ul>
+<li>Major refactor</li>
+<li>Compiler has to work with a far less rich <code>Exp</code></li>
+<li>Wouldn’t it be nice if we could “parse” over <code>Exp</code>?</li>
+</ul>
+</section>
+<section id="take-1-statet-exp-except" class="level2">
+<h2>Take 1: StateT Exp + Except</h2>
+<ul>
+<li><code>Except</code> not the right shape for “epsilon failures”</li>
+<li><code>State</code> not the right shape for backtracking semantics</li>
+<li>Have to rely on <code>try</code> too much</li>
+<li>Probably slow</li>
+</ul>
+</section>
+</section>
+<section id="how-parsers-work" class="slide level1">
+<h1>How Parsers Work</h1>
+<section id="continuation-passing-for-days" class="level2">
+<h2>Continuation Passing For Days</h2>
+<p><img data-src="img/parsers.png" /></p>
+</section>
+<section id="just-mangle-four-continuations-whats-the-problem" class="level2">
+<h2>Just mangle four continuations, what’s the problem?</h2>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="co">-- Parsec Monad bind</span></div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2"><span class="ot">parserBind ::</span> <span class="dt">ParsecT</span> s u m a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">ParsecT</span> s u m b)</div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">           <span class="ot">-&gt;</span> <span class="dt">ParsecT</span> s u m b</div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">parserBind m k <span class="fu">=</span> <span class="dt">ParsecT</span> <span class="fu">$</span> \s cok cerr eok eerr <span class="ot">-&gt;</span></div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">    <span class="kw">let</span> mcok x s err <span class="fu">=</span></div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">            <span class="kw">let</span> peok x s err&#39; <span class="fu">=</span> cok x s (mergeError err err&#39;)</div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7">                peerr err&#39; <span class="fu">=</span> cerr (mergeError err err&#39;)</div>
+<div class="sourceLine" id="8" href="#8" data-line-number="8">            <span class="kw">in</span>  unParser (k x) s cok cerr peok peerr</div>
+<div class="sourceLine" id="9" href="#9" data-line-number="9">        meok x s err <span class="fu">=</span></div>
+<div class="sourceLine" id="10" href="#10" data-line-number="10">            <span class="kw">let</span> peok x s err&#39; <span class="fu">=</span> eok x s (mergeError err err&#39;)</div>
+<div class="sourceLine" id="11" href="#11" data-line-number="11">                peerr err&#39; <span class="fu">=</span> eerr (mergeError err err&#39;)</div>
+<div class="sourceLine" id="12" href="#12" data-line-number="12">            <span class="kw">in</span>  unParser (k x) s cok cerr peok peerr</div>
+<div class="sourceLine" id="13" href="#13" data-line-number="13">    <span class="kw">in</span> unParser m s mcok cerr meok eerr</div></code></pre>
+</section>
+<section id="path-following-state-modeled-as-cp" class="level2">
+<h2>Path-following state modeled as CP</h2>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="co">--                            commit   epsilon</span></div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">parserBind m k <span class="fu">=</span> <span class="dt">ParsecT</span> <span class="fu">$</span> \s cok cerr eok eerr <span class="ot">-&gt;</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">    <span class="kw">let</span> <span class="co">-- Commit Path</span></div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">        mcok x s err <span class="fu">=</span></div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">            <span class="kw">let</span> peok x s err&#39; <span class="fu">=</span> <span class="co">-- epsilon ok ...</span></div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">                  cok x s (mergeError err err&#39;) <span class="co">-- routes to commit!</span></div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7">                peerr err&#39; <span class="fu">=</span> <span class="co">-- epsilon error ...</span></div>
+<div class="sourceLine" id="8" href="#8" data-line-number="8">                  cerr (mergeError err err&#39;)    <span class="co">-- routes to commit!</span></div>
+<div class="sourceLine" id="9" href="#9" data-line-number="9">            <span class="co">--                  commit   epsilon</span></div>
+<div class="sourceLine" id="10" href="#10" data-line-number="10">            <span class="kw">in</span> unParser (k x) s cok cerr peok peerr</div>
+<div class="sourceLine" id="11" href="#11" data-line-number="11">        <span class="fu">...</span></div>
+<div class="sourceLine" id="12" href="#12" data-line-number="12">    <span class="co">--              commit    epsilon</span></div>
+<div class="sourceLine" id="13" href="#13" data-line-number="13">    <span class="kw">in</span> unParser m s mcok cerr meok eerr <span class="co">-- errors unchanged</span></div></code></pre>
+<p>Commit path “re-routes” epsilon/empty paths</p>
+</section>
+<section id="path-following-state-modeled-as-cp-1" class="level2">
+<h2>Path-following state modeled as CP</h2>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="co">--                            commit   epsilon</span></div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">parserBind m k <span class="fu">=</span> <span class="dt">ParsecT</span> <span class="fu">$</span> \s cok cerr eok eerr <span class="ot">-&gt;</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">    <span class="kw">let</span> <span class="fu">...</span></div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">        <span class="co">-- Epsilon Path, just merges errors</span></div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">        meok x s err <span class="fu">=</span></div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">            <span class="kw">let</span> peok x s err&#39; <span class="fu">=</span> eok x s (mergeError err err&#39;)</div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7">                peerr err&#39; <span class="fu">=</span> eerr (mergeError err err&#39;)</div>
+<div class="sourceLine" id="8" href="#8" data-line-number="8">            <span class="co">--                   commit   epsilon</span></div>
+<div class="sourceLine" id="9" href="#9" data-line-number="9">            <span class="kw">in</span>  unParser (k x) s cok cerr peok peerr</div>
+<div class="sourceLine" id="10" href="#10" data-line-number="10">    <span class="co">--              commit    epsilon</span></div>
+<div class="sourceLine" id="11" href="#11" data-line-number="11">    <span class="kw">in</span> unParser m s mcok cerr meok eerr</div></code></pre>
+<p>Epsilon just stays on the same path</p>
+</section>
+<section id="haskell-parser-semantics-except-atto" class="level2">
+<h2>Haskell Parser Semantics (except Atto)</h2>
+<ul>
+<li>Focus on “leftmost” item in a given alternative:
+<ul>
+<li>After “epsilon” success, continue down commit path</li>
+<li>After “epsilon” error, error down commit path</li>
+</ul></li>
+<li>Happy path: validate an alternative at the first test</li>
+<li>Longer success paths must happen in <code>try</code></li>
+<li>Atto is … different (but not in <code>parsers</code>)</li>
+</ul>
+</section>
+<section id="now-how-to-write-a-non-char-stream-parser" class="level2">
+<h2>Now, how to write a non-Char stream parser?</h2>
+<ul>
+<li>Semantics are hard, performance harder</li>
+<li>If only a parser library supported arbitrary streams</li>
+</ul>
+</section>
+</section>
+<section id="megaparsec-6.x-to-the-rescue" class="slide level1">
+<h1>Megaparsec 6.x to the rescue</h1>
+<section id="stream-typeclass-for-arbitrary-token-stream-support" class="level2">
+<h2><code>Stream</code> typeclass for arbitrary token stream support</h2>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="kw">class</span> (<span class="dt">Stream</span> s, <span class="dt">MonadPlus</span> m) <span class="ot">=&gt;</span> <span class="dt">MonadParsec</span> e s m <span class="kw">where</span> <span class="fu">...</span></div></code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="kw">class</span> (<span class="dt">Ord</span> (<span class="dt">Token</span> s), <span class="dt">Ord</span> (<span class="dt">Tokens</span> s)) <span class="ot">=&gt;</span> <span class="dt">Stream</span> s <span class="kw">where</span></div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">  <span class="kw">type</span> <span class="dt">Token</span><span class="ot"> s ::</span> <span class="fu">*</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">  <span class="kw">type</span> <span class="dt">Tokens</span><span class="ot"> s ::</span> <span class="fu">*</span></div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">  <span class="fu">...</span></div></code></pre>
+</section>
+<section id="getinput-setinput-for-include-files" class="level2">
+<h2><code>getInput</code>, <code>setInput</code> for “include files”</h2>
+<ul>
+<li>Allows arbitrary re-setting of <code>Stream</code> data</li>
+<li>Intended to support includes</li>
+<li>Includes == sourcefile trees</li>
+<li>Exp, XML etc: trees</li>
+</ul>
+</section>
+<section id="need-current-thing" class="level2">
+<h2>Need “current thing”</h2>
+<ul>
+<li>Char parsers don’t seem to need to see what we just parsed</li>
+<li>Need some extra state to show the current <code>Exp</code></li>
+<li>Good thing <code>MonadParsec</code> has all the instances!</li>
+</ul>
+</section>
+<section id="and-were-done" class="level2">
+<h2>And we’re done!</h2>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="kw">data</span> <span class="dt">Cursor</span> <span class="fu">=</span> <span class="dt">Cursor</span></div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">  {<span class="ot"> _cContext ::</span> <span class="dt">Maybe</span> (<span class="dt">Cursor</span>,<span class="dt">Exp</span> <span class="dt">Info</span>)</div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">  ,<span class="ot"> _cStream ::</span> [<span class="dt">Exp</span> <span class="dt">Info</span>]</div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">  } <span class="kw">deriving</span> (<span class="dt">Show</span>)</div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5"></div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6"><span class="kw">instance</span> <span class="dt">Stream</span> <span class="dt">Cursor</span> <span class="kw">where</span></div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7">  <span class="kw">type</span> <span class="dt">Token</span> <span class="dt">Cursor</span> <span class="fu">=</span> <span class="dt">Exp</span> <span class="dt">Info</span></div>
+<div class="sourceLine" id="8" href="#8" data-line-number="8">  <span class="kw">type</span> <span class="dt">Tokens</span> <span class="dt">Cursor</span> <span class="fu">=</span> [<span class="dt">Exp</span> <span class="dt">Info</span>]</div>
+<div class="sourceLine" id="9" href="#9" data-line-number="9">  <span class="fu">...</span></div>
+<div class="sourceLine" id="10" href="#10" data-line-number="10"></div>
+<div class="sourceLine" id="11" href="#11" data-line-number="11"><span class="kw">data</span> <span class="dt">ParseState</span> a <span class="fu">=</span> <span class="dt">ParseState</span></div>
+<div class="sourceLine" id="12" href="#12" data-line-number="12">  {<span class="ot"> _psCurrent ::</span> (<span class="dt">Exp</span> <span class="dt">Info</span>) }</div>
+<div class="sourceLine" id="13" href="#13" data-line-number="13"></div>
+<div class="sourceLine" id="14" href="#14" data-line-number="14"><span class="kw">type</span> <span class="dt">ExpParse</span> s a <span class="fu">=</span> <span class="dt">StateT</span> (<span class="dt">ParseState</span> s) (<span class="dt">Parsec</span> <span class="dt">Void</span> <span class="dt">Cursor</span>) a</div></code></pre>
+</section>
+<section id="and-were-done-1" class="level2">
+<h2>And we’re done?</h2>
+<p>When parsing sexps, we’d like <code>specialForm</code> to commit upon recognizing the first atom.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"></div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2"><span class="ot">specialForm ::</span> <span class="dt">Compile</span> (<span class="dt">Term</span> <span class="dt">Name</span>)</div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">specialForm <span class="fu">=</span> bareAtom <span class="fu">&gt;&gt;=</span> \<span class="dt">AtomExp</span>{<span class="fu">..</span>} <span class="ot">-&gt;</span></div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">  <span class="kw">case</span> _atomAtom <span class="kw">of</span></div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">    <span class="st">&quot;use&quot;</span> <span class="ot">-&gt;</span> useForm</div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">    <span class="st">&quot;let&quot;</span> <span class="ot">-&gt;</span> letForm</div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7">    <span class="fu">...</span></div>
+<div class="sourceLine" id="8" href="#8" data-line-number="8">    _ <span class="ot">-&gt;</span> expected <span class="st">&quot;special form&quot;</span></div></code></pre>
+</section>
+<section id="and-were-done-2" class="level2">
+<h2>And we’re done?</h2>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="ot">atom ::</span> <span class="dt">ExpParse</span> s (<span class="dt">AtomExp</span> <span class="dt">Info</span>)</div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">atom <span class="fu">=</span> fst <span class="fu">&lt;$&gt;</span> exp <span class="st">&quot;atom&quot;</span> _EAtom</div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3"></div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4"></div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5"><span class="ot">bareAtom ::</span> <span class="dt">ExpParse</span> s (<span class="dt">AtomExp</span> <span class="dt">Info</span>)</div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">bareAtom <span class="fu">=</span> atom <span class="fu">&gt;&gt;=</span> \a<span class="fu">@</span><span class="dt">AtomExp</span>{<span class="fu">..</span>} <span class="ot">-&gt;</span> <span class="kw">case</span> _atomQualifiers <span class="kw">of</span></div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7">  (_<span class="fu">:</span>_) <span class="ot">-&gt;</span> expected <span class="st">&quot;unqualified atom&quot;</span></div>
+<div class="sourceLine" id="8" href="#8" data-line-number="8">  [] <span class="ot">-&gt;</span> return a</div></code></pre>
+<p><code>bareAtom</code> uses <code>atom</code>, testing that qualifiers (ie <code>foo.bar.baz</code> has <code>[&quot;foo&quot;,&quot;bar&quot;]</code> as qualifiers) are empty.</p>
+</section>
+<section id="and-were-done-3" class="level2">
+<h2>And we’re done?</h2>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1">exp<span class="ot"> ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Prism&#39;</span> (<span class="dt">Exp</span> <span class="dt">Info</span>) a <span class="ot">-&gt;</span> <span class="dt">ExpParse</span> s (a,<span class="dt">Exp</span> <span class="dt">Info</span>)</div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">exp ty prism <span class="fu">=</span> <span class="kw">do</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">  <span class="kw">let</span> test i <span class="fu">=</span> <span class="kw">case</span> firstOf prism i <span class="kw">of</span></div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">        <span class="dt">Just</span> a <span class="ot">-&gt;</span> <span class="dt">Right</span> (a,i)</div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">        <span class="dt">Nothing</span> <span class="ot">-&gt;</span> err i (<span class="st">&quot;Expected: &quot;</span> <span class="fu">++</span> ty)</div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">      err i s <span class="fu">=</span> <span class="fu">...</span></div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7">  r <span class="ot">&lt;-</span> lift <span class="fu">$</span> token test</div>
+<div class="sourceLine" id="8" href="#8" data-line-number="8">  return r</div></code></pre>
+<p><code>atom</code> use <code>exp</code>, the fundamental test of an <code>Exp</code>, to apply a <code>Prism</code> to the <code>Exp</code> that is at the cursor.</p>
+</section>
+<section id="and-were-done-4" class="level2">
+<h2>And we’re done?</h2>
+<p><code>exp</code> uses megaparsec’s <code>token</code>, which forms the fundamental test to hook into megaparsec’s semantics.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="kw">class</span> (<span class="dt">Stream</span> s, <span class="dt">MonadPlus</span> m) <span class="ot">=&gt;</span> <span class="dt">MonadParsec</span> e s m <span class="kw">where</span> <span class="fu">...</span></div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2"><span class="ot">  token ::</span> (<span class="dt">Token</span> s <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a) <span class="ot">-&gt;</span> <span class="dt">Set</span> (<span class="dt">ErrorItem</span> (<span class="dt">Token</span> s)) <span class="ot">-&gt;</span> m a</div></code></pre>
+<p><code>(Token s -&gt; Maybe a)</code> provides the predicate to indicate success.</p>
+</section>
+<section id="where-does-commit-happen" class="level2">
+<h2>Where does commit happen?</h2>
+<ul>
+<li><code>specialForm</code></li>
+<li><code>bareAtom</code></li>
+<li><code>atom</code></li>
+</ul>
+</section>
+<section id="try-try-again-and-kiss-performance-goodbye" class="level2">
+<h2><code>try</code>, <code>try</code> again … and kiss performance goodbye</h2>
+<ul>
+<li><code>token</code> commits on the first test</li>
+<li>Thus, more complex tests on <code>Exp</code> must occur in <code>try</code></li>
+<li><code>try</code> is sub-optimal performance as a base case</li>
+<li><code>Char</code>-based parsers never <em>introspect on a char</em></li>
+<li>Thus a single test for the “leftmost term” is sufficient</li>
+</ul>
+</section>
+<section id="so-now-what" class="level2">
+<h2>So now what?</h2>
+<ul>
+<li><code>try</code> everywhere</li>
+<li>Or, model low-level combinators as predicates and thread them through <code>exp</code> …</li>
+<li>And probably provide non-predicate versions for non-commit reuse</li>
+<li>Yuck!</li>
+</ul>
+</section>
+</section>
+<section id="hacking-a-non-char-megaparsec" class="slide level1">
+<h1>Hacking a non-Char Megaparsec</h1>
+<section id="a-better-solution-controlled-commit" class="level2">
+<h2>A better solution: controlled commit</h2>
+<ul>
+<li>Need an “epsilon token” that stays on the epsilon path</li>
+<li>Need an <em>explicit commit</em> that explicitly routes to commit path</li>
+<li>Need clear semantics on when commit occurs</li>
+</ul>
+</section>
+<section id="explicit-commit-the-easy-part" class="level2">
+<h2>Explicit commit: the easy part</h2>
+<p>Simply invoke the “commit OK”</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="co">-- | Call commit continuation with current state.</span></div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2"><span class="ot">pCommit ::</span> forall e s m<span class="fu">.</span> <span class="dt">ParsecT</span> e s m ()</div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">pCommit <span class="fu">=</span> <span class="dt">ParsecT</span> <span class="fu">$</span> \s cok _ _ _ <span class="ot">-&gt;</span> cok () s mempty</div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4"></div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5"><span class="co">-- | Commit any previous recognitions.</span></div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6"><span class="ot">commit ::</span> <span class="dt">ExpParse</span> s ()</div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7">commit <span class="fu">=</span> lift pCommit</div></code></pre>
+</section>
+<section id="epsilon-token-the-hacky-part" class="level2">
+<h2>Epsilon Token: the hacky part</h2>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="ot">pTokenEpsilon ::</span></div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">  <span class="dt">Stream</span> s <span class="ot">=&gt;</span> (<span class="dt">Token</span> s <span class="ot">-&gt;</span> <span class="dt">S.Set</span> (<span class="dt">ErrorItem</span> (<span class="dt">Token</span> s)))</div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">  <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">Token</span> s) <span class="ot">-&gt;</span> <span class="dt">ParsecT</span> e s m a</div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">pTokenEpsilon test <span class="fu">=</span></div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">  <span class="dt">ParsecT</span> <span class="fu">$</span> \s<span class="fu">@</span>(<span class="dt">State</span> input (pos<span class="fu">:|</span>z) tp w) _ _ eok eerr <span class="ot">-&gt;</span></div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">    <span class="kw">case</span> take1_ input <span class="kw">of</span></div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7">      <span class="dt">Nothing</span> <span class="ot">-&gt;</span> eerr <span class="fu">...</span></div>
+<div class="sourceLine" id="8" href="#8" data-line-number="8">      <span class="dt">Just</span> (c,cs) <span class="ot">-&gt;</span> <span class="kw">case</span> test c <span class="kw">of</span></div>
+<div class="sourceLine" id="9" href="#9" data-line-number="9">        <span class="dt">Left</span> (us, ps) <span class="ot">-&gt;</span> eerr <span class="fu">...</span></div>
+<div class="sourceLine" id="10" href="#10" data-line-number="10">        <span class="dt">Right</span> x <span class="ot">-&gt;</span></div>
+<div class="sourceLine" id="11" href="#11" data-line-number="11">          <span class="kw">let</span> <span class="fu">!</span>npos <span class="fu">=</span> advance1 (<span class="dt">Proxy</span><span class="ot"> ::</span> <span class="dt">Proxy</span> s) w pos c</div>
+<div class="sourceLine" id="12" href="#12" data-line-number="12">              newstate <span class="fu">=</span> <span class="dt">State</span> cs (npos<span class="fu">:|</span>z) (tp <span class="fu">+</span> <span class="dv">1</span>) w</div>
+<div class="sourceLine" id="13" href="#13" data-line-number="13">          <span class="kw">in</span> eok x newstate mempty</div>
+<div class="sourceLine" id="14" href="#14" data-line-number="14">          <span class="co">-- ^ only change from original &#39;token&#39; is `cok` -&gt; `eok`</span></div></code></pre>
+</section>
+<section id="success" class="level2">
+<h2>Success!</h2>
+<ul>
+<li><code>exp</code> uses <code>pTokenEpsilon</code>, non-committing</li>
+<li>“low-level” combinators (<code>atom</code> etc) don’t commit</li>
+<li>“list entering” commits, to allow alternatives to switch on contents</li>
+<li>Some other low-level commits include <code>sep</code> and <code>symbol</code></li>
+<li>otherwise explicitly <code>commit</code></li>
+</ul>
+</section>
+<section id="explicit-commit-in-action" class="level2">
+<h2>Explicit commit in action</h2>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="ot">specialForm ::</span> <span class="dt">Compile</span> (<span class="dt">Term</span> <span class="dt">Name</span>)</div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">specialForm <span class="fu">=</span> bareAtom <span class="fu">&gt;&gt;=</span> \<span class="dt">AtomExp</span>{<span class="fu">..</span>} <span class="ot">-&gt;</span> <span class="kw">case</span> _atomAtom <span class="kw">of</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">    <span class="st">&quot;use&quot;</span> <span class="ot">-&gt;</span> commit <span class="fu">&gt;&gt;</span> useForm</div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">    <span class="st">&quot;let&quot;</span> <span class="ot">-&gt;</span> commit <span class="fu">&gt;&gt;</span> letForm</div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">    <span class="st">&quot;let*&quot;</span> <span class="ot">-&gt;</span> commit <span class="fu">&gt;&gt;</span> letsForm</div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">    <span class="st">&quot;defconst&quot;</span> <span class="ot">-&gt;</span> commit <span class="fu">&gt;&gt;</span> defconst</div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7">    <span class="st">&quot;step&quot;</span> <span class="ot">-&gt;</span> commit <span class="fu">&gt;&gt;</span> step</div>
+<div class="sourceLine" id="8" href="#8" data-line-number="8">    <span class="st">&quot;step-with-rollback&quot;</span> <span class="ot">-&gt;</span> commit <span class="fu">&gt;&gt;</span> stepWithRollback</div>
+<div class="sourceLine" id="9" href="#9" data-line-number="9">    <span class="st">&quot;bless&quot;</span> <span class="ot">-&gt;</span> commit <span class="fu">&gt;&gt;</span> bless</div>
+<div class="sourceLine" id="10" href="#10" data-line-number="10">    <span class="st">&quot;deftable&quot;</span> <span class="ot">-&gt;</span> commit <span class="fu">&gt;&gt;</span> deftable</div>
+<div class="sourceLine" id="11" href="#11" data-line-number="11">    <span class="st">&quot;defschema&quot;</span> <span class="ot">-&gt;</span> commit <span class="fu">&gt;&gt;</span> defschema</div>
+<div class="sourceLine" id="12" href="#12" data-line-number="12">    <span class="st">&quot;defun&quot;</span> <span class="ot">-&gt;</span> commit <span class="fu">&gt;&gt;</span> defun</div>
+<div class="sourceLine" id="13" href="#13" data-line-number="13">    <span class="st">&quot;defpact&quot;</span> <span class="ot">-&gt;</span> commit <span class="fu">&gt;&gt;</span> defpact</div>
+<div class="sourceLine" id="14" href="#14" data-line-number="14">    <span class="st">&quot;module&quot;</span> <span class="ot">-&gt;</span> commit <span class="fu">&gt;&gt;</span> moduleForm</div>
+<div class="sourceLine" id="15" href="#15" data-line-number="15">    _ <span class="ot">-&gt;</span> expected <span class="st">&quot;special form&quot;</span></div></code></pre>
+</section>
+</section>
+<section id="postscript" class="slide level1">
+<h1>Postscript</h1>
+<section id="wtf-is-simplifier-ticks-exhausted" class="level2">
+<h2>WTF is “Simplifier ticks exhausted”?</h2>
+<p>Add a single <code>INLINE</code> to Pact.Compile and …</p>
+<pre><code>[72 of 87] Compiling Pact.Compile     ( src/Pact/Compile.hs, .stack-work/dist/x86_64-osx/Cabal-1.24.2.0/build/Pact/Compile.o )
+ghc: panic! (the &#39;impossible&#39; happened)
+  (GHC version 8.0.2 for x86_64-apple-darwin):
+    Simplifier ticks exhausted
+  When trying RuleFired ++
+  To increase the limit, use -fsimpl-tick-factor=N (default 100)
+  If you need to do this, let GHC HQ know, and what factor you needed
+  To see detailed counts use -ddump-simpl-stats
+  Total ticks: 200681
+
+Please report this as a GHC bug:  http://www.haskell.org/ghc/reportabug</code></pre>
+</section>
+</section>
+<section id="thank-you" class="slide level1">
+<h1>Thank You!</h1>
+<p>Stuart Popejoy stuart@kadena.io <span class="citation" data-cites="SirLensALot">@SirLensALot</span></p>
+<p>Pact <br><a href="https://github.com/kadena-io/pact" class="uri">https://github.com/kadena-io/pact</a></p>
+<p>Fadno-XML <br><a href="https://hackage.haskell.org/package/fadno-xml" class="uri">https://hackage.haskell.org/package/fadno-xml</a></p>
+<p>Megaparsec <br><a href="http://hackage.haskell.org/package/megaparsec" class="uri">http://hackage.haskell.org/package/megaparsec</a></p>
+<p>This talk<br> <a href="http://slpopejoy.github.io/talks/parsing-ny-haskell-2018.html" class="uri">http://slpopejoy.github.io/talks/parsing-ny-haskell-2018.html</a></p>
 </section>
     </div>
   </div>
