@@ -237,17 +237,16 @@ defconst es i = case es of
 
 ```lisp
 (module accounts 'accounts-admin-keyset
-  @doc "Accounts module"
   @model [(defproperty conserves-mass
             (= (column-delta 'accounts 'balance) 0.0))]
+
   (defschema account
     @model (invariant (>= balance 0.0))
     balance:decimal
-    amount:decimal
     auth:keyset)
   (deftable accounts:{account})
+
   (defun transfer (src:string dest:string amount:decimal)
-    @doc   "transfer AMOUNT from SRC to DEST"
     @model (property conserves-mass)
     (debit src amount)
     (credit dest amount)) ...
@@ -255,8 +254,8 @@ defconst es i = case es of
 
 ## Embedding a FV DSL in Pact
 
-- Pact parser too "smart"
-- All literal types recognized in parser
+- Pact parser "too smart"
+- E.g., all literal types recognized in parser
 - Need "sexps only"
 
 ## The Pact Parser, v2:
@@ -352,14 +351,15 @@ Epsilon just stays on the same path
 - Longer success paths must happen in `try`
 - Atto is ... different (but not in `parsers`)
 
-## Now, how to write a non-Char stream parser?
+## Now, how to write a non-`Char` stream parser?
 
-- Semantics are hard, performance harder
-- If only a parser library supported arbitrary streams
+- Semantics are hard
+- Performance is harder
+- If only a parser library supported arbitrary streams ...
 
 # Megaparsec 6.x to the rescue
 
-## `Stream` typeclass for arbitrary token stream support
+## `Stream` typeclass for arbitrary input streams
 
 ```haskell
 class (Stream s, MonadPlus m) => MonadParsec e s m where ...
@@ -375,12 +375,12 @@ class (Ord (Token s), Ord (Tokens s)) => Stream s where
 ## `getInput`, `setInput` for "include files"
 - Allows arbitrary re-setting of `Stream` data
 - Intended to support includes
-- Includes == sourcefile trees
-- Exp, XML etc: trees
+- Includes _a.k.a._ sourcefile trees
+- `Exp` ASTs, XML bodies: trees
 
 ## Need "current thing"
 
-- Char parsers don't seem to need to see what we just parsed
+- Char parsers don't need to see what we just parsed
 - Need some extra state to show the current `Exp`
 - Good thing `MonadParsec` has all the instances!
 
@@ -405,7 +405,7 @@ type ExpParse s a = StateT (ParseState s) (Parsec Void Cursor) a
 
 ## And we're done?
 
-When parsing sexps, we'd like `specialForm` to commit upon recognizing the first atom.
+When parsing sexps, we'd like `specialForm` to commit upon recognizing the first atom ...
 
 ```haskell
 
@@ -416,6 +416,24 @@ specialForm = bareAtom >>= \AtomExp{..} ->
     "let" -> letForm
     ...
     _ -> expected "special form"
+```
+```lisp
+(let ((a 1)) a)
+```
+
+## And we're done?
+
+... and if not, we have an `app`, of course!
+
+```haskell
+app :: Compile (Term Name)
+app = do
+  v <- varAtom
+  body <- many (term <|> bindingForm)
+  TApp v body <$> contextInfo
+```
+```lisp
+(+ 1 2)
 ```
 
 ## And we're done?
@@ -470,7 +488,7 @@ class (Stream s, MonadPlus m) => MonadParsec e s m where ...
 - `token` commits on the first test
 - Thus, more complex tests on `Exp` must occur in `try`
 - `try` is sub-optimal performance as a base case
-- `Char`-based parsers never _introspect on a char_
+- `Char`-based parsers _never introspect on a string_
 - Thus a single test for the "leftmost term" is sufficient
 
 ## So now what?
@@ -491,7 +509,7 @@ through `exp` ...
 
 ## Explicit commit: the easy part
 
-Simply invoke the "commit OK"
+Simply create a "commit OK" combinator
 ```haskell
 -- | Call commit continuation with current state.
 pCommit :: forall e s m. ParsecT e s m ()
@@ -526,7 +544,7 @@ pTokenEpsilon test =
 - "low-level" combinators (`atom` etc) don't commit
 - "list entering" commits, to allow alternatives to switch on contents
 - Some other low-level commits include `sep` and `symbol`
-- otherwise explicitly `commit`
+- otherwise user code explicitly `commit`s
 
 ## Explicit commit in action
 

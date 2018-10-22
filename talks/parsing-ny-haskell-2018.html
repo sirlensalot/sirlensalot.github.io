@@ -335,26 +335,25 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 <section id="embedding-a-fv-dsl-in-pact" class="level2">
 <h2>Embedding a FV DSL in Pact</h2>
 <pre class="sourceCode lisp"><code class="sourceCode commonlisp"><div class="sourceLine" id="1" href="#1" data-line-number="1">(module accounts &#39;accounts-admin-keyset</div>
-<div class="sourceLine" id="2" href="#2" data-line-number="2">  @doc <span class="st">&quot;Accounts module&quot;</span></div>
-<div class="sourceLine" id="3" href="#3" data-line-number="3">  @model [(defproperty conserves-mass</div>
-<div class="sourceLine" id="4" href="#4" data-line-number="4">            (<span class="op">=</span> (column-delta &#39;accounts &#39;balance) <span class="fl">0.0</span>))]</div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">  @model [(defproperty conserves-mass</div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">            (<span class="op">=</span> (column-delta &#39;accounts &#39;balance) <span class="fl">0.0</span>))]</div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4"></div>
 <div class="sourceLine" id="5" href="#5" data-line-number="5">  (defschema account</div>
 <div class="sourceLine" id="6" href="#6" data-line-number="6">    @model (invariant (<span class="op">&gt;=</span> balance <span class="fl">0.0</span>))</div>
 <div class="sourceLine" id="7" href="#7" data-line-number="7">    balance:decimal</div>
-<div class="sourceLine" id="8" href="#8" data-line-number="8">    amount:decimal</div>
-<div class="sourceLine" id="9" href="#9" data-line-number="9">    auth:keyset)</div>
-<div class="sourceLine" id="10" href="#10" data-line-number="10">  (deftable accounts:{account})</div>
+<div class="sourceLine" id="8" href="#8" data-line-number="8">    auth:keyset)</div>
+<div class="sourceLine" id="9" href="#9" data-line-number="9">  (deftable accounts:{account})</div>
+<div class="sourceLine" id="10" href="#10" data-line-number="10"></div>
 <div class="sourceLine" id="11" href="#11" data-line-number="11">  (<span class="kw">defun</span><span class="fu"> transfer </span>(src:string dest:string amount:decimal)</div>
-<div class="sourceLine" id="12" href="#12" data-line-number="12">    @doc   <span class="st">&quot;transfer AMOUNT from SRC to DEST&quot;</span></div>
-<div class="sourceLine" id="13" href="#13" data-line-number="13">    @model (property conserves-mass)</div>
-<div class="sourceLine" id="14" href="#14" data-line-number="14">    (debit src amount)</div>
-<div class="sourceLine" id="15" href="#15" data-line-number="15">    (credit dest amount)) ...</div></code></pre>
+<div class="sourceLine" id="12" href="#12" data-line-number="12">    @model (property conserves-mass)</div>
+<div class="sourceLine" id="13" href="#13" data-line-number="13">    (debit src amount)</div>
+<div class="sourceLine" id="14" href="#14" data-line-number="14">    (credit dest amount)) ...</div></code></pre>
 </section>
 <section id="embedding-a-fv-dsl-in-pact-1" class="level2">
 <h2>Embedding a FV DSL in Pact</h2>
 <ul>
-<li>Pact parser too “smart”</li>
-<li>All literal types recognized in parser</li>
+<li>Pact parser “too smart”</li>
+<li>E.g., all literal types recognized in parser</li>
 <li>Need “sexps only”</li>
 </ul>
 </section>
@@ -453,17 +452,18 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 </ul>
 </section>
 <section id="now-how-to-write-a-non-char-stream-parser" class="level2">
-<h2>Now, how to write a non-Char stream parser?</h2>
+<h2>Now, how to write a non-<code>Char</code> stream parser?</h2>
 <ul>
-<li>Semantics are hard, performance harder</li>
-<li>If only a parser library supported arbitrary streams</li>
+<li>Semantics are hard</li>
+<li>Performance is harder</li>
+<li>If only a parser library supported arbitrary streams …</li>
 </ul>
 </section>
 </section>
 <section id="megaparsec-6.x-to-the-rescue" class="slide level1">
 <h1>Megaparsec 6.x to the rescue</h1>
-<section id="stream-typeclass-for-arbitrary-token-stream-support" class="level2">
-<h2><code>Stream</code> typeclass for arbitrary token stream support</h2>
+<section id="stream-typeclass-for-arbitrary-input-streams" class="level2">
+<h2><code>Stream</code> typeclass for arbitrary input streams</h2>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="kw">class</span> (<span class="dt">Stream</span> s, <span class="dt">MonadPlus</span> m) <span class="ot">=&gt;</span> <span class="dt">MonadParsec</span> e s m <span class="kw">where</span> <span class="fu">...</span></div></code></pre>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="kw">class</span> (<span class="dt">Ord</span> (<span class="dt">Token</span> s), <span class="dt">Ord</span> (<span class="dt">Tokens</span> s)) <span class="ot">=&gt;</span> <span class="dt">Stream</span> s <span class="kw">where</span></div>
 <div class="sourceLine" id="2" href="#2" data-line-number="2">  <span class="kw">type</span> <span class="dt">Token</span><span class="ot"> s ::</span> <span class="fu">*</span></div>
@@ -475,14 +475,14 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 <ul>
 <li>Allows arbitrary re-setting of <code>Stream</code> data</li>
 <li>Intended to support includes</li>
-<li>Includes == sourcefile trees</li>
-<li>Exp, XML etc: trees</li>
+<li>Includes <em>a.k.a.</em> sourcefile trees</li>
+<li><code>Exp</code> ASTs, XML bodies: trees</li>
 </ul>
 </section>
 <section id="need-current-thing" class="level2">
 <h2>Need “current thing”</h2>
 <ul>
-<li>Char parsers don’t seem to need to see what we just parsed</li>
+<li>Char parsers don’t need to see what we just parsed</li>
 <li>Need some extra state to show the current <code>Exp</code></li>
 <li>Good thing <code>MonadParsec</code> has all the instances!</li>
 </ul>
@@ -506,7 +506,7 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 </section>
 <section id="and-were-done-1" class="level2">
 <h2>And we’re done?</h2>
-<p>When parsing sexps, we’d like <code>specialForm</code> to commit upon recognizing the first atom.</p>
+<p>When parsing sexps, we’d like <code>specialForm</code> to commit upon recognizing the first atom …</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"></div>
 <div class="sourceLine" id="2" href="#2" data-line-number="2"><span class="ot">specialForm ::</span> <span class="dt">Compile</span> (<span class="dt">Term</span> <span class="dt">Name</span>)</div>
 <div class="sourceLine" id="3" href="#3" data-line-number="3">specialForm <span class="fu">=</span> bareAtom <span class="fu">&gt;&gt;=</span> \<span class="dt">AtomExp</span>{<span class="fu">..</span>} <span class="ot">-&gt;</span></div>
@@ -515,8 +515,19 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 <div class="sourceLine" id="6" href="#6" data-line-number="6">    <span class="st">&quot;let&quot;</span> <span class="ot">-&gt;</span> letForm</div>
 <div class="sourceLine" id="7" href="#7" data-line-number="7">    <span class="fu">...</span></div>
 <div class="sourceLine" id="8" href="#8" data-line-number="8">    _ <span class="ot">-&gt;</span> expected <span class="st">&quot;special form&quot;</span></div></code></pre>
+<pre class="sourceCode lisp"><code class="sourceCode commonlisp"><div class="sourceLine" id="1" href="#1" data-line-number="1">(<span class="kw">let</span> ((a <span class="dv">1</span>)) a)</div></code></pre>
 </section>
 <section id="and-were-done-2" class="level2">
+<h2>And we’re done?</h2>
+<p>… and if not, we have an <code>app</code>, of course!</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="ot">app ::</span> <span class="dt">Compile</span> (<span class="dt">Term</span> <span class="dt">Name</span>)</div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">app <span class="fu">=</span> <span class="kw">do</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">  v <span class="ot">&lt;-</span> varAtom</div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">  body <span class="ot">&lt;-</span> many (term <span class="fu">&lt;|&gt;</span> bindingForm)</div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">  <span class="dt">TApp</span> v body <span class="fu">&lt;$&gt;</span> contextInfo</div></code></pre>
+<pre class="sourceCode lisp"><code class="sourceCode commonlisp"><div class="sourceLine" id="1" href="#1" data-line-number="1">(<span class="op">+</span> <span class="dv">1</span> <span class="dv">2</span>)</div></code></pre>
+</section>
+<section id="and-were-done-3" class="level2">
 <h2>And we’re done?</h2>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="ot">atom ::</span> <span class="dt">ExpParse</span> s (<span class="dt">AtomExp</span> <span class="dt">Info</span>)</div>
 <div class="sourceLine" id="2" href="#2" data-line-number="2">atom <span class="fu">=</span> fst <span class="fu">&lt;$&gt;</span> exp <span class="st">&quot;atom&quot;</span> _EAtom</div>
@@ -528,7 +539,7 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 <div class="sourceLine" id="8" href="#8" data-line-number="8">  [] <span class="ot">-&gt;</span> return a</div></code></pre>
 <p><code>bareAtom</code> uses <code>atom</code>, testing that qualifiers (ie <code>foo.bar.baz</code> has <code>[&quot;foo&quot;,&quot;bar&quot;]</code> as qualifiers) are empty.</p>
 </section>
-<section id="and-were-done-3" class="level2">
+<section id="and-were-done-4" class="level2">
 <h2>And we’re done?</h2>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1">exp<span class="ot"> ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Prism&#39;</span> (<span class="dt">Exp</span> <span class="dt">Info</span>) a <span class="ot">-&gt;</span> <span class="dt">ExpParse</span> s (a,<span class="dt">Exp</span> <span class="dt">Info</span>)</div>
 <div class="sourceLine" id="2" href="#2" data-line-number="2">exp ty prism <span class="fu">=</span> <span class="kw">do</span></div>
@@ -540,7 +551,7 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 <div class="sourceLine" id="8" href="#8" data-line-number="8">  return r</div></code></pre>
 <p><code>atom</code> use <code>exp</code>, the fundamental test of an <code>Exp</code>, to apply a <code>Prism</code> to the <code>Exp</code> that is at the cursor.</p>
 </section>
-<section id="and-were-done-4" class="level2">
+<section id="and-were-done-5" class="level2">
 <h2>And we’re done?</h2>
 <p><code>exp</code> uses megaparsec’s <code>token</code>, which forms the fundamental test to hook into megaparsec’s semantics.</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="kw">class</span> (<span class="dt">Stream</span> s, <span class="dt">MonadPlus</span> m) <span class="ot">=&gt;</span> <span class="dt">MonadParsec</span> e s m <span class="kw">where</span> <span class="fu">...</span></div>
@@ -561,7 +572,7 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 <li><code>token</code> commits on the first test</li>
 <li>Thus, more complex tests on <code>Exp</code> must occur in <code>try</code></li>
 <li><code>try</code> is sub-optimal performance as a base case</li>
-<li><code>Char</code>-based parsers never <em>introspect on a char</em></li>
+<li><code>Char</code>-based parsers <em>never introspect on a string</em></li>
 <li>Thus a single test for the “leftmost term” is sufficient</li>
 </ul>
 </section>
@@ -587,7 +598,7 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 </section>
 <section id="explicit-commit-the-easy-part" class="level2">
 <h2>Explicit commit: the easy part</h2>
-<p>Simply invoke the “commit OK”</p>
+<p>Simply create a “commit OK” combinator</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="co">-- | Call commit continuation with current state.</span></div>
 <div class="sourceLine" id="2" href="#2" data-line-number="2"><span class="ot">pCommit ::</span> forall e s m<span class="fu">.</span> <span class="dt">ParsecT</span> e s m ()</div>
 <div class="sourceLine" id="3" href="#3" data-line-number="3">pCommit <span class="fu">=</span> <span class="dt">ParsecT</span> <span class="fu">$</span> \s cok _ _ _ <span class="ot">-&gt;</span> cok () s mempty</div>
@@ -620,7 +631,7 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 <li>“low-level” combinators (<code>atom</code> etc) don’t commit</li>
 <li>“list entering” commits, to allow alternatives to switch on contents</li>
 <li>Some other low-level commits include <code>sep</code> and <code>symbol</code></li>
-<li>otherwise explicitly <code>commit</code></li>
+<li>otherwise user code explicitly <code>commit</code>s</li>
 </ul>
 </section>
 <section id="explicit-commit-in-action" class="level2">
