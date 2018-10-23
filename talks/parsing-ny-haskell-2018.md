@@ -13,7 +13,7 @@
 
 # Parser Combinators
 
-## &nbsp;
+## A "greatest hit" of Haskell
 ```haskell
 expr :: CharParsing m => m Expr
 expr = (ENumber <$> scientific) <|>
@@ -22,6 +22,7 @@ expr = (ENumber <$> scientific) <|>
        (EList <$> parens (sepBy expr spaces))
 ```
 
+Absurdly expressive, BNF-like moxie
 
 ## Main elements
 - Alternative: `<|>`, `empty`, `some`, `many`
@@ -203,11 +204,11 @@ runXParse e act =
 
 ## Pact Parser/Compiler, v1
 
-- Parser written using `parsers`: `Text` -> `Exp`
-- Uses `trifecta` in SDK, `attoparsec` on blockchain
-- "Compiler" written in spaghetti Haskell: `Exp` -> `Term Name`
+- Parser: coded using `parsers`, from `Text` to `Exp`
+- Parse with `trifecta` in SDK, `attoparsec` on blockchain
+- "Compiler" written in spaghetti Haskell: from `Exp` to `Term Name`
 
-## Pattern-based recognition
+## Compiler v1: Pattern matching for days
 
 ```haskell
 defconst :: [Exp] -> Info -> Compile (Term Name)
@@ -258,8 +259,9 @@ defconst es i = case es of
 - E.g., all literal types recognized in parser
 - Need "sexps only"
 
-## The Pact Parser, v2:
-
+## The Pact Parser, v2
+Emit a drastically simplified `Exp` of lists,
+atoms, literals and delimters
 ```haskell
 data Exp i =
   ELiteral (LiteralExp i) |
@@ -275,12 +277,27 @@ data Exp i =
 - Compiler has to work with a far less rich `Exp`
 - Wouldn't it be nice if we could "parse" over `Exp`?
 
-## Take 1: StateT Exp + Except
+## Parsing over `Exp` ASTs
 
-- `Except` not the right shape for "epsilon failures"
-- `State` not the right shape for backtracking semantics
-- Have to rely on `try` too much
+Start with the "better XML parser" shape, with homebrew cursor
+
+```haskell
+data Cursor = Cursor
+  { _cContext :: Maybe (Cursor,Exp Info)
+  , _cStream :: [Exp Info] }
+
+type ExpParser a = StateT Cursor (Except PactError) a
+```
+
+## Problems with StateT + Except
+
+- `Except` is too blunt a tool
+  - Unclear when an alternative "commits"
+- `State` overly general
+  - Complex handling for tree-backed backtracking
+- Excessive need for `try`
 - Probably slow
+- Why not ... look at what "real" parsers do
 
 # How Parsers Work
 
@@ -294,62 +311,58 @@ data Exp i =
 parserBind :: ParsecT s u m a -> (a -> ParsecT s u m b)
            -> ParsecT s u m b
 parserBind m k = ParsecT $ \s cok cerr eok eerr ->
-    let mcok x s err =
-            let peok x s err' = cok x s (mergeError err err')
-                peerr err' = cerr (mergeError err err')
-            in  unParser (k x) s cok cerr peok peerr
-        meok x s err =
-            let peok x s err' = eok x s (mergeError err err')
-                peerr err' = eerr (mergeError err err')
-            in  unParser (k x) s cok cerr peok peerr
-    in unParser m s mcok cerr meok eerr
+  let mcok x s err =
+        let peok x s err' = cok x s (mergeError err err')
+            peerr err'    = cerr (mergeError err err')
+        in  unParser (k x) s cok cerr peok peerr
+      meok x s err =
+        let peok x s err' = eok x s (mergeError err err')
+            peerr err'    = eerr (mergeError err err')
+        in  unParser (k x) s cok cerr peok peerr
+  in unParser m s mcok cerr meok eerr
 ```
 
 ## Path-following state modeled as CP
 
 
 ```haskell
---                            commit   epsilon
-parserBind m k = ParsecT $ \s cok cerr eok eerr ->
-    let -- Commit Path
-        mcok x s err =
-            let peok x s err' = -- epsilon ok ...
-                  cok x s (mergeError err err') -- routes to commit!
-                peerr err' = -- epsilon error ...
-                  cerr (mergeError err err')    -- routes to commit!
-            --                  commit   epsilon
-            in unParser (k x) s cok cerr peok peerr
-        ...
-    --              commit    epsilon
-    in unParser m s mcok cerr meok eerr -- errors unchanged
+parserBind m k = ParsecT $ \s cok         cerr eok eerr ->
+                 --           ^ commit-ok ^ commit-error
+  let mcok x s err =
+        let peok x s err' = cok x s (mergeError err err')
+            --              ^ routes to commit-ok!
+            peerr err'    = cerr (mergeError err err')
+            --              ^ routes to commit-error!
+        in unParser (k x) s cok cerr peok     peerr
+           --                        ^ eps-ok ^ eps-err
+      ...
+  in unParser m s mcok cerr meok eerr
+     --           ^ commit path
 ```
-Commit path "re-routes" epsilon/empty paths
+Commit path "re-routes" epsilon paths
 
 ## Path-following state modeled as CP
 
 ```haskell
---                            commit   epsilon
-parserBind m k = ParsecT $ \s cok cerr eok eerr ->
-    let ...
-        -- Epsilon Path, just merges errors
-        meok x s err =
-            let peok x s err' = eok x s (mergeError err err')
-                peerr err' = eerr (mergeError err err')
-            --                   commit   epsilon
-            in  unParser (k x) s cok cerr peok peerr
-    --              commit    epsilon
-    in unParser m s mcok cerr meok eerr
+parserBind m k = ParsecT $ \s cok cerr eok      eerr ->
+                 --                    ^ eps-ok ^ eps-error
+  let ...
+      meok x s err =
+        let peok x s err' = eok x s (mergeError err err')
+            peerr err'    = eerr (mergeError err err')
+        in  unParser (k x) s cok cerr peok     peerr
+            --                        ^ eps-ok ^ eps-err
+  in unParser m s mcok cerr meok eerr
+     --                     ^ epsilon path
 ```
-Epsilon just stays on the same path
+Epsilon path doesn't re-route, just merges errors
 
-## Haskell Parser Semantics (except Atto)
+## Haskell Parser Semantics
 
-- Focus on "leftmost" item in a given alternative:
-  - After "epsilon" success, continue down commit path
-  - After "epsilon" error, error down commit path
-- Happy path: validate an alternative at the first test
+- Commit on "leftmost" item in a given alternative
+- Subsequent "epsilon" successes or failures stay on commit path
 - Longer success paths must happen in `try`
-- Atto is ... different (but not in `parsers`)
+- [Atto not analyzed for this talk]
 
 ## Now, how to write a non-`Char` stream parser?
 
@@ -387,11 +400,6 @@ class (Ord (Token s), Ord (Tokens s)) => Stream s where
 ## And we're done!
 
 ```haskell
-data Cursor = Cursor
-  { _cContext :: Maybe (Cursor,Exp Info)
-  , _cStream :: [Exp Info]
-  } deriving (Show)
-
 instance Stream Cursor where
   type Token Cursor = Exp Info
   type Tokens Cursor = [Exp Info]
@@ -403,55 +411,56 @@ data ParseState a = ParseState
 type ExpParse s a = StateT (ParseState s) (Parsec Void Cursor) a
 ```
 
-## And we're done?
+## Are we done?
 
-When parsing sexps, we'd like `specialForm` to commit upon recognizing the first atom ...
+When parsing sexps, we'd like `specialForm` to recognize the first atom,
+otherwise assume we're doing normal LISP function application.
 
 ```haskell
+sexp :: Compile (Term Name)
+sexp = withList' Parens (specialForm <|> app)
 
+```
+```lisp
+(let ((a 1)) a) ;; special form
+(use accounts)  ;; special form
+(+ 1 2)         ;; apply `+`
+```
+
+## Sexp: special form or app
+
+`specialForm` recognizes a "bare atom" and switches on text,
+while `app` accepts bare, qualified and typed atoms.
+
+```haskell
 specialForm :: Compile (Term Name)
-specialForm = bareAtom >>= \AtomExp{..} ->
-  case _atomAtom of
+specialForm = bareAtom >>= \AtomExp{..} -> case _atomAtom of
     "use" -> useForm
     "let" -> letForm
     ...
     _ -> expected "special form"
-```
-```lisp
-(let ((a 1)) a)
-```
 
-## And we're done?
-
-... and if not, we have an `app`, of course!
-
-```haskell
 app :: Compile (Term Name)
 app = do
   v <- varAtom
   body <- many (term <|> bindingForm)
   TApp v body <$> contextInfo
 ```
-```lisp
-(+ 1 2)
-```
 
-## And we're done?
+## Delegating/factored combinators
 
 ```haskell
 atom :: ExpParse s (AtomExp Info)
 atom = fst <$> exp "atom" _EAtom
-
 
 bareAtom :: ExpParse s (AtomExp Info)
 bareAtom = atom >>= \a@AtomExp{..} -> case _atomQualifiers of
   (_:_) -> expected "unqualified atom"
   [] -> return a
 ```
-`bareAtom` uses `atom`, testing that qualifiers
-(ie `foo.bar.baz` has `["foo","bar"]` as qualifiers) are empty.
+`bareAtom` delegates to the `atom` combinator.
 
-## And we're done?
+## `exp`, the base case `Exp` test
 
 ```haskell
 exp :: String -> Prism' (Exp Info) a -> ExpParse s (a,Exp Info)
@@ -463,48 +472,60 @@ exp ty prism = do
   r <- lift $ token test
   return r
 ```
-`atom` use `exp`, the fundamental test of an `Exp`, to apply
-a `Prism` to the `Exp` that is at the cursor.
+`atom` uses `exp` to apply a `Prism` to the `Exp` that is at the cursor,
+via `token`.
 
-## And we're done?
+## `token`, the hook into Megaparsec
 
-`exp` uses megaparsec's `token`, which forms the fundamental test to hook into
+`exp` uses megaparsec's `token`, which hooks into
 megaparsec's semantics.
 
 ```haskell
 class (Stream s, MonadPlus m) => MonadParsec e s m where ...
   token :: (Token s -> Maybe a) -> Set (ErrorItem (Token s)) -> m a
 ```
-`(Token s -> Maybe a)` provides the predicate to indicate success.
+The `(Token s -> Maybe a)` argument is the predicate to indicate success.
 
-## Where does commit happen?
+## Quiz: where does commit happen?
 
+- `sexp`
 - `specialForm`
+- `app`
 - `bareAtom`
 - `atom`
 
-## `try`, `try` again ... and kiss performance goodbye
+## `atom`: way too soon
+
+- Consider a bad let: `(let (foo bar))`
+- `letForm` would discover error
+- But error context would be at top of `specialForm`
+- i.e., terrible UX
+- `try` around `specialForm` could fail to `app`
+
+## The problem with non-Char parsers
 
 - `token` commits on the first test
-- Thus, more complex tests on `Exp` must occur in `try`
-- `try` is sub-optimal performance as a base case
-- `Char`-based parsers _never introspect on a string_
-- Thus a single test for the "leftmost term" is sufficient
+  - `Char`-based parsers _never introspect on a string_
+  - Thus a single "leftmost term" test suffices
+- Whereas an `Exp` parser needs to introspect:
+  - atom? + unqualified? + atom text is correct?
+- `try` can't represent certain paths
+- `try` is slow as a base case
 
 ## So now what?
 
-- `try` everywhere
-- Or, model low-level combinators as predicates and thread them
-through `exp` ...
-- And probably provide non-predicate versions for non-commit reuse
+- `token` is the only way in and uses predicates
+- Model low-level combinators as predicates
+- Requires a different shape for "pre-commit" combinators
+  - would probably need "committing" versions too
 - Yuck!
 
 # Hacking a non-Char Megaparsec
 
 ## A better solution: controlled commit
 
-- Need an "epsilon token" that stays on the epsilon path
-- Need an _explicit commit_ that explicitly routes to commit path
+- Need an "epsilon `token`" to linger on the epsilon path
+- Need an _explicit combinator_ to switch to commit path
 - Need clear semantics on when commit occurs
 
 ## Explicit commit: the easy part
@@ -520,7 +541,7 @@ commit :: ExpParse s ()
 commit = lift pCommit
 ```
 
-## Epsilon Token: the hacky part
+## Epsilon Token: hacky copypasta
 ```haskell
 pTokenEpsilon ::
   Stream s => (Token s -> S.Set (ErrorItem (Token s)))
@@ -542,8 +563,10 @@ pTokenEpsilon test =
 
 - `exp` uses `pTokenEpsilon`, non-committing
 - "low-level" combinators (`atom` etc) don't commit
-- "list entering" commits, to allow alternatives to switch on contents
-- Some other low-level commits include `sep` and `symbol`
+- Examples of committing combinators:
+  - list entering (`withList'` etc)
+  - `symbol` (single-path bare atom text)
+  - `sep` (`exp` + separator match)
 - otherwise user code explicitly `commit`s
 
 ## Explicit commit in action
