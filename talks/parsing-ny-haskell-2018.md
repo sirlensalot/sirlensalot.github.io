@@ -289,6 +289,18 @@ data Cursor = Cursor
 type ExpParser a = StateT Cursor (Except PactError) a
 ```
 
+## Improvement to Compile code
+
+```haskell
+defconst :: Compile (Term Name)
+defconst = do
+  modName <- currentModule'
+  a <- arg
+  v <- term
+  m <- meta
+  TConst a modName (CVRaw v) m <$> contextInfo
+```
+
 ## Problems with StateT + Except
 
 - `Except` is too blunt a tool
@@ -304,7 +316,14 @@ type ExpParser a = StateT Cursor (Except PactError) a
 ## Continuation Passing For Days
 ![](img/parsers.png)
 
-## Just mangle four continuations, what's the problem?
+## The Four Continuations of the Parsocalypse
+
+- "Commit OK": recognize, proceed, commit to this path
+- "Commit error": fatal error, unless in `try`
+- "Epsilon/Empty OK": recognize, proceed, don't commit
+- "Epsilon/Empty error": recoverable error
+
+## What's the problem?
 
 ```haskell
 -- Parsec Monad bind
@@ -411,7 +430,7 @@ data ParseState a = ParseState
 type ExpParse s a = StateT (ParseState s) (Parsec Void Cursor) a
 ```
 
-## Are we done?
+## We're not done ...
 
 When parsing sexps, we'd like `specialForm` to recognize the first atom,
 otherwise assume we're doing normal LISP function application.
@@ -429,8 +448,8 @@ sexp = withList' Parens (specialForm <|> app)
 
 ## Sexp: special form or app
 
-`specialForm` recognizes a "bare atom" and switches on text,
-while `app` accepts bare, qualified and typed atoms.
+`specialForm` switches on the text of a "bare atom"
+while `app` accepts any bare/qualified/typed atom.
 
 ```haskell
 specialForm :: Compile (Term Name)
@@ -449,6 +468,8 @@ app = do
 
 ## Delegating/factored combinators
 
+`bareAtom` delegates to the `atom` combinator.
+
 ```haskell
 atom :: ExpParse s (AtomExp Info)
 atom = fst <$> exp "atom" _EAtom
@@ -458,9 +479,11 @@ bareAtom = atom >>= \a@AtomExp{..} -> case _atomQualifiers of
   (_:_) -> expected "unqualified atom"
   [] -> return a
 ```
-`bareAtom` delegates to the `atom` combinator.
 
 ## `exp`, the base case `Exp` test
+
+`atom` uses `exp` to apply a `Prism` to the `Exp` that is at the cursor,
+via `token`.
 
 ```haskell
 exp :: String -> Prism' (Exp Info) a -> ExpParse s (a,Exp Info)
@@ -472,8 +495,7 @@ exp ty prism = do
   r <- lift $ token test
   return r
 ```
-`atom` uses `exp` to apply a `Prism` to the `Exp` that is at the cursor,
-via `token`.
+
 
 ## `token`, the hook into Megaparsec
 

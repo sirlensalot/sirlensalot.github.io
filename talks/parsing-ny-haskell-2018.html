@@ -385,6 +385,16 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 <div class="sourceLine" id="4" href="#4" data-line-number="4"></div>
 <div class="sourceLine" id="5" href="#5" data-line-number="5"><span class="kw">type</span> <span class="dt">ExpParser</span> a <span class="fu">=</span> <span class="dt">StateT</span> <span class="dt">Cursor</span> (<span class="dt">Except</span> <span class="dt">PactError</span>) a</div></code></pre>
 </section>
+<section id="improvement-to-compile-code" class="level2">
+<h2>Improvement to Compile code</h2>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="ot">defconst ::</span> <span class="dt">Compile</span> (<span class="dt">Term</span> <span class="dt">Name</span>)</div>
+<div class="sourceLine" id="2" href="#2" data-line-number="2">defconst <span class="fu">=</span> <span class="kw">do</span></div>
+<div class="sourceLine" id="3" href="#3" data-line-number="3">  modName <span class="ot">&lt;-</span> currentModule&#39;</div>
+<div class="sourceLine" id="4" href="#4" data-line-number="4">  a <span class="ot">&lt;-</span> arg</div>
+<div class="sourceLine" id="5" href="#5" data-line-number="5">  v <span class="ot">&lt;-</span> term</div>
+<div class="sourceLine" id="6" href="#6" data-line-number="6">  m <span class="ot">&lt;-</span> meta</div>
+<div class="sourceLine" id="7" href="#7" data-line-number="7">  <span class="dt">TConst</span> a modName (<span class="dt">CVRaw</span> v) m <span class="fu">&lt;$&gt;</span> contextInfo</div></code></pre>
+</section>
 <section id="problems-with-statet-except" class="level2">
 <h2>Problems with StateT + Except</h2>
 <ul>
@@ -408,8 +418,17 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 <h2>Continuation Passing For Days</h2>
 <p><img data-src="img/parsers.png" /></p>
 </section>
-<section id="just-mangle-four-continuations-whats-the-problem" class="level2">
-<h2>Just mangle four continuations, what’s the problem?</h2>
+<section id="the-four-continuations-of-the-parsocalypse" class="level2">
+<h2>The Four Continuations of the Parsocalypse</h2>
+<ul>
+<li>“Commit OK”: recognize, proceed, commit to this path</li>
+<li>“Commit error”: fatal error, unless in <code>try</code></li>
+<li>“Epsilon/Empty OK”: recognize, proceed, don’t commit</li>
+<li>“Epsilon/Empty error”: recoverable error</li>
+</ul>
+</section>
+<section id="whats-the-problem" class="level2">
+<h2>What’s the problem?</h2>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="co">-- Parsec Monad bind</span></div>
 <div class="sourceLine" id="2" href="#2" data-line-number="2"><span class="ot">parserBind ::</span> <span class="dt">ParsecT</span> s u m a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">ParsecT</span> s u m b)</div>
 <div class="sourceLine" id="3" href="#3" data-line-number="3">           <span class="ot">-&gt;</span> <span class="dt">ParsecT</span> s u m b</div>
@@ -511,8 +530,8 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 <div class="sourceLine" id="8" href="#8" data-line-number="8"></div>
 <div class="sourceLine" id="9" href="#9" data-line-number="9"><span class="kw">type</span> <span class="dt">ExpParse</span> s a <span class="fu">=</span> <span class="dt">StateT</span> (<span class="dt">ParseState</span> s) (<span class="dt">Parsec</span> <span class="dt">Void</span> <span class="dt">Cursor</span>) a</div></code></pre>
 </section>
-<section id="are-we-done" class="level2">
-<h2>Are we done?</h2>
+<section id="were-not-done" class="level2">
+<h2>We’re not done …</h2>
 <p>When parsing sexps, we’d like <code>specialForm</code> to recognize the first atom, otherwise assume we’re doing normal LISP function application.</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="ot">sexp ::</span> <span class="dt">Compile</span> (<span class="dt">Term</span> <span class="dt">Name</span>)</div>
 <div class="sourceLine" id="2" href="#2" data-line-number="2">sexp <span class="fu">=</span> withList&#39; <span class="dt">Parens</span> (specialForm <span class="fu">&lt;|&gt;</span> app)</div></code></pre>
@@ -522,7 +541,7 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 </section>
 <section id="sexp-special-form-or-app" class="level2">
 <h2>Sexp: special form or app</h2>
-<p><code>specialForm</code> recognizes a “bare atom” and switches on text, while <code>app</code> accepts bare, qualified and typed atoms.</p>
+<p><code>specialForm</code> switches on the text of a “bare atom” while <code>app</code> accepts any bare/qualified/typed atom.</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="ot">specialForm ::</span> <span class="dt">Compile</span> (<span class="dt">Term</span> <span class="dt">Name</span>)</div>
 <div class="sourceLine" id="2" href="#2" data-line-number="2">specialForm <span class="fu">=</span> bareAtom <span class="fu">&gt;&gt;=</span> \<span class="dt">AtomExp</span>{<span class="fu">..</span>} <span class="ot">-&gt;</span> <span class="kw">case</span> _atomAtom <span class="kw">of</span></div>
 <div class="sourceLine" id="3" href="#3" data-line-number="3">    <span class="st">&quot;use&quot;</span> <span class="ot">-&gt;</span> useForm</div>
@@ -538,6 +557,7 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 </section>
 <section id="delegatingfactored-combinators" class="level2">
 <h2>Delegating/factored combinators</h2>
+<p><code>bareAtom</code> delegates to the <code>atom</code> combinator.</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1"><span class="ot">atom ::</span> <span class="dt">ExpParse</span> s (<span class="dt">AtomExp</span> <span class="dt">Info</span>)</div>
 <div class="sourceLine" id="2" href="#2" data-line-number="2">atom <span class="fu">=</span> fst <span class="fu">&lt;$&gt;</span> exp <span class="st">&quot;atom&quot;</span> _EAtom</div>
 <div class="sourceLine" id="3" href="#3" data-line-number="3"></div>
@@ -545,10 +565,10 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 <div class="sourceLine" id="5" href="#5" data-line-number="5">bareAtom <span class="fu">=</span> atom <span class="fu">&gt;&gt;=</span> \a<span class="fu">@</span><span class="dt">AtomExp</span>{<span class="fu">..</span>} <span class="ot">-&gt;</span> <span class="kw">case</span> _atomQualifiers <span class="kw">of</span></div>
 <div class="sourceLine" id="6" href="#6" data-line-number="6">  (_<span class="fu">:</span>_) <span class="ot">-&gt;</span> expected <span class="st">&quot;unqualified atom&quot;</span></div>
 <div class="sourceLine" id="7" href="#7" data-line-number="7">  [] <span class="ot">-&gt;</span> return a</div></code></pre>
-<p><code>bareAtom</code> delegates to the <code>atom</code> combinator.</p>
 </section>
 <section id="exp-the-base-case-exp-test" class="level2">
 <h2><code>exp</code>, the base case <code>Exp</code> test</h2>
+<p><code>atom</code> uses <code>exp</code> to apply a <code>Prism</code> to the <code>Exp</code> that is at the cursor, via <code>token</code>.</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><div class="sourceLine" id="1" href="#1" data-line-number="1">exp<span class="ot"> ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Prism&#39;</span> (<span class="dt">Exp</span> <span class="dt">Info</span>) a <span class="ot">-&gt;</span> <span class="dt">ExpParse</span> s (a,<span class="dt">Exp</span> <span class="dt">Info</span>)</div>
 <div class="sourceLine" id="2" href="#2" data-line-number="2">exp ty prism <span class="fu">=</span> <span class="kw">do</span></div>
 <div class="sourceLine" id="3" href="#3" data-line-number="3">  <span class="kw">let</span> test i <span class="fu">=</span> <span class="kw">case</span> firstOf prism i <span class="kw">of</span></div>
@@ -557,7 +577,6 @@ code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Infor
 <div class="sourceLine" id="6" href="#6" data-line-number="6">      err i s <span class="fu">=</span> <span class="fu">...</span></div>
 <div class="sourceLine" id="7" href="#7" data-line-number="7">  r <span class="ot">&lt;-</span> lift <span class="fu">$</span> token test</div>
 <div class="sourceLine" id="8" href="#8" data-line-number="8">  return r</div></code></pre>
-<p><code>atom</code> uses <code>exp</code> to apply a <code>Prism</code> to the <code>Exp</code> that is at the cursor, via <code>token</code>.</p>
 </section>
 <section id="token-the-hook-into-megaparsec" class="level2">
 <h2><code>token</code>, the hook into Megaparsec</h2>
